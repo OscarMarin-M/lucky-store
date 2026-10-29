@@ -19,7 +19,7 @@ class InvalidUnitsPerBoxException extends DomainException {
 }
 
 class InvalidAmountException extends DomainException {
-  const InvalidAmountException(String message) : super(message);
+  const InvalidAmountException(super.message);
 }
 
 class InsufficientStockException extends DomainException {
