@@ -8,6 +8,7 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
 - Flutter + Dart, Android primero
 - SQLite con Drift (migraciones versionadas)
 - Patrón repositorio: la UI nunca accede directo a la base de datos
+- Comentario de funcionalidad en codigo NO generico.
 - Pensado para añadir sincronización (Supabase) más adelante, NO implementarla aún
 
 ## Reglas de dominio (no romper)

@@ -1,0 +1,244 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../app/providers.dart';
+import '../../core/errors/domain_exception.dart';
+import '../../core/money/money.dart';
+import '../../domain/entities/product.dart';
+import '../format/stock_format.dart';
+
+/// Create or edit a product. Stock and cost are read-only here: they only
+/// move through purchases, sales and adjustments.
+class ProductFormPage extends ConsumerStatefulWidget {
+  const ProductFormPage({super.key, this.product});
+
+  final Product? product;
+
+  @override
+  ConsumerState<ProductFormPage> createState() => _ProductFormPageState();
+}
+
+class _ProductFormPageState extends ConsumerState<ProductFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _name;
+  late final TextEditingController _sku;
+  late final TextEditingController _unitsPerBox;
+  late final TextEditingController _priceUnit;
+  late final TextEditingController _priceBox;
+  late bool _isActive;
+  bool _saving = false;
+
+  bool get _isEdit => widget.product != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.product;
+    _name = TextEditingController(text: p?.name);
+    _sku = TextEditingController(text: p?.sku);
+    _unitsPerBox = TextEditingController(text: '${p?.unitsPerBox ?? 1}');
+    _priceUnit = TextEditingController(
+      text: p == null ? '' : p.suggestedPriceUnit.format(symbol: false),
+    );
+    _priceBox = TextEditingController(
+      text: p?.suggestedPriceBox?.format(symbol: false) ?? '',
+    );
+    _isActive = p?.isActive ?? true;
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _sku.dispose();
+    _unitsPerBox.dispose();
+    _priceUnit.dispose();
+    _priceBox.dispose();
+    super.dispose();
+  }
+
+  int get _unitsPerBoxValue => int.tryParse(_unitsPerBox.text.trim()) ?? 1;
+
+  String? _validateMoney(String? value, {required bool required}) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return required ? 'Obligatorio' : null;
+    try {
+      final money = Money.parse(text);
+      if (money.isNegative) return 'No puede ser negativo';
+      return null;
+    } on DomainException {
+      return 'Usa un monto como 12,50 (máx. 2 decimales)';
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+
+    final repo = ref.read(productRepositoryProvider);
+    final unitsPerBox = _unitsPerBoxValue;
+    final sku = _sku.text.trim().isEmpty ? null : _sku.text.trim();
+    final priceUnit = Money.parse(_priceUnit.text.trim());
+    final priceBoxText = _priceBox.text.trim();
+    // A box price only makes sense when the product has boxes.
+    final priceBox =
+        unitsPerBox > 1 && priceBoxText.isNotEmpty ? Money.parse(priceBoxText) : null;
+
+    try {
+      final existing = widget.product;
+      if (existing == null) {
+        await repo.create(Product.create(
+          name: _name.text.trim(),
+          sku: sku,
+          unitsPerBox: unitsPerBox,
+          suggestedPriceUnit: priceUnit,
+          suggestedPriceBox: priceBox,
+        ));
+      } else {
+        await repo.update(existing.withDetails(
+          name: _name.text.trim(),
+          sku: sku,
+          unitsPerBox: unitsPerBox,
+          suggestedPriceUnit: priceUnit,
+          suggestedPriceBox: priceBox,
+          isActive: _isActive,
+        ));
+      }
+      if (mounted) Navigator.of(context).pop();
+    } on DomainException catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final p = widget.product;
+    final hasBoxes = _unitsPerBoxValue > 1;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(_isEdit ? 'Editar producto' : 'Nuevo producto')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            TextFormField(
+              controller: _name,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(labelText: 'Nombre'),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Obligatorio' : null,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _sku,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(labelText: 'SKU / código (opcional)'),
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _unitsPerBox,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              textInputAction: TextInputAction.next,
+              onChanged: (_) => setState(() {}),
+              decoration: const InputDecoration(
+                labelText: 'Unidades por caja',
+                helperText: '1 si se vende solo por unidad',
+              ),
+              validator: (v) {
+                final n = int.tryParse(v?.trim() ?? '');
+                return (n == null || n < 1) ? 'Debe ser 1 o más' : null;
+              },
+            ),
+            const SizedBox(height: 14),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _priceUnit,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Precio por unidad',
+                      prefixText: 'Bs ',
+                    ),
+                    validator: (v) => _validateMoney(v, required: true),
+                  ),
+                ),
+                if (hasBoxes) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _priceBox,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Precio por caja',
+                        prefixText: 'Bs ',
+                        helperText: 'Vacío = unidad × cantidad',
+                      ),
+                      validator: (v) => _validateMoney(v, required: false),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Son precios sugeridos: al vender puedes cambiarlos.',
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            if (_isEdit) ...[
+              const SizedBox(height: 8),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Producto activo'),
+                value: _isActive,
+                onChanged: (v) => setState(() => _isActive = v),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Inventario', style: theme.textTheme.titleSmall),
+                      const SizedBox(height: 8),
+                      Text('Stock: ${formatStock(p!.stockUnits, p.unitsPerBox)}'
+                          '${p.stockUnits > 0 ? ' (${p.stockUnits} u)' : ''}'),
+                      Text('Costo promedio: ${p.avgCost.format()} por unidad'),
+                      Text('Valor en stock: ${p.stockValue.format()}'),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Se actualiza con compras, ventas y ajustes.',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: FilledButton(
+            onPressed: _saving ? null : _save,
+            child: Text(_isEdit ? 'Guardar cambios' : 'Crear producto'),
+          ),
+        ),
+      ),
+    );
+  }
+}

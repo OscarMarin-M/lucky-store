@@ -77,6 +77,35 @@ class Product extends BaseEntity {
           suggestedPriceBox ?? suggestedPriceUnit.times(unitsPerBox),
       };
 
+  /// Edits the catalog data of the product (what a form changes). Unlike
+  /// [copyWith], null [sku] / [suggestedPriceBox] really clear the field.
+  /// Stock and average cost are untouched: only purchases, sales and
+  /// adjustments move them.
+  Product withDetails({
+    required String name,
+    String? sku,
+    required int unitsPerBox,
+    required Money suggestedPriceUnit,
+    Money? suggestedPriceBox,
+    required bool isActive,
+  }) {
+    if (unitsPerBox < 1) throw InvalidUnitsPerBoxException(unitsPerBox);
+    return Product(
+      id: id,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      deletedAt: deletedAt,
+      name: name,
+      sku: sku,
+      unitsPerBox: unitsPerBox,
+      stockUnits: stockUnits,
+      avgCost: avgCost,
+      suggestedPriceUnit: suggestedPriceUnit,
+      suggestedPriceBox: suggestedPriceBox,
+      isActive: isActive,
+    );
+  }
+
   Product copyWith({
     DateTime? updatedAt,
     DateTime? deletedAt,
