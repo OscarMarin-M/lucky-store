@@ -25,3 +25,17 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
 - Commits pequeños y descriptivos, una funcionalidad por rama.
 - Tests obligatorios para la lógica de costos y conversión de cajas.
 - Comandos: `flutter pub get`, `dart run build_runner build`, `flutter test`, `flutter analyze`
+
+## Notas técnicas
+- Capas: `lib/core` (Money en centavos, UnitCost a 4 decimales, presentaciones),
+  `lib/domain` (entidades, interfaces, casos de uso, CostStrategy),
+  `lib/data` (Drift + repositorios), `lib/app/providers.dart` (Riverpod, raíz de
+  composición), `lib/presentation` (pantallas). CRUD nuevo: heredar `DriftCrudRepository`.
+- Cambio de esquema: subir `schemaVersion`, agregar el paso en `migration` y ejecutar
+  `dart run drift_dev schema dump lib/data/database/app_database.dart drift_schemas/`.
+- Tests de widgets con Drift: sembrar datos ANTES de montar la pantalla (dentro de
+  `tester.runAsync`); al final desmontar, `container.dispose()` y cerrar la base con
+  `tester.runAsync(db.close)`. No usar `pumpAndSettle` con un campo de texto enfocado.
+  Ver `test/presentation/*_page_test.dart`.
+- Probar en el teléfono: `flutter build apk --debug` y luego
+  `adb install -r build\app\outputs\flutter-apk\app-debug.apk`.
