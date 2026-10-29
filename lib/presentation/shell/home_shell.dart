@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../common/coming_soon_page.dart';
 import '../products/products_page.dart';
+import '../purchases/purchase_page.dart';
 
 /// Bottom navigation (thumb reach). Tabs keep their state while switching.
 class HomeShell extends StatefulWidget {
@@ -18,7 +19,7 @@ class _HomeShellState extends State<HomeShell> {
     ComingSoonPage(title: 'Inicio', icon: Icons.insights_outlined),
     ProductsPage(),
     ComingSoonPage(title: 'Vender', icon: Icons.point_of_sale_outlined),
-    ComingSoonPage(title: 'Comprar', icon: Icons.shopping_basket_outlined),
+    PurchasePage(),
     ComingSoonPage(title: 'Historial', icon: Icons.history),
   ];
 

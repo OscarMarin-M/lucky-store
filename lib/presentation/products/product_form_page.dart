@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
 import '../../domain/entities/product.dart';
+import '../common/validators.dart';
 import '../format/stock_format.dart';
 
 /// Create or edit a product. Stock and cost are read-only here: they only
@@ -59,18 +60,6 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
 
   int get _unitsPerBoxValue => int.tryParse(_unitsPerBox.text.trim()) ?? 1;
 
-  String? _validateMoney(String? value, {required bool required}) {
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) return required ? 'Obligatorio' : null;
-    try {
-      final money = Money.parse(text);
-      if (money.isNegative) return 'No puede ser negativo';
-      return null;
-    } on DomainException {
-      return 'Usa un monto como 12,50 (máx. 2 decimales)';
-    }
-  }
-
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -86,8 +75,9 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
 
     try {
       final existing = widget.product;
+      final Product saved;
       if (existing == null) {
-        await repo.create(Product.create(
+        saved = await repo.create(Product.create(
           name: _name.text.trim(),
           sku: sku,
           unitsPerBox: unitsPerBox,
@@ -95,7 +85,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
           suggestedPriceBox: priceBox,
         ));
       } else {
-        await repo.update(existing.withDetails(
+        saved = await repo.update(existing.withDetails(
           name: _name.text.trim(),
           sku: sku,
           unitsPerBox: unitsPerBox,
@@ -104,7 +94,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
           isActive: _isActive,
         ));
       }
-      if (mounted) Navigator.of(context).pop();
+      // Returned so callers (e.g. the purchase picker) can use the product.
+      if (mounted) Navigator.of(context).pop(saved);
     } on DomainException catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -169,7 +160,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                       labelText: 'Precio por unidad',
                       prefixText: 'Bs ',
                     ),
-                    validator: (v) => _validateMoney(v, required: true),
+                    validator: (v) => validateMoney(v, required: true),
                   ),
                 ),
                 if (hasBoxes) ...[
@@ -183,7 +174,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                         prefixText: 'Bs ',
                         helperText: 'Vacío = unidad × cantidad',
                       ),
-                      validator: (v) => _validateMoney(v, required: false),
+                      validator: (v) => validateMoney(v, required: false),
                     ),
                   ),
                 ],
