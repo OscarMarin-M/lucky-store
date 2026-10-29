@@ -329,12 +329,12 @@ void main() {
       expect(after.avgCost.raw, 20000);
     });
 
-    test('a whole box can be written off as a gift', () async {
+    test('a whole box can be written off as own use', () async {
       await env.registerAdjustment(
         productId: p.id,
         quantity: 1,
         presentation: Presentation.box,
-        reason: AdjustmentReason.gift,
+        reason: AdjustmentReason.ownUse,
       );
       expect((await reload(p)).stockUnits, 0);
     });

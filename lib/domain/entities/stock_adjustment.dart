@@ -4,15 +4,19 @@ import '../../core/quantity/presentation.dart';
 import 'base_entity.dart';
 
 /// Why stock left without a sale.
+///
+/// Gifts given as a promotion are NOT adjustments: they are a sale line at
+/// price 0, so their cost counts against the profit of that sale.
+/// The reason is stored by name: do not rename without a migration.
 enum AdjustmentReason {
   /// Merma: loss of product.
   shrinkage,
 
-  /// Regalo / muestra.
-  gift,
-
   /// Producto vencido.
   expired,
+
+  /// Consumo propio (taken by the owner or staff).
+  ownUse,
 
   other,
 }

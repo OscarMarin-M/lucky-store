@@ -6,7 +6,8 @@ import '../repositories/document_repositories.dart';
 import '../repositories/product_repository.dart';
 import 'inventory_ledger.dart';
 
-/// Writes units off the inventory without a sale (merma, regalo, vencido).
+/// Writes units off the inventory without a sale (merma, vencido, consumo
+/// propio, otros).
 /// The loss is valued at the current average cost.
 class RegisterStockAdjustment {
   RegisterStockAdjustment({

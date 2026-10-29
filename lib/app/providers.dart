@@ -8,6 +8,7 @@ import '../data/repositories/drift_stock_adjustment_repository.dart';
 import '../domain/costing/cost_strategy.dart';
 import '../domain/costing/weighted_average_cost_strategy.dart';
 import '../domain/entities/product.dart';
+import '../domain/entities/stock_adjustment.dart';
 import '../domain/repositories/document_repositories.dart';
 import '../domain/repositories/product_repository.dart';
 import '../domain/usecases/inventory_ledger.dart';
@@ -93,6 +94,15 @@ final registerStockAdjustmentProvider = Provider<RegisterStockAdjustment>(
 );
 
 // --- Live data for screens ------------------------------------------------
+
+/// Write-offs of one product, newest first.
+final productAdjustmentsProvider =
+    StreamProvider.family<List<StockAdjustment>, String>(
+  (ref, productId) => ref
+      .watch(stockAdjustmentRepositoryProvider)
+      .watchAll()
+      .map((all) => all.where((a) => a.productId == productId).toList()),
+);
 
 /// Active products, ordered by name, refreshed on every change.
 final productsProvider = StreamProvider<List<Product>>(

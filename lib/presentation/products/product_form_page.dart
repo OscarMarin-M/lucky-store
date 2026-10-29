@@ -8,6 +8,7 @@ import '../../core/money/money.dart';
 import '../../domain/entities/product.dart';
 import '../common/validators.dart';
 import '../format/stock_format.dart';
+import '../inventory/stock_write_off_page.dart';
 
 /// Create or edit a product. Stock and cost are read-only here: they only
 /// move through purchases, sales and adjustments.
@@ -107,7 +108,14 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final p = widget.product;
+    // Live copy so the inventory card follows write-offs made from here.
+    final original = widget.product;
+    final p = original == null
+        ? null
+        : (ref.watch(productsProvider).value
+                ?.where((x) => x.id == original.id)
+                .firstOrNull ??
+            original);
     final hasBoxes = _unitsPerBoxValue > 1;
 
     return Scaffold(
@@ -209,9 +217,19 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                       Text('Valor en stock: ${p.stockValue.format()}'),
                       const SizedBox(height: 6),
                       Text(
-                        'Se actualiza con compras, ventas y ajustes.',
+                        'Se actualiza con compras, ventas y bajas.',
                         style: theme.textTheme.bodySmall
                             ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => StockWriteOffPage(product: p),
+                          ),
+                        ),
+                        icon: const Icon(Icons.remove_circle_outline),
+                        label: const Text('Dar de baja (merma, vencido…)'),
                       ),
                     ],
                   ),

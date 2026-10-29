@@ -21,7 +21,7 @@ final class StockState {
   String toString() => 'StockState(units: $units, avgCost: $avgCost)';
 }
 
-/// Result of taking units out of stock (sale, shrinkage, gift, expiry).
+/// Result of taking units out of stock (sale, shrinkage, own use, expiry).
 final class OutflowResult {
   const OutflowResult({
     required this.newState,
