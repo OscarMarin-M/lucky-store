@@ -42,17 +42,17 @@ void main() {
     expect(state().lines.every((l) => l.quantity == 1), isTrue);
   });
 
-  test('cannot submit until every line has a valid quantity and total', () {
+  test('cannot submit until every line has a valid quantity and price', () {
     expect(state().canSubmit, isFalse, reason: 'empty draft');
 
     draft().addProduct(snickers);
     final id = state().lines.single.id;
-    expect(state().canSubmit, isFalse, reason: 'no total yet');
+    expect(state().canSubmit, isFalse, reason: 'no price yet');
 
-    draft().setTotal(id, '1.234');
+    draft().setPrice(id, '1.234');
     expect(state().canSubmit, isFalse, reason: 'more than 2 decimals');
 
-    draft().setTotal(id, '48,50');
+    draft().setPrice(id, '48,50');
     expect(state().canSubmit, isTrue);
 
     draft().setQuantity(id, 0);
@@ -67,13 +67,36 @@ void main() {
     final b = state().lines[1].id;
     draft()
       ..setQuantity(a, 2)
-      ..setTotal(a, '96')
+      ..setPrice(a, '48')
       ..setQuantity(b, 10)
-      ..setTotal(b, '12,50');
+      ..setPrice(b, '1,25');
 
     expect(state().lines[0].unitsBase, 48);
     expect(state().lines[1].unitsBase, 10);
     expect(state().total, const Money(10850));
+  });
+
+  test('the price is per box: total = price x boxes, and the unit cost', () {
+    draft().addProduct(snickers); // 24 u per box
+    final id = state().lines.single.id;
+    draft()
+      ..setQuantity(id, 3)
+      ..setPrice(id, '50');
+
+    final line = state().lines.single;
+    expect(line.lineTotal, const Money(15000));
+    expect(line.unitsBase, 72);
+    expect(line.unitCost!.raw, 20833); // 50 / 24 = 2,0833 per unit
+  });
+
+  test('switching box/unit clears the typed price', () {
+    draft().addProduct(snickers);
+    final id = state().lines.single.id;
+    draft()
+      ..setPrice(id, '50')
+      ..setPresentation(id, Presentation.unit);
+    expect(state().lines.single.priceText, isEmpty);
+    expect(state().canSubmit, isFalse);
   });
 
   test('removeLine and clear', () {
@@ -95,7 +118,7 @@ void main() {
     final id = state().lines.single.id;
     draft()
       ..setQuantity(id, 2)
-      ..setTotal(id, '96');
+      ..setPrice(id, '48');
 
     final purchase = await draft().submit();
 
@@ -112,7 +135,7 @@ void main() {
   test('a rejected submit keeps the draft', () async {
     draft().addProduct(snickers);
     final id = state().lines.single.id;
-    draft().setTotal(id, '10');
+    draft().setPrice(id, '10');
     await container.read(productRepositoryProvider).softDelete(snickers.id);
 
     await expectLater(draft().submit(), throwsA(isA<EntityNotFoundException>()));

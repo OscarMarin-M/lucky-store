@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/money/money.dart';
+import '../../core/money/unit_cost.dart';
 import '../../core/quantity/presentation.dart';
 import '../../core/util/clock.dart';
 import '../../domain/entities/product.dart';
@@ -9,33 +10,48 @@ import '../../domain/entities/purchase.dart';
 import '../../domain/usecases/register_purchase.dart';
 import '../common/validators.dart';
 
-/// One line being typed. [totalText] stays raw so the field keeps exactly
-/// what the user wrote; [lineTotal] is its parsed value.
+/// One line being typed. The user enters the price of ONE box (or unit);
+/// the line total and what each unit comes out at are derived from it.
+/// [priceText] stays raw so the field keeps exactly what the user wrote.
 class DraftPurchaseLine {
   const DraftPurchaseLine({
     required this.id,
     required this.product,
     required this.quantity,
     required this.presentation,
-    this.totalText = '',
+    this.priceText = '',
   });
 
   /// Starts in boxes when the product has them: that is how stock is bought.
   factory DraftPurchaseLine.forProduct(Product product) => DraftPurchaseLine(
-        id: newId(),
-        product: product,
-        quantity: 1,
-        presentation:
-            product.unitsPerBox > 1 ? Presentation.box : Presentation.unit,
-      );
+    id: newId(),
+    product: product,
+    quantity: 1,
+    presentation: product.unitsPerBox > 1
+        ? Presentation.box
+        : Presentation.unit,
+  );
 
   final String id;
   final Product product;
   final int quantity;
   final Presentation presentation;
-  final String totalText;
 
-  Money? get lineTotal => tryParseMoney(totalText);
+  /// Price paid per [presentation] (one box or one unit), as typed.
+  final String priceText;
+
+  Money? get price => tryParseMoney(priceText);
+
+  /// `price x quantity`: exact, integer centavos.
+  Money? get lineTotal => quantity < 1 ? null : price?.times(quantity);
+
+  /// What each base unit comes out at ("sale a").
+  UnitCost? get unitCost {
+    final total = lineTotal;
+    final units = unitsBase;
+    if (total == null || units == null || total.isNegative) return null;
+    return UnitCost.fromTotal(total, units);
+  }
 
   /// Quantity in base units, or null while the quantity is invalid.
   int? get unitsBase => quantity < 1
@@ -47,22 +63,21 @@ class DraftPurchaseLine {
         );
 
   bool get isValid {
-    final total = lineTotal;
-    return quantity >= 1 && total != null && !total.isNegative;
+    final p = price;
+    return quantity >= 1 && p != null && !p.isNegative;
   }
 
   DraftPurchaseLine copyWith({
     int? quantity,
     Presentation? presentation,
-    String? totalText,
-  }) =>
-      DraftPurchaseLine(
-        id: id,
-        product: product,
-        quantity: quantity ?? this.quantity,
-        presentation: presentation ?? this.presentation,
-        totalText: totalText ?? this.totalText,
-      );
+    String? priceText,
+  }) => DraftPurchaseLine(
+    id: id,
+    product: product,
+    quantity: quantity ?? this.quantity,
+    presentation: presentation ?? this.presentation,
+    priceText: priceText ?? this.priceText,
+  );
 }
 
 class PurchaseDraftState {
@@ -83,21 +98,21 @@ class PurchaseDraftState {
   bool get canSubmit => lines.isNotEmpty && lines.every((l) => l.isValid);
 
   /// Sum of the valid line totals typed so far.
-  Money get total =>
-      lines.map((l) => l.lineTotal ?? Money.zero).fold(Money.zero, (a, b) => a + b);
+  Money get total => lines
+      .map((l) => l.lineTotal ?? Money.zero)
+      .fold(Money.zero, (a, b) => a + b);
 
   PurchaseDraftState copyWith({
     List<DraftPurchaseLine>? lines,
     DateTime? date,
     String? supplier,
     String? notes,
-  }) =>
-      PurchaseDraftState(
-        lines: lines ?? this.lines,
-        date: date ?? this.date,
-        supplier: supplier ?? this.supplier,
-        notes: notes ?? this.notes,
-      );
+  }) => PurchaseDraftState(
+    lines: lines ?? this.lines,
+    date: date ?? this.date,
+    supplier: supplier ?? this.supplier,
+    notes: notes ?? this.notes,
+  );
 }
 
 class PurchaseDraft extends Notifier<PurchaseDraftState> {
@@ -111,7 +126,9 @@ class PurchaseDraft extends Notifier<PurchaseDraftState> {
   }
 
   void removeLine(String id) {
-    state = state.copyWith(lines: state.lines.where((l) => l.id != id).toList());
+    state = state.copyWith(
+      lines: state.lines.where((l) => l.id != id).toList(),
+    );
   }
 
   void _updateLine(String id, DraftPurchaseLine Function(DraftPurchaseLine) f) {
@@ -123,11 +140,17 @@ class PurchaseDraft extends Notifier<PurchaseDraftState> {
   void setQuantity(String id, int quantity) =>
       _updateLine(id, (l) => l.copyWith(quantity: quantity));
 
-  void setPresentation(String id, Presentation presentation) =>
-      _updateLine(id, (l) => l.copyWith(presentation: presentation));
+  /// The typed price meant "per box" or "per unit": switching clears it so a
+  /// unit price is never registered as a box price by accident.
+  void setPresentation(String id, Presentation presentation) => _updateLine(
+    id,
+    (l) => l.presentation == presentation
+        ? l
+        : l.copyWith(presentation: presentation, priceText: ''),
+  );
 
-  void setTotal(String id, String text) =>
-      _updateLine(id, (l) => l.copyWith(totalText: text));
+  void setPrice(String id, String text) =>
+      _updateLine(id, (l) => l.copyWith(priceText: text));
 
   void setDate(DateTime date) => state = state.copyWith(date: date);
   void setSupplier(String value) => state = state.copyWith(supplier: value);

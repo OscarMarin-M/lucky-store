@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
-import '../../core/money/unit_cost.dart';
 import '../../core/quantity/presentation.dart';
+import '../common/quantity_stepper.dart';
 import '../common/validators.dart';
 import '../format/date_format.dart';
 import 'product_picker_sheet.dart';
@@ -44,7 +43,9 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
-    if (picked != null) ref.read(purchaseDraftProvider.notifier).setDate(picked);
+    if (picked != null) {
+      ref.read(purchaseDraftProvider.notifier).setDate(picked);
+    }
   }
 
   Future<void> _submit() async {
@@ -55,7 +56,9 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
       await ref.read(purchaseDraftProvider.notifier).submit();
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Compra registrada · ${total.format()}')));
+        ..showSnackBar(
+          SnackBar(content: Text('Compra registrada · ${total.format()}')),
+        );
     } on DomainException catch (e) {
       messenger
         ..hideCurrentSnackBar()
@@ -91,7 +94,9 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
             children: [
               ActionChip(
                 avatar: const Icon(Icons.event, size: 18),
-                label: Text(draft.date == null ? 'Hoy' : formatDate(draft.date!)),
+                label: Text(
+                  draft.date == null ? 'Hoy' : formatDate(draft.date!),
+                ),
                 onPressed: _pickDate,
               ),
             ],
@@ -101,7 +106,9 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
             controller: _supplier,
             onChanged: notifier.setSupplier,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Proveedor (opcional)'),
+            decoration: const InputDecoration(
+              labelText: 'Proveedor (opcional)',
+            ),
           ),
           const SizedBox(height: 16),
           for (final line in draft.lines) ...[
@@ -113,11 +120,16 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Column(
                 children: [
-                  Icon(Icons.shopping_basket_outlined,
-                      size: 56, color: theme.colorScheme.outline),
+                  Icon(
+                    Icons.shopping_basket_outlined,
+                    size: 56,
+                    color: theme.colorScheme.outline,
+                  ),
                   const SizedBox(height: 12),
-                  Text('Agrega los productos que compraste',
-                      style: TextStyle(color: theme.colorScheme.outline)),
+                  Text(
+                    'Agrega los productos que compraste',
+                    style: TextStyle(color: theme.colorScheme.outline),
+                  ),
                 ],
               ),
             ),
@@ -125,7 +137,9 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
             onPressed: _addProduct,
             icon: const Icon(Icons.add),
             label: const Text('Agregar producto'),
-            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
           ),
         ],
       ),
@@ -166,26 +180,29 @@ class _LineCard extends ConsumerStatefulWidget {
 
 class _LineCardState extends ConsumerState<_LineCard> {
   late final TextEditingController _qty;
-  late final TextEditingController _total;
+  late final TextEditingController _price;
 
   @override
   void initState() {
     super.initState();
     _qty = TextEditingController(text: '${widget.line.quantity}');
-    _total = TextEditingController(text: widget.line.totalText);
+    _price = TextEditingController(text: widget.line.priceText);
+  }
+
+  /// Switching box/unit clears the price in the draft: mirror it.
+  @override
+  void didUpdateWidget(covariant _LineCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.line.priceText != _price.text) {
+      _price.text = widget.line.priceText;
+    }
   }
 
   @override
   void dispose() {
     _qty.dispose();
-    _total.dispose();
+    _price.dispose();
     super.dispose();
-  }
-
-  void _setQuantity(int value) {
-    final q = value < 1 ? 1 : value;
-    _qty.text = '$q';
-    ref.read(purchaseDraftProvider.notifier).setQuantity(widget.line.id, q);
   }
 
   @override
@@ -195,28 +212,26 @@ class _LineCardState extends ConsumerState<_LineCard> {
     final notifier = ref.read(purchaseDraftProvider.notifier);
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
+    final isBox = line.presentation == Presentation.box;
 
     final units = line.unitsBase;
     final total = line.lineTotal;
-    String? preview;
+    final unitCost = line.unitCost;
     String? averagePreview;
-    if (units != null && total != null && !total.isNegative) {
-      preview = '= $units u · ${UnitCost.fromTotal(total, units).format()} c/u';
-      final next = ref.read(costStrategyProvider).applyPurchase(
-            product.stockState,
-            units: units,
-            total: total,
-          );
+    if (units != null && total != null && unitCost != null) {
+      final next = ref
+          .read(costStrategyProvider)
+          .applyPurchase(product.stockState, units: units, total: total);
       averagePreview = product.stockUnits > 0
-          ? 'Costo promedio: ${product.avgCost.format()} → ${next.avgCost.format()}'
+          ? 'Costo promedio pasa de ${product.avgCost.format()} a ${next.avgCost.format()}'
           : 'Costo promedio: ${next.avgCost.format()}';
     }
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
@@ -230,74 +245,112 @@ class _LineCardState extends ConsumerState<_LineCard> {
                 ),
               ],
             ),
-            if (product.unitsPerBox > 1) ...[
-              SegmentedButton<Presentation>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(
-                    value: Presentation.box,
-                    label: Text('Caja (${product.unitsPerBox} u)'),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 4),
+                  if (product.unitsPerBox > 1) ...[
+                    SegmentedButton<Presentation>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                          value: Presentation.box,
+                          label: Text('Caja (${product.unitsPerBox} u)'),
+                        ),
+                        const ButtonSegment(
+                          value: Presentation.unit,
+                          label: Text('Unidad'),
+                        ),
+                      ],
+                      selected: {line.presentation},
+                      onSelectionChanged: (s) =>
+                          notifier.setPresentation(line.id, s.first),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      QuantityStepper(
+                        controller: _qty,
+                        onChanged: (q) => notifier.setQuantity(line.id, q),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _price,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          onChanged: (v) => notifier.setPrice(line.id, v),
+                          decoration: InputDecoration(
+                            labelText: isBox
+                                ? 'Precio por caja'
+                                : 'Precio por unidad',
+                            prefixText: 'Bs ',
+                            errorText: line.priceText.isEmpty
+                                ? null
+                                : validateMoney(line.priceText, required: true),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const ButtonSegment(value: Presentation.unit, label: Text('Unidad')),
+                  if (unitCost != null) ...[
+                    const SizedBox(height: 12),
+                    _InfoRow(
+                      label: 'Total ($units u)',
+                      value: total!.format(),
+                      emphasis: true,
+                    ),
+                    if (isBox)
+                      _InfoRow(
+                        label: 'Sale a',
+                        value: '${unitCost.format()} c/u',
+                      ),
+                    Text(
+                      averagePreview!,
+                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                    ),
+                  ],
                 ],
-                selected: {line.presentation},
-                onSelectionChanged: (s) => notifier.setPresentation(line.id, s.first),
               ),
-              const SizedBox(height: 12),
-            ],
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton.filledTonal(
-                  tooltip: 'Menos',
-                  icon: const Icon(Icons.remove),
-                  onPressed: () => _setQuantity(line.quantity - 1),
-                ),
-                SizedBox(
-                  width: 64,
-                  child: TextField(
-                    controller: _qty,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (v) =>
-                        notifier.setQuantity(line.id, int.tryParse(v) ?? 0),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-                IconButton.filledTonal(
-                  tooltip: 'Más',
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _setQuantity(line.quantity + 1),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _total,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (v) => notifier.setTotal(line.id, v),
-                    decoration: InputDecoration(
-                      labelText: 'Total pagado',
-                      prefixText: 'Bs ',
-                      isDense: true,
-                      errorText: line.totalText.isEmpty
-                          ? null
-                          : validateMoney(line.totalText, required: true),
-                    ),
-                  ),
-                ),
-              ],
             ),
-            if (preview != null) ...[
-              const SizedBox(height: 10),
-              Text(preview, style: theme.textTheme.bodyMedium),
-              Text(averagePreview!, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
-            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// `label ............ value`, used for the computed figures of a line.
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.emphasis = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasis;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = emphasis
+        ? theme.textTheme.titleSmall
+        : theme.textTheme.bodyMedium;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: style),
+          Text(value, style: style),
+        ],
       ),
     );
   }

@@ -58,12 +58,15 @@ void main() {
     expect(find.text('Caja (24 u)'), findsOneWidget);
     await tester.tap(find.byTooltip('Más'));
     await tester.pump();
-    await tester.enterText(find.widgetWithText(TextField, 'Total pagado'), '96');
+    // Price of ONE box; total and unit cost are derived.
+    await tester.enterText(find.widgetWithText(TextField, 'Precio por caja'), '48');
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('= 48 u · Bs 2,0000 c/u'), findsOneWidget);
+    expect(find.text('Total (48 u)'), findsOneWidget);
+    expect(find.text('Bs 96,00'), findsNWidgets(2)); // line total + footer
+    expect(find.text('Sale a'), findsOneWidget);
+    expect(find.text('Bs 2,0000 c/u'), findsOneWidget);
     expect(find.text('Costo promedio: Bs 2,0000'), findsOneWidget);
-    expect(find.text('Bs 96,00'), findsOneWidget); // footer total
 
     await tester.tap(find.text('Registrar compra'));
     await tester.pumpAndSettle();
@@ -93,11 +96,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Twix'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, 'Total pagado'), '36');
+    await tester.enterText(find.widgetWithText(TextField, 'Precio por caja'), '36');
     await tester.pump(const Duration(milliseconds: 100));
 
     // 12 u @ 2,00 + 12 u @ 3,00 => 2,50
-    expect(find.text('Costo promedio: Bs 2,0000 → Bs 2,5000'), findsOneWidget);
+    expect(find.text('Costo promedio pasa de Bs 2,0000 a Bs 2,5000'), findsOneWidget);
     await teardown(tester);
   });
 
@@ -110,7 +113,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Gomitas');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por unidad'), '1');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Por unidad'), '1');
     await tester.tap(find.text('Crear producto'));
     await tester.pumpAndSettle();
 
