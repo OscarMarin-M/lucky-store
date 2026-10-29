@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(const LuckyStoreApp());
+  runApp(const ProviderScope(child: LuckyStoreApp()));
 }
 
 /// Entry point placeholder: screens live in `presentation/` and are built later.
@@ -10,9 +11,15 @@ class LuckyStoreApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       title: 'Lucky Store',
-      home: Scaffold(),
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        colorSchemeSeed: Colors.indigo,
+        useMaterial3: true,
+      ),
+      home: const Scaffold(),
     );
   }
 }
