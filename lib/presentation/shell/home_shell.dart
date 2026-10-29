@@ -52,10 +52,7 @@ class _HomeShellState extends State<HomeShell> {
             selectedIcon: Icon(Icons.shopping_basket),
             label: 'Comprar',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.history),
-            label: 'Historial',
-          ),
+          NavigationDestination(icon: Icon(Icons.history), label: 'Historial'),
         ],
       ),
     );

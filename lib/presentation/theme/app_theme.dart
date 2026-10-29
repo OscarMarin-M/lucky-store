@@ -19,13 +19,20 @@ ThemeData buildDarkTheme() {
       backgroundColor: const Color(0xFF1A1A22),
       indicatorColor: scheme.primaryContainer,
     ),
+    // Underline-style borders keep the floating label INSIDE the filled box
+    // (an outline border puts it on the top edge).
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
+      fillColor: scheme.surfaceContainerHighest,
+      border: _fieldBorder(BorderSide.none),
+      enabledBorder: _fieldBorder(BorderSide.none),
+      focusedBorder: _fieldBorder(BorderSide(color: scheme.primary, width: 2)),
+      errorBorder: _fieldBorder(BorderSide(color: scheme.error)),
+      focusedErrorBorder: _fieldBorder(
+        BorderSide(color: scheme.error, width: 2),
       ),
     ),
+    chipTheme: const ChipThemeData(showCheckmark: false),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
@@ -40,6 +47,11 @@ ThemeData buildDarkTheme() {
     ),
   );
 }
+
+InputBorder _fieldBorder(BorderSide side) => UnderlineInputBorder(
+  borderRadius: BorderRadius.circular(14),
+  borderSide: side,
+);
 
 /// Semantic colors for money results; reports use the same ones.
 extension MoneyColors on ColorScheme {

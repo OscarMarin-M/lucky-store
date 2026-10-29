@@ -40,6 +40,7 @@ void main() {
       expect(const Money(1250).format(), 'Bs 12,50');
       expect(const Money(5).format(), 'Bs 0,05');
       expect(const Money(-1250).format(symbol: false), '-12,50');
+      expect(const Money(-50).format(), '-Bs 0,50');
     });
 
     test('sum of an iterable', () {

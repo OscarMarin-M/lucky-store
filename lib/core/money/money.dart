@@ -44,12 +44,12 @@ final class Money implements Comparable<Money> {
   @override
   int compareTo(Money other) => cents.compareTo(other.cents);
 
-  /// `Bs 12,50` (or `12,50` with [symbol] false).
+  /// `Bs 12,50`, `-Bs 12,50` (or `12,50` / `-12,50` with [symbol] false).
   String format({bool symbol = true}) {
     final abs = cents.abs();
     final text = '${abs ~/ 100},${(abs % 100).toString().padLeft(2, '0')}';
-    final signed = cents < 0 ? '-$text' : text;
-    return symbol ? 'Bs $signed' : signed;
+    final withSymbol = symbol ? 'Bs $text' : text;
+    return cents < 0 ? '-$withSymbol' : withSymbol;
   }
 
   @override

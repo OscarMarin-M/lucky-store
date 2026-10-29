@@ -104,7 +104,7 @@ void main() {
     await tester.tap(find.text('Regalo'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Regalo: el costo cuenta'), findsOneWidget);
-    expect(find.text('Ganancia Bs -2,00'), findsOneWidget);
+    expect(find.text('Ganancia -Bs 2,00'), findsOneWidget);
     expect(tester.widget<FilledButton>(charge).onPressed, isNotNull);
     await teardown(tester);
   });

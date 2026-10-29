@@ -71,29 +71,34 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     final priceUnit = Money.parse(_priceUnit.text.trim());
     final priceBoxText = _priceBox.text.trim();
     // A box price only makes sense when the product has boxes.
-    final priceBox =
-        unitsPerBox > 1 && priceBoxText.isNotEmpty ? Money.parse(priceBoxText) : null;
+    final priceBox = unitsPerBox > 1 && priceBoxText.isNotEmpty
+        ? Money.parse(priceBoxText)
+        : null;
 
     try {
       final existing = widget.product;
       final Product saved;
       if (existing == null) {
-        saved = await repo.create(Product.create(
-          name: _name.text.trim(),
-          sku: sku,
-          unitsPerBox: unitsPerBox,
-          suggestedPriceUnit: priceUnit,
-          suggestedPriceBox: priceBox,
-        ));
+        saved = await repo.create(
+          Product.create(
+            name: _name.text.trim(),
+            sku: sku,
+            unitsPerBox: unitsPerBox,
+            suggestedPriceUnit: priceUnit,
+            suggestedPriceBox: priceBox,
+          ),
+        );
       } else {
-        saved = await repo.update(existing.withDetails(
-          name: _name.text.trim(),
-          sku: sku,
-          unitsPerBox: unitsPerBox,
-          suggestedPriceUnit: priceUnit,
-          suggestedPriceBox: priceBox,
-          isActive: _isActive,
-        ));
+        saved = await repo.update(
+          existing.withDetails(
+            name: _name.text.trim(),
+            sku: sku,
+            unitsPerBox: unitsPerBox,
+            suggestedPriceUnit: priceUnit,
+            suggestedPriceBox: priceBox,
+            isActive: _isActive,
+          ),
+        );
       }
       // Returned so callers (e.g. the purchase picker) can use the product.
       if (mounted) Navigator.of(context).pop(saved);
@@ -112,14 +117,18 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     final original = widget.product;
     final p = original == null
         ? null
-        : (ref.watch(productsProvider).value
-                ?.where((x) => x.id == original.id)
-                .firstOrNull ??
-            original);
+        : (ref
+                  .watch(productsProvider)
+                  .value
+                  ?.where((x) => x.id == original.id)
+                  .firstOrNull ??
+              original);
     final hasBoxes = _unitsPerBoxValue > 1;
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Editar producto' : 'Nuevo producto')),
+      appBar: AppBar(
+        title: Text(_isEdit ? 'Editar producto' : 'Nuevo producto'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -137,7 +146,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             TextFormField(
               controller: _sku,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'SKU / código (opcional)'),
+              decoration: const InputDecoration(labelText: 'Código (opcional)'),
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -155,17 +164,21 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                 return (n == null || n < 1) ? 'Debe ser 1 o más' : null;
               },
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 20),
+            Text('Precio de venta sugerido', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: TextFormField(
                     controller: _priceUnit,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
-                      labelText: 'Precio por unidad',
+                      labelText: 'Por unidad',
                       prefixText: 'Bs ',
                     ),
                     validator: (v) => validateMoney(v, required: true),
@@ -176,11 +189,12 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                   Expanded(
                     child: TextFormField(
                       controller: _priceBox,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
-                        labelText: 'Precio por caja',
+                        labelText: 'Por caja',
                         prefixText: 'Bs ',
-                        helperText: 'Vacío = unidad × cantidad',
                       ),
                       validator: (v) => validateMoney(v, required: false),
                     ),
@@ -188,11 +202,15 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                 ],
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
-              'Son precios sugeridos: al vender puedes cambiarlos.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              hasBoxes
+                  ? 'Puedes cambiarlo al vender. Sin precio por caja se usa unidad × cantidad. '
+                        'El costo sale de las compras.'
+                  : 'Puedes cambiarlo al vender. El costo sale de las compras.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
             if (_isEdit) ...[
               const SizedBox(height: 8),
@@ -211,15 +229,18 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                     children: [
                       Text('Inventario', style: theme.textTheme.titleSmall),
                       const SizedBox(height: 8),
-                      Text('Stock: ${formatStock(p!.stockUnits, p.unitsPerBox)}'
-                          '${p.stockUnits > 0 ? ' (${p.stockUnits} u)' : ''}'),
+                      Text(
+                        'Stock: ${formatStock(p!.stockUnits, p.unitsPerBox)}'
+                        '${p.stockUnits > 0 ? ' (${p.stockUnits} u)' : ''}',
+                      ),
                       Text('Costo promedio: ${p.avgCost.format()} por unidad'),
                       Text('Valor en stock: ${p.stockValue.format()}'),
                       const SizedBox(height: 6),
                       Text(
                         'Se actualiza con compras, ventas y bajas.',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       OutlinedButton.icon(

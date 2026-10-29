@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -8,6 +7,7 @@ import '../../core/money/money.dart';
 import '../../core/quantity/presentation.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/stock_adjustment.dart';
+import '../common/quantity_stepper.dart';
 import '../format/date_format.dart';
 import '../format/stock_format.dart';
 import '../theme/app_theme.dart';
@@ -41,12 +41,11 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
 
   int get _qty => int.tryParse(_quantity.text.trim()) ?? 0;
 
-  void _setQty(int value) => setState(() {
-        _quantity.text = '${value < 1 ? 1 : value}';
-      });
-
   /// What the write-off would do, or the reason it cannot be done.
-  ({int units, Money loss, int remaining})? _preview(Product p, {required void Function(String) onError}) {
+  ({int units, Money loss, int remaining})? _preview(
+    Product p, {
+    required void Function(String) onError,
+  }) {
     if (_qty < 1) return null;
     try {
       final units = toBaseUnits(
@@ -54,14 +53,20 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
         presentation: _presentation,
         unitsPerBox: p.unitsPerBox,
       );
-      final out = ref.read(costStrategyProvider).applyOutflow(
+      final out = ref
+          .read(costStrategyProvider)
+          .applyOutflow(
             p.stockState,
             units: units,
-            allowNegativeStock: ref.read(inventoryPolicyProvider).allowNegativeStock,
+            allowNegativeStock: ref
+                .read(inventoryPolicyProvider)
+                .allowNegativeStock,
           );
       return (units: units, loss: out.totalCost, remaining: out.newState.units);
     } on InsufficientStockException catch (e) {
-      onError('Stock insuficiente: hay ${e.available} u y quieres dar de baja ${e.requested} u');
+      onError(
+        'Stock insuficiente: hay ${e.available} u y quieres dar de baja ${e.requested} u',
+      );
       return null;
     }
   }
@@ -81,11 +86,13 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
       navigator.pop();
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(
-            '${reasonLabel(_reason)}: ${adj.unitsBase} u de "${p.name}" · pérdida ${adj.costTotal.format()}',
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              '${reasonLabel(_reason)}: ${adj.unitsBase} u de "${p.name}" · pérdida ${adj.costTotal.format()}',
+            ),
           ),
-        ));
+        );
     } on DomainException catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -98,14 +105,18 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     // Live copy: stock changes as write-offs are registered.
-    final live = ref.watch(productsProvider).value
+    final live =
+        ref
+            .watch(productsProvider)
+            .value
             ?.where((x) => x.id == widget.product.id)
             .firstOrNull ??
         widget.product;
 
     String? error;
     final preview = _preview(live, onError: (m) => error = m);
-    final history = ref.watch(productAdjustmentsProvider(live.id)).value ?? const [];
+    final history =
+        ref.watch(productAdjustmentsProvider(live.id)).value ?? const [];
 
     return Scaffold(
       appBar: AppBar(title: const Text('Dar de baja')),
@@ -144,38 +155,31 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
             SegmentedButton<Presentation>(
               showSelectedIcon: false,
               segments: [
-                const ButtonSegment(value: Presentation.unit, label: Text('Unidad')),
+                const ButtonSegment(
+                  value: Presentation.unit,
+                  label: Text('Unidad'),
+                ),
                 ButtonSegment(
                   value: Presentation.box,
                   label: Text('Caja (${live.unitsPerBox} u)'),
                 ),
               ],
               selected: {_presentation},
-              onSelectionChanged: (s) => setState(() => _presentation = s.first),
+              onSelectionChanged: (s) =>
+                  setState(() => _presentation = s.first),
             ),
             const SizedBox(height: 12),
           ],
           Row(
             children: [
-              IconButton.filledTonal(
-                tooltip: 'Menos',
-                icon: const Icon(Icons.remove),
-                onPressed: () => _setQty(_qty - 1),
+              QuantityStepper(
+                controller: _quantity,
+                onChanged: (_) => setState(() {}),
               ),
-              SizedBox(
-                width: 80,
-                child: TextField(
-                  controller: _quantity,
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              IconButton.filledTonal(
-                tooltip: 'Más',
-                icon: const Icon(Icons.add),
-                onPressed: () => _setQty(_qty + 1),
+              const SizedBox(width: 12),
+              Text(
+                _presentation == Presentation.box ? 'cajas' : 'unidades',
+                style: TextStyle(color: muted),
               ),
             ],
           ),
@@ -198,8 +202,9 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
                     Text('Se descuentan ${preview.units} u'),
                     Text(
                       'Pérdida: ${preview.loss.format()}',
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(color: theme.colorScheme.loss),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.loss,
+                      ),
                     ),
                     Text(
                       'Quedan: ${formatStock(preview.remaining, live.unitsPerBox)}',
@@ -219,7 +224,10 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
                 leading: Icon(reasonIcon(a.reason)),
                 title: Text('${reasonLabel(a.reason)} · ${a.unitsBase} u'),
                 subtitle: Text(
-                  [formatDate(a.date), if (a.notes != null) a.notes!].join(' · '),
+                  [
+                    formatDate(a.date),
+                    if (a.notes != null) a.notes!,
+                  ].join(' · '),
                 ),
                 trailing: Text(
                   '-${a.costTotal.format()}',

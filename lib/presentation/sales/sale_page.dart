@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
 import '../../core/quantity/presentation.dart';
+import '../common/quantity_stepper.dart';
 import '../common/validators.dart';
 import '../format/date_format.dart';
 import '../purchases/product_picker_sheet.dart';
@@ -25,7 +25,9 @@ class _SalePageState extends ConsumerState<SalePage> {
 
   Future<void> _addProduct() async {
     final product = await pickProduct(context, forSale: true);
-    if (product != null) ref.read(saleDraftProvider.notifier).addProduct(product);
+    if (product != null) {
+      ref.read(saleDraftProvider.notifier).addProduct(product);
+    }
   }
 
   Future<void> _pickDate() async {
@@ -46,11 +48,13 @@ class _SalePageState extends ConsumerState<SalePage> {
       final sale = await ref.read(saleDraftProvider.notifier).submit();
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(
-            'Venta registrada · ${sale.total.format()} · ganancia ${sale.profit.format()}',
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Venta registrada · ${sale.total.format()} · ganancia ${sale.profit.format()}',
+            ),
           ),
-        ));
+        );
     } on DomainException catch (e) {
       messenger
         ..hideCurrentSnackBar()
@@ -83,7 +87,9 @@ class _SalePageState extends ConsumerState<SalePage> {
             children: [
               ActionChip(
                 avatar: const Icon(Icons.event, size: 18),
-                label: Text(draft.date == null ? 'Hoy' : formatDate(draft.date!)),
+                label: Text(
+                  draft.date == null ? 'Hoy' : formatDate(draft.date!),
+                ),
                 onPressed: _pickDate,
               ),
             ],
@@ -93,7 +99,10 @@ class _SalePageState extends ConsumerState<SalePage> {
             _SaleLineCard(
               key: ValueKey(line.id),
               line: line,
-              fitsStock: draft.fitsStock(line.product, allowNegativeStock: allowNegative),
+              fitsStock: draft.fitsStock(
+                line.product,
+                allowNegativeStock: allowNegative,
+              ),
               requestedUnits: draft.unitsByProduct[line.product.id] ?? 0,
             ),
             const SizedBox(height: 10),
@@ -103,10 +112,16 @@ class _SalePageState extends ConsumerState<SalePage> {
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Column(
                 children: [
-                  Icon(Icons.point_of_sale_outlined, size: 56, color: theme.colorScheme.outline),
+                  Icon(
+                    Icons.point_of_sale_outlined,
+                    size: 56,
+                    color: theme.colorScheme.outline,
+                  ),
                   const SizedBox(height: 12),
-                  Text('Agrega productos al carrito',
-                      style: TextStyle(color: theme.colorScheme.outline)),
+                  Text(
+                    'Agrega productos al carrito',
+                    style: TextStyle(color: theme.colorScheme.outline),
+                  ),
                 ],
               ),
             ),
@@ -114,7 +129,9 @@ class _SalePageState extends ConsumerState<SalePage> {
             onPressed: _addProduct,
             icon: const Icon(Icons.add),
             label: const Text('Agregar producto'),
-            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+            ),
           ),
         ],
       ),
@@ -135,19 +152,27 @@ class _SalePageState extends ConsumerState<SalePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Ganancia estimada',
-                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                    Text(
+                      'Ganancia estimada',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     Text(
                       profit.format(),
                       style: TextStyle(
-                        color: profit.isNegative ? theme.colorScheme.loss : theme.colorScheme.gain,
+                        color: profit.isNegative
+                            ? theme.colorScheme.loss
+                            : theme.colorScheme.gain,
                       ),
                     ),
                   ],
                 ),
               const SizedBox(height: 8),
               FilledButton(
-                onPressed: draft.canSubmit(allowNegativeStock: allowNegative) && !_submitting
+                onPressed:
+                    draft.canSubmit(allowNegativeStock: allowNegative) &&
+                        !_submitting
                     ? _submit
                     : null,
                 child: const Text('Cobrar'),
@@ -194,7 +219,9 @@ class _SaleLineCardState extends ConsumerState<_SaleLineCard> {
   @override
   void didUpdateWidget(covariant _SaleLineCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.line.priceText != _price.text) _price.text = widget.line.priceText;
+    if (widget.line.priceText != _price.text) {
+      _price.text = widget.line.priceText;
+    }
     if (widget.line.quantity >= 1 && '${widget.line.quantity}' != _qty.text) {
       _qty.text = '${widget.line.quantity}';
     }
@@ -205,12 +232,6 @@ class _SaleLineCardState extends ConsumerState<_SaleLineCard> {
     _qty.dispose();
     _price.dispose();
     super.dispose();
-  }
-
-  void _setQuantity(int value) {
-    final q = value < 1 ? 1 : value;
-    _qty.text = '$q';
-    ref.read(saleDraftProvider.notifier).setQuantity(widget.line.id, q);
   }
 
   @override
@@ -227,13 +248,15 @@ class _SaleLineCardState extends ConsumerState<_SaleLineCard> {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                Expanded(child: Text(product.name, style: theme.textTheme.titleMedium)),
+                Expanded(
+                  child: Text(product.name, style: theme.textTheme.titleMedium),
+                ),
                 IconButton(
                   tooltip: 'Quitar',
                   icon: const Icon(Icons.close),
@@ -241,105 +264,110 @@ class _SaleLineCardState extends ConsumerState<_SaleLineCard> {
                 ),
               ],
             ),
-            if (product.unitsPerBox > 1) ...[
-              SegmentedButton<Presentation>(
-                showSelectedIcon: false,
-                segments: [
-                  const ButtonSegment(value: Presentation.unit, label: Text('Unidad')),
-                  ButtonSegment(
-                    value: Presentation.box,
-                    label: Text('Caja (${product.unitsPerBox} u)'),
-                  ),
-                ],
-                selected: {line.presentation},
-                onSelectionChanged: (s) => notifier.setPresentation(line.id, s.first),
-              ),
-              const SizedBox(height: 12),
-            ],
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton.filledTonal(
-                  tooltip: 'Menos',
-                  icon: const Icon(Icons.remove),
-                  onPressed: () => _setQuantity(line.quantity - 1),
-                ),
-                SizedBox(
-                  width: 60,
-                  child: TextField(
-                    controller: _qty,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (v) => notifier.setQuantity(line.id, int.tryParse(v) ?? 0),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 4),
+                  if (product.unitsPerBox > 1) ...[
+                    SegmentedButton<Presentation>(
+                      showSelectedIcon: false,
+                      segments: [
+                        const ButtonSegment(
+                          value: Presentation.unit,
+                          label: Text('Unidad'),
+                        ),
+                        ButtonSegment(
+                          value: Presentation.box,
+                          label: Text('Caja (${product.unitsPerBox} u)'),
+                        ),
+                      ],
+                      selected: {line.presentation},
+                      onSelectionChanged: (s) =>
+                          notifier.setPresentation(line.id, s.first),
                     ),
-                  ),
-                ),
-                IconButton.filledTonal(
-                  tooltip: 'Más',
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _setQuantity(line.quantity + 1),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _price,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (v) => notifier.setPrice(line.id, v),
-                    decoration: InputDecoration(
-                      labelText: line.presentation == Presentation.box
-                          ? 'Precio por caja'
-                          : 'Precio por unidad',
-                      prefixText: 'Bs ',
-                      isDense: true,
-                      errorText: validateMoney(line.priceText, required: true),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                FilterChip(
-                  avatar: const Icon(Icons.card_giftcard, size: 18),
-                  label: const Text('Regalo'),
-                  selected: line.isGift,
-                  showCheckmark: false,
-                  onSelected: (_) => notifier.toggleGift(line.id),
-                ),
-                const Spacer(),
-                if (subtotal != null)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    const SizedBox(height: 12),
+                  ],
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(subtotal.format(), style: theme.textTheme.titleMedium),
-                      if (profit != null)
-                        Text(
-                          'Ganancia ${profit.format()}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: profit.isNegative ? theme.colorScheme.loss : theme.colorScheme.gain,
+                      QuantityStepper(
+                        controller: _qty,
+                        onChanged: (q) => notifier.setQuantity(line.id, q),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _price,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
                           ),
+                          onChanged: (v) => notifier.setPrice(line.id, v),
+                          decoration: InputDecoration(
+                            labelText: line.presentation == Presentation.box
+                                ? 'Precio por caja'
+                                : 'Precio por unidad',
+                            prefixText: 'Bs ',
+                            errorText: validateMoney(
+                              line.priceText,
+                              required: true,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      FilterChip(
+                        avatar: const Icon(Icons.card_giftcard, size: 18),
+                        label: const Text('Regalo'),
+                        selected: line.isGift,
+                        showCheckmark: false,
+                        onSelected: (_) => notifier.toggleGift(line.id),
+                      ),
+                      const Spacer(),
+                      if (subtotal != null)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              subtotal.format(),
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            if (profit != null)
+                              Text(
+                                'Ganancia ${profit.format()}',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: profit.isNegative
+                                      ? theme.colorScheme.loss
+                                      : theme.colorScheme.gain,
+                                ),
+                              ),
+                          ],
                         ),
                     ],
                   ),
-              ],
+                  if (line.isGift)
+                    _Note(
+                      'Regalo: el costo cuenta contra la ganancia de esta venta.',
+                      color: muted,
+                    )
+                  else if (discount != null && discount > Money.zero)
+                    _Note(
+                      'Descuento ${discount.format()} (sugerido ${line.suggestedPrice.format()})',
+                      color: muted,
+                    ),
+                  if (!widget.fitsStock)
+                    _Note(
+                      'Stock insuficiente: hay ${product.stockUnits} u y el carrito pide ${widget.requestedUnits} u',
+                      color: theme.colorScheme.loss,
+                    ),
+                ],
+              ),
             ),
-            if (line.isGift)
-              _Note('Regalo: el costo cuenta contra la ganancia de esta venta.', color: muted)
-            else if (discount != null && discount > Money.zero)
-              _Note(
-                'Descuento ${discount.format()} (sugerido ${line.suggestedPrice.format()})',
-                color: muted,
-              ),
-            if (!widget.fitsStock)
-              _Note(
-                'Stock insuficiente: hay ${product.stockUnits} u y el carrito pide ${widget.requestedUnits} u',
-                color: theme.colorScheme.loss,
-              ),
           ],
         ),
       ),
@@ -355,7 +383,10 @@ class _Note extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Text(text, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color)),
-      );
+    padding: const EdgeInsets.only(top: 6),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
+    ),
+  );
 }

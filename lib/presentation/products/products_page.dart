@@ -24,7 +24,9 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
   Future<void> _openForm([Product? product]) {
     return Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => ProductFormPage(product: product)),
+      MaterialPageRoute<void>(
+        builder: (_) => ProductFormPage(product: product),
+      ),
     );
   }
 
@@ -36,16 +38,18 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
 
     messenger
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text('"${product.name}" eliminado'),
-        action: SnackBarAction(
-          label: 'Deshacer',
-          onPressed: () async {
-            await repo.restore(product.id);
-            if (mounted) setState(() => _dismissed.remove(product.id));
-          },
+      ..showSnackBar(
+        SnackBar(
+          content: Text('"${product.name}" eliminado'),
+          action: SnackBarAction(
+            label: 'Deshacer',
+            onPressed: () async {
+              await repo.restore(product.id);
+              if (mounted) setState(() => _dismissed.remove(product.id));
+            },
+          ),
         ),
-      ));
+      );
   }
 
   List<Product> _filter(List<Product> all) {
@@ -71,7 +75,8 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       ),
       body: products.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('No se pudieron cargar los productos\n$e')),
+        error: (e, _) =>
+            Center(child: Text('No se pudieron cargar los productos\n$e')),
         data: (all) {
           if (all.isEmpty) return _EmptyState(onCreate: _openForm);
           final visible = _filter(all);
@@ -82,7 +87,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                 child: TextField(
                   onChanged: (v) => setState(() => _query = v),
                   decoration: const InputDecoration(
-                    hintText: 'Buscar por nombre o SKU',
+                    hintText: 'Buscar por nombre o código',
                     prefixIcon: Icon(Icons.search),
                   ),
                 ),
@@ -128,65 +133,65 @@ class _ProductCard extends StatelessWidget {
     final theme = Theme.of(context);
     final p = product;
     final noStock = p.stockUnits <= 0;
-    final muted = theme.colorScheme.onSurfaceVariant;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final hasBoxes = p.unitsPerBox > 1;
 
+    final subtitle = [
+      if (p.sku != null) 'Cód. ${p.sku}',
+      if (!p.isActive) 'Inactivo',
+    ].join(' · ');
+
+    // Left column = what the product is / how much there is; right column =
+    // money. Each row pairs both sides on the same baseline.
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p.name,
-                      style: theme.textTheme.titleMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (p.sku != null)
-                      Text(p.sku!, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
-                    const SizedBox(height: 6),
-                    Text(
-                      formatStock(p.stockUnits, p.unitsPerBox),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: noStock ? theme.colorScheme.loss : null,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (p.stockUnits > 0)
-                      Text(
-                        'Costo prom. ${p.avgCost.format()} · ${p.stockUnits} u',
-                        style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                      ),
-                  ],
+              _PairRow(
+                left: Text(
+                  p.name,
+                  style: theme.textTheme.titleMedium,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                right: Text(
+                  '${p.suggestedPriceUnit.format()} / u',
+                  style: theme.textTheme.titleMedium,
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    p.suggestedPriceUnit.format(),
-                    style: theme.textTheme.titleMedium,
+              if (subtitle.isNotEmpty || hasBoxes)
+                _PairRow(
+                  left: Text(subtitle, style: muted),
+                  right: hasBoxes
+                      ? Text(
+                          '${p.suggestedPriceFor(Presentation.box).format()} / caja',
+                          style: muted,
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              const SizedBox(height: 10),
+              _PairRow(
+                left: Text(
+                  noStock
+                      ? 'Sin stock'
+                      : hasBoxes && p.stockUnits >= p.unitsPerBox
+                      ? '${formatStock(p.stockUnits, p.unitsPerBox)} · ${p.stockUnits} u'
+                      : formatStock(p.stockUnits, p.unitsPerBox),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: noStock ? theme.colorScheme.loss : null,
+                    fontWeight: FontWeight.w600,
                   ),
-                  Text('por unidad', style: theme.textTheme.bodySmall?.copyWith(color: muted)),
-                  if (p.unitsPerBox > 1) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '${p.suggestedPriceFor(Presentation.box).format()} / caja',
-                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
-                    ),
-                  ],
-                  if (!p.isActive)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text('Inactivo', style: theme.textTheme.labelSmall?.copyWith(color: muted)),
-                    ),
-                ],
+                ),
+                right: noStock
+                    ? const SizedBox.shrink()
+                    : Text('Costo ${p.avgCost.format()} / u', style: muted),
               ),
             ],
           ),
@@ -194,6 +199,25 @@ class _ProductCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// `left ........ right` on a shared baseline; the left side yields space.
+class _PairRow extends StatelessWidget {
+  const _PairRow({required this.left, required this.right});
+
+  final Widget left;
+  final Widget right;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.baseline,
+    textBaseline: TextBaseline.alphabetic,
+    children: [
+      Expanded(child: left),
+      const SizedBox(width: 12),
+      right,
+    ],
+  );
 }
 
 class _DeleteBackground extends StatelessWidget {
@@ -208,7 +232,10 @@ class _DeleteBackground extends StatelessWidget {
         color: Theme.of(context).colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.onErrorContainer),
+      child: Icon(
+        Icons.delete_outline,
+        color: Theme.of(context).colorScheme.onErrorContainer,
+      ),
     );
   }
 }
@@ -230,10 +257,15 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           const Text('Aún no tienes productos'),
           const SizedBox(height: 4),
-          Text('Crea el primero para empezar a comprar y vender',
-              style: TextStyle(color: color)),
+          Text(
+            'Crea el primero para empezar a comprar y vender',
+            style: TextStyle(color: color),
+          ),
           const SizedBox(height: 16),
-          FilledButton.tonal(onPressed: onCreate, child: const Text('Crear producto')),
+          FilledButton.tonal(
+            onPressed: onCreate,
+            child: const Text('Crear producto'),
+          ),
         ],
       ),
     );

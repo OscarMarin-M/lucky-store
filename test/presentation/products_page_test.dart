@@ -59,20 +59,20 @@ void main() {
     await tester.tap(find.text('Nuevo'));
     await tester.pumpAndSettle();
     expect(find.text('Nuevo producto'), findsOneWidget);
-    expect(find.text('Precio por caja'), findsNothing);
+    expect(find.text('Por caja'), findsNothing);
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Snickers');
     await tester.enterText(find.widgetWithText(TextFormField, 'Unidades por caja'), '24');
     await tester.pump();
-    expect(find.text('Precio por caja'), findsOneWidget);
+    expect(find.text('Por caja'), findsOneWidget);
 
-    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por unidad'), '3,50');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por caja'), '80');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Por unidad'), '3,50');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Por caja'), '80');
     await tester.tap(find.text('Crear producto'));
     await tester.pumpAndSettle();
 
     expect(find.text('Snickers'), findsOneWidget);
-    expect(find.text('Bs 3,50'), findsOneWidget);
+    expect(find.text('Bs 3,50 / u'), findsOneWidget);
     expect(find.text('Bs 80,00 / caja'), findsOneWidget);
     expect(find.text('Sin stock'), findsOneWidget);
     await teardown(tester);
@@ -88,7 +88,7 @@ void main() {
     expect(find.text('Obligatorio'), findsNWidgets(2)); // name + unit price
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Gum');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por unidad'), '1.234');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Por unidad'), '1.234');
     await tester.tap(find.text('Crear producto'));
     await tester.pumpAndSettle();
     expect(find.textContaining('máx. 2 decimales'), findsOneWidget);
@@ -114,7 +114,7 @@ void main() {
     expect(find.text('Editar producto'), findsOneWidget);
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Twix Caramelo');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por caja'), '');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Por caja'), '');
     await tester.tap(find.text('Guardar cambios'));
     await tester.pumpAndSettle();
 

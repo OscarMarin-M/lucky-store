@@ -27,16 +27,17 @@ class _ProductPickerSheet extends ConsumerStatefulWidget {
   final bool forSale;
 
   @override
-  ConsumerState<_ProductPickerSheet> createState() => _ProductPickerSheetState();
+  ConsumerState<_ProductPickerSheet> createState() =>
+      _ProductPickerSheetState();
 }
 
 class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
   String _query = '';
 
   Future<void> _createNew() async {
-    final created = await Navigator.of(context).push<Product>(
-      MaterialPageRoute(builder: (_) => const ProductFormPage()),
-    );
+    final created = await Navigator.of(
+      context,
+    ).push<Product>(MaterialPageRoute(builder: (_) => const ProductFormPage()));
     if (created != null && mounted) Navigator.of(context).pop(created);
   }
 
@@ -89,7 +90,8 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                     itemCount: matches.length,
                     itemBuilder: (_, i) {
                       final p = matches[i];
-                      final enabled = !widget.forSale ||
+                      final enabled =
+                          !widget.forSale ||
                           p.stockUnits > 0 ||
                           ref.read(inventoryPolicyProvider).allowNegativeStock;
                       return ListTile(
@@ -98,11 +100,15 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                         subtitle: Text(
                           'Stock: ${formatStock(p.stockUnits, p.unitsPerBox)}'
                           '${p.unitsPerBox > 1 ? ' · ${p.unitsPerBox} u/caja' : ''}',
-                          style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         trailing: widget.forSale
-                            ? Text(p.suggestedPriceUnit.format(),
-                                style: theme.textTheme.titleSmall)
+                            ? Text(
+                                p.suggestedPriceUnit.format(),
+                                style: theme.textTheme.titleSmall,
+                              )
                             : null,
                         onTap: () => Navigator.of(context).pop(p),
                       );
