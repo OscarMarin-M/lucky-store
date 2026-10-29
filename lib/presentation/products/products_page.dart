@@ -221,8 +221,10 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.outline;
-    return Center(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.inventory_2_outlined, size: 56, color: color),

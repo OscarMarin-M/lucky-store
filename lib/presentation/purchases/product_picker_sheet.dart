@@ -8,18 +8,23 @@ import '../products/product_form_page.dart';
 
 /// Bottom sheet with a searchable list of active products. Returns the chosen
 /// [Product] (or one created from the shortcut) through `Navigator.pop`.
-Future<Product?> pickProduct(BuildContext context) {
+///
+/// With [forSale] it shows prices, hides "create product" and disables
+/// products without stock (unless negative stock is allowed).
+Future<Product?> pickProduct(BuildContext context, {bool forSale = false}) {
   return showModalBottomSheet<Product>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (_) => const _ProductPickerSheet(),
+    builder: (_) => _ProductPickerSheet(forSale: forSale),
   );
 }
 
 class _ProductPickerSheet extends ConsumerStatefulWidget {
-  const _ProductPickerSheet();
+  const _ProductPickerSheet({required this.forSale});
+
+  final bool forSale;
 
   @override
   ConsumerState<_ProductPickerSheet> createState() => _ProductPickerSheetState();
@@ -58,12 +63,14 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                 ),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.add_circle_outline),
-              title: const Text('Crear producto nuevo'),
-              onTap: _createNew,
-            ),
-            const Divider(height: 1),
+            if (!widget.forSale) ...[
+              ListTile(
+                leading: const Icon(Icons.add_circle_outline),
+                title: const Text('Crear producto nuevo'),
+                onTap: _createNew,
+              ),
+              const Divider(height: 1),
+            ],
             Expanded(
               child: products.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -82,13 +89,21 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                     itemCount: matches.length,
                     itemBuilder: (_, i) {
                       final p = matches[i];
+                      final enabled = !widget.forSale ||
+                          p.stockUnits > 0 ||
+                          ref.read(inventoryPolicyProvider).allowNegativeStock;
                       return ListTile(
+                        enabled: enabled,
                         title: Text(p.name),
                         subtitle: Text(
                           'Stock: ${formatStock(p.stockUnits, p.unitsPerBox)}'
                           '${p.unitsPerBox > 1 ? ' · ${p.unitsPerBox} u/caja' : ''}',
                           style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                         ),
+                        trailing: widget.forSale
+                            ? Text(p.suggestedPriceUnit.format(),
+                                style: theme.textTheme.titleSmall)
+                            : null,
                         onTap: () => Navigator.of(context).pop(p),
                       );
                     },
