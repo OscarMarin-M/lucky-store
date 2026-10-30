@@ -1385,6 +1385,50 @@ class $PurchaseLinesTable extends PurchaseLines
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _unitsPerBoxMeta = const VerificationMeta(
+    'unitsPerBox',
+  );
+  @override
+  late final GeneratedColumn<int> unitsPerBox = GeneratedColumn<int>(
+    'units_per_box',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _expiryFromMeta = const VerificationMeta(
+    'expiryFrom',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiryFrom = GeneratedColumn<DateTime>(
+    'expiry_from',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _expiryToMeta = const VerificationMeta(
+    'expiryTo',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiryTo = GeneratedColumn<DateTime>(
+    'expiry_to',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lotCodeMeta = const VerificationMeta(
+    'lotCode',
+  );
+  @override
+  late final GeneratedColumn<String> lotCode = GeneratedColumn<String>(
+    'lot_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1398,6 +1442,10 @@ class $PurchaseLinesTable extends PurchaseLines
     unitsBase,
     lineTotalCents,
     unitCostRaw,
+    unitsPerBox,
+    expiryFrom,
+    expiryTo,
+    lotCode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1492,6 +1540,33 @@ class $PurchaseLinesTable extends PurchaseLines
     } else if (isInserting) {
       context.missing(_unitCostRawMeta);
     }
+    if (data.containsKey('units_per_box')) {
+      context.handle(
+        _unitsPerBoxMeta,
+        unitsPerBox.isAcceptableOrUnknown(
+          data['units_per_box']!,
+          _unitsPerBoxMeta,
+        ),
+      );
+    }
+    if (data.containsKey('expiry_from')) {
+      context.handle(
+        _expiryFromMeta,
+        expiryFrom.isAcceptableOrUnknown(data['expiry_from']!, _expiryFromMeta),
+      );
+    }
+    if (data.containsKey('expiry_to')) {
+      context.handle(
+        _expiryToMeta,
+        expiryTo.isAcceptableOrUnknown(data['expiry_to']!, _expiryToMeta),
+      );
+    }
+    if (data.containsKey('lot_code')) {
+      context.handle(
+        _lotCodeMeta,
+        lotCode.isAcceptableOrUnknown(data['lot_code']!, _lotCodeMeta),
+      );
+    }
     return context;
   }
 
@@ -1547,6 +1622,22 @@ class $PurchaseLinesTable extends PurchaseLines
         DriftSqlType.int,
         data['${effectivePrefix}unit_cost_raw'],
       )!,
+      unitsPerBox: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}units_per_box'],
+      ),
+      expiryFrom: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expiry_from'],
+      ),
+      expiryTo: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expiry_to'],
+      ),
+      lotCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}lot_code'],
+      ),
     );
   }
 
@@ -1577,6 +1668,14 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
 
   /// Cost per base unit of this purchase, 1/10.000 Bs.
   final int unitCostRaw;
+
+  /// Box size of this lot; null for loose units.
+  final int? unitsPerBox;
+
+  /// Expiry range (a box has from == to). Drives "por vencer" alerts.
+  final DateTime? expiryFrom;
+  final DateTime? expiryTo;
+  final String? lotCode;
   const PurchaseLineRow({
     required this.id,
     required this.createdAt,
@@ -1589,6 +1688,10 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
     required this.unitsBase,
     required this.lineTotalCents,
     required this.unitCostRaw,
+    this.unitsPerBox,
+    this.expiryFrom,
+    this.expiryTo,
+    this.lotCode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1610,6 +1713,18 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
     map['units_base'] = Variable<int>(unitsBase);
     map['line_total_cents'] = Variable<int>(lineTotalCents);
     map['unit_cost_raw'] = Variable<int>(unitCostRaw);
+    if (!nullToAbsent || unitsPerBox != null) {
+      map['units_per_box'] = Variable<int>(unitsPerBox);
+    }
+    if (!nullToAbsent || expiryFrom != null) {
+      map['expiry_from'] = Variable<DateTime>(expiryFrom);
+    }
+    if (!nullToAbsent || expiryTo != null) {
+      map['expiry_to'] = Variable<DateTime>(expiryTo);
+    }
+    if (!nullToAbsent || lotCode != null) {
+      map['lot_code'] = Variable<String>(lotCode);
+    }
     return map;
   }
 
@@ -1628,6 +1743,18 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
       unitsBase: Value(unitsBase),
       lineTotalCents: Value(lineTotalCents),
       unitCostRaw: Value(unitCostRaw),
+      unitsPerBox: unitsPerBox == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitsPerBox),
+      expiryFrom: expiryFrom == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expiryFrom),
+      expiryTo: expiryTo == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expiryTo),
+      lotCode: lotCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lotCode),
     );
   }
 
@@ -1650,6 +1777,10 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
       unitsBase: serializer.fromJson<int>(json['unitsBase']),
       lineTotalCents: serializer.fromJson<int>(json['lineTotalCents']),
       unitCostRaw: serializer.fromJson<int>(json['unitCostRaw']),
+      unitsPerBox: serializer.fromJson<int?>(json['unitsPerBox']),
+      expiryFrom: serializer.fromJson<DateTime?>(json['expiryFrom']),
+      expiryTo: serializer.fromJson<DateTime?>(json['expiryTo']),
+      lotCode: serializer.fromJson<String?>(json['lotCode']),
     );
   }
   @override
@@ -1669,6 +1800,10 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
       'unitsBase': serializer.toJson<int>(unitsBase),
       'lineTotalCents': serializer.toJson<int>(lineTotalCents),
       'unitCostRaw': serializer.toJson<int>(unitCostRaw),
+      'unitsPerBox': serializer.toJson<int?>(unitsPerBox),
+      'expiryFrom': serializer.toJson<DateTime?>(expiryFrom),
+      'expiryTo': serializer.toJson<DateTime?>(expiryTo),
+      'lotCode': serializer.toJson<String?>(lotCode),
     };
   }
 
@@ -1684,6 +1819,10 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
     int? unitsBase,
     int? lineTotalCents,
     int? unitCostRaw,
+    Value<int?> unitsPerBox = const Value.absent(),
+    Value<DateTime?> expiryFrom = const Value.absent(),
+    Value<DateTime?> expiryTo = const Value.absent(),
+    Value<String?> lotCode = const Value.absent(),
   }) => PurchaseLineRow(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -1696,6 +1835,10 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
     unitsBase: unitsBase ?? this.unitsBase,
     lineTotalCents: lineTotalCents ?? this.lineTotalCents,
     unitCostRaw: unitCostRaw ?? this.unitCostRaw,
+    unitsPerBox: unitsPerBox.present ? unitsPerBox.value : this.unitsPerBox,
+    expiryFrom: expiryFrom.present ? expiryFrom.value : this.expiryFrom,
+    expiryTo: expiryTo.present ? expiryTo.value : this.expiryTo,
+    lotCode: lotCode.present ? lotCode.value : this.lotCode,
   );
   PurchaseLineRow copyWithCompanion(PurchaseLinesCompanion data) {
     return PurchaseLineRow(
@@ -1718,6 +1861,14 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
       unitCostRaw: data.unitCostRaw.present
           ? data.unitCostRaw.value
           : this.unitCostRaw,
+      unitsPerBox: data.unitsPerBox.present
+          ? data.unitsPerBox.value
+          : this.unitsPerBox,
+      expiryFrom: data.expiryFrom.present
+          ? data.expiryFrom.value
+          : this.expiryFrom,
+      expiryTo: data.expiryTo.present ? data.expiryTo.value : this.expiryTo,
+      lotCode: data.lotCode.present ? data.lotCode.value : this.lotCode,
     );
   }
 
@@ -1734,7 +1885,11 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
           ..write('presentation: $presentation, ')
           ..write('unitsBase: $unitsBase, ')
           ..write('lineTotalCents: $lineTotalCents, ')
-          ..write('unitCostRaw: $unitCostRaw')
+          ..write('unitCostRaw: $unitCostRaw, ')
+          ..write('unitsPerBox: $unitsPerBox, ')
+          ..write('expiryFrom: $expiryFrom, ')
+          ..write('expiryTo: $expiryTo, ')
+          ..write('lotCode: $lotCode')
           ..write(')'))
         .toString();
   }
@@ -1752,6 +1907,10 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
     unitsBase,
     lineTotalCents,
     unitCostRaw,
+    unitsPerBox,
+    expiryFrom,
+    expiryTo,
+    lotCode,
   );
   @override
   bool operator ==(Object other) =>
@@ -1767,7 +1926,11 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
           other.presentation == this.presentation &&
           other.unitsBase == this.unitsBase &&
           other.lineTotalCents == this.lineTotalCents &&
-          other.unitCostRaw == this.unitCostRaw);
+          other.unitCostRaw == this.unitCostRaw &&
+          other.unitsPerBox == this.unitsPerBox &&
+          other.expiryFrom == this.expiryFrom &&
+          other.expiryTo == this.expiryTo &&
+          other.lotCode == this.lotCode);
 }
 
 class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
@@ -1782,6 +1945,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
   final Value<int> unitsBase;
   final Value<int> lineTotalCents;
   final Value<int> unitCostRaw;
+  final Value<int?> unitsPerBox;
+  final Value<DateTime?> expiryFrom;
+  final Value<DateTime?> expiryTo;
+  final Value<String?> lotCode;
   final Value<int> rowid;
   const PurchaseLinesCompanion({
     this.id = const Value.absent(),
@@ -1795,6 +1962,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
     this.unitsBase = const Value.absent(),
     this.lineTotalCents = const Value.absent(),
     this.unitCostRaw = const Value.absent(),
+    this.unitsPerBox = const Value.absent(),
+    this.expiryFrom = const Value.absent(),
+    this.expiryTo = const Value.absent(),
+    this.lotCode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PurchaseLinesCompanion.insert({
@@ -1809,6 +1980,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
     required int unitsBase,
     required int lineTotalCents,
     required int unitCostRaw,
+    this.unitsPerBox = const Value.absent(),
+    this.expiryFrom = const Value.absent(),
+    this.expiryTo = const Value.absent(),
+    this.lotCode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        createdAt = Value(createdAt),
@@ -1832,6 +2007,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
     Expression<int>? unitsBase,
     Expression<int>? lineTotalCents,
     Expression<int>? unitCostRaw,
+    Expression<int>? unitsPerBox,
+    Expression<DateTime>? expiryFrom,
+    Expression<DateTime>? expiryTo,
+    Expression<String>? lotCode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1846,6 +2025,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
       if (unitsBase != null) 'units_base': unitsBase,
       if (lineTotalCents != null) 'line_total_cents': lineTotalCents,
       if (unitCostRaw != null) 'unit_cost_raw': unitCostRaw,
+      if (unitsPerBox != null) 'units_per_box': unitsPerBox,
+      if (expiryFrom != null) 'expiry_from': expiryFrom,
+      if (expiryTo != null) 'expiry_to': expiryTo,
+      if (lotCode != null) 'lot_code': lotCode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1862,6 +2045,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
     Value<int>? unitsBase,
     Value<int>? lineTotalCents,
     Value<int>? unitCostRaw,
+    Value<int?>? unitsPerBox,
+    Value<DateTime?>? expiryFrom,
+    Value<DateTime?>? expiryTo,
+    Value<String?>? lotCode,
     Value<int>? rowid,
   }) {
     return PurchaseLinesCompanion(
@@ -1876,6 +2063,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
       unitsBase: unitsBase ?? this.unitsBase,
       lineTotalCents: lineTotalCents ?? this.lineTotalCents,
       unitCostRaw: unitCostRaw ?? this.unitCostRaw,
+      unitsPerBox: unitsPerBox ?? this.unitsPerBox,
+      expiryFrom: expiryFrom ?? this.expiryFrom,
+      expiryTo: expiryTo ?? this.expiryTo,
+      lotCode: lotCode ?? this.lotCode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1918,6 +2109,18 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
     if (unitCostRaw.present) {
       map['unit_cost_raw'] = Variable<int>(unitCostRaw.value);
     }
+    if (unitsPerBox.present) {
+      map['units_per_box'] = Variable<int>(unitsPerBox.value);
+    }
+    if (expiryFrom.present) {
+      map['expiry_from'] = Variable<DateTime>(expiryFrom.value);
+    }
+    if (expiryTo.present) {
+      map['expiry_to'] = Variable<DateTime>(expiryTo.value);
+    }
+    if (lotCode.present) {
+      map['lot_code'] = Variable<String>(lotCode.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1938,6 +2141,10 @@ class PurchaseLinesCompanion extends UpdateCompanion<PurchaseLineRow> {
           ..write('unitsBase: $unitsBase, ')
           ..write('lineTotalCents: $lineTotalCents, ')
           ..write('unitCostRaw: $unitCostRaw, ')
+          ..write('unitsPerBox: $unitsPerBox, ')
+          ..write('expiryFrom: $expiryFrom, ')
+          ..write('expiryTo: $expiryTo, ')
+          ..write('lotCode: $lotCode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5238,6 +5445,10 @@ typedef $$PurchaseLinesTableCreateCompanionBuilder =
       required int unitsBase,
       required int lineTotalCents,
       required int unitCostRaw,
+      Value<int?> unitsPerBox,
+      Value<DateTime?> expiryFrom,
+      Value<DateTime?> expiryTo,
+      Value<String?> lotCode,
       Value<int> rowid,
     });
 typedef $$PurchaseLinesTableUpdateCompanionBuilder =
@@ -5253,6 +5464,10 @@ typedef $$PurchaseLinesTableUpdateCompanionBuilder =
       Value<int> unitsBase,
       Value<int> lineTotalCents,
       Value<int> unitCostRaw,
+      Value<int?> unitsPerBox,
+      Value<DateTime?> expiryFrom,
+      Value<DateTime?> expiryTo,
+      Value<String?> lotCode,
       Value<int> rowid,
     });
 
@@ -5352,6 +5567,26 @@ class $$PurchaseLinesTableFilterComposer
 
   ColumnFilters<int> get unitCostRaw => $composableBuilder(
     column: $table.unitCostRaw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get unitsPerBox => $composableBuilder(
+    column: $table.unitsPerBox,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiryFrom => $composableBuilder(
+    column: $table.expiryFrom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiryTo => $composableBuilder(
+    column: $table.expiryTo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lotCode => $composableBuilder(
+    column: $table.lotCode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5456,6 +5691,26 @@ class $$PurchaseLinesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get unitsPerBox => $composableBuilder(
+    column: $table.unitsPerBox,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiryFrom => $composableBuilder(
+    column: $table.expiryFrom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiryTo => $composableBuilder(
+    column: $table.expiryTo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lotCode => $composableBuilder(
+    column: $table.lotCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$PurchasesTableOrderingComposer get purchaseId {
     final $$PurchasesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -5546,6 +5801,22 @@ class $$PurchaseLinesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get unitsPerBox => $composableBuilder(
+    column: $table.unitsPerBox,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get expiryFrom => $composableBuilder(
+    column: $table.expiryFrom,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get expiryTo =>
+      $composableBuilder(column: $table.expiryTo, builder: (column) => column);
+
+  GeneratedColumn<String> get lotCode =>
+      $composableBuilder(column: $table.lotCode, builder: (column) => column);
+
   $$PurchasesTableAnnotationComposer get purchaseId {
     final $$PurchasesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -5632,6 +5903,10 @@ class $$PurchaseLinesTableTableManager
                 Value<int> unitsBase = const Value.absent(),
                 Value<int> lineTotalCents = const Value.absent(),
                 Value<int> unitCostRaw = const Value.absent(),
+                Value<int?> unitsPerBox = const Value.absent(),
+                Value<DateTime?> expiryFrom = const Value.absent(),
+                Value<DateTime?> expiryTo = const Value.absent(),
+                Value<String?> lotCode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PurchaseLinesCompanion(
                 id: id,
@@ -5645,6 +5920,10 @@ class $$PurchaseLinesTableTableManager
                 unitsBase: unitsBase,
                 lineTotalCents: lineTotalCents,
                 unitCostRaw: unitCostRaw,
+                unitsPerBox: unitsPerBox,
+                expiryFrom: expiryFrom,
+                expiryTo: expiryTo,
+                lotCode: lotCode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5660,6 +5939,10 @@ class $$PurchaseLinesTableTableManager
                 required int unitsBase,
                 required int lineTotalCents,
                 required int unitCostRaw,
+                Value<int?> unitsPerBox = const Value.absent(),
+                Value<DateTime?> expiryFrom = const Value.absent(),
+                Value<DateTime?> expiryTo = const Value.absent(),
+                Value<String?> lotCode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PurchaseLinesCompanion.insert(
                 id: id,
@@ -5673,6 +5956,10 @@ class $$PurchaseLinesTableTableManager
                 unitsBase: unitsBase,
                 lineTotalCents: lineTotalCents,
                 unitCostRaw: unitCostRaw,
+                unitsPerBox: unitsPerBox,
+                expiryFrom: expiryFrom,
+                expiryTo: expiryTo,
+                lotCode: lotCode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

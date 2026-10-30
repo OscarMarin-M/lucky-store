@@ -6,6 +6,7 @@ import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/data/database/app_database.dart';
 import 'package:lucky_store/domain/entities/product.dart';
+import 'package:lucky_store/domain/purchasing/purchase_lot.dart';
 import 'package:lucky_store/domain/usecases/register_purchase.dart';
 import 'package:lucky_store/domain/usecases/register_sale.dart';
 
@@ -36,9 +37,7 @@ void main() {
     await container.read(registerPurchaseProvider)(lines: [
       PurchaseLineInput(
         productId: p.id,
-        quantity: 1,
-        presentation: Presentation.box,
-        lineTotal: const Money(4800),
+        lot: BoxLot(boxes: 1, unitsPerBox: 24, pricePerBox: const Money(4800)),
       ),
     ]);
     final sale = await container.read(registerSaleProvider)(lines: [

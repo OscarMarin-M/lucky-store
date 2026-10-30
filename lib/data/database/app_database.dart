@@ -22,13 +22,25 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) => m.createAll(),
         onUpgrade: (m, from, to) async {
-          // v1 is the first version: nothing to migrate yet.
+          if (from < 2) {
+            // Purchase lines become lots: box size, expiry range and code.
+            await m.addColumn(purchaseLines, purchaseLines.unitsPerBox);
+            await m.addColumn(purchaseLines, purchaseLines.expiryFrom);
+            await m.addColumn(purchaseLines, purchaseLines.expiryTo);
+            await m.addColumn(purchaseLines, purchaseLines.lotCode);
+            // v1 box lines were converted with the product's box size;
+            // recover it from what was stored so old lots show it too.
+            await customStatement(
+              "UPDATE purchase_lines SET units_per_box = units_base / quantity "
+              "WHERE presentation = 'box' AND quantity > 0",
+            );
+          }
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');

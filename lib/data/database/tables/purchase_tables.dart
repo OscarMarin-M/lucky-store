@@ -28,4 +28,14 @@ class PurchaseLines extends Table with BaseColumns {
 
   /// Cost per base unit of this purchase, 1/10.000 Bs.
   IntColumn get unitCostRaw => integer()();
+
+  // --- v2: each line is a lot ---
+
+  /// Box size of this lot; null for loose units.
+  IntColumn get unitsPerBox => integer().nullable()();
+
+  /// Expiry range (a box has from == to). Drives "por vencer" alerts.
+  DateTimeColumn get expiryFrom => dateTime().nullable()();
+  DateTimeColumn get expiryTo => dateTime().nullable()();
+  TextColumn get lotCode => text().nullable()();
 }

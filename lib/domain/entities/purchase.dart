@@ -16,6 +16,10 @@ class PurchaseLine extends BaseEntity {
     required this.unitsBase,
     required this.lineTotal,
     required this.unitCost,
+    this.unitsPerBox,
+    this.expiryFrom,
+    this.expiryTo,
+    this.lotCode,
   });
 
   final String purchaseId;
@@ -33,6 +37,17 @@ class PurchaseLine extends BaseEntity {
 
   /// What each base unit cost in this purchase (`lineTotal / unitsBase`).
   final UnitCost unitCost;
+
+  /// Box size of this lot (suppliers differ); null for loose units.
+  final int? unitsPerBox;
+
+  /// Expiry range of the lot: a box has one date (from == to), loose units
+  /// bought informally may span several. Null when not recorded.
+  final DateTime? expiryFrom;
+  final DateTime? expiryTo;
+
+  /// Code printed on the box, if the owner typed it.
+  final String? lotCode;
 }
 
 class Purchase extends BaseEntity {

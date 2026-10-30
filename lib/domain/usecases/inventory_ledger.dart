@@ -53,18 +53,15 @@ class InventoryLedger {
     return _working[id] = loaded;
   }
 
+  /// A purchase arrives already in base units: the box size belongs to the
+  /// lot being bought (see `PurchaseLot`), not to the product.
   Future<PurchaseEffect> purchase(
     String productId, {
-    required int quantity,
-    required Presentation presentation,
+    required int units,
     required Money total,
   }) async {
+    if (units <= 0) throw InvalidQuantityException(units);
     final product = await this.product(productId);
-    final units = toBaseUnits(
-      quantity: quantity,
-      presentation: presentation,
-      unitsPerBox: product.unitsPerBox,
-    );
     final state = _strategy.applyPurchase(
       product.stockState,
       units: units,

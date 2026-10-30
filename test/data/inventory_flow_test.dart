@@ -4,6 +4,7 @@ import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/domain/entities/product.dart';
 import 'package:lucky_store/domain/entities/stock_adjustment.dart';
+import 'package:lucky_store/domain/purchasing/purchase_lot.dart';
 import 'package:lucky_store/domain/usecases/inventory_ledger.dart';
 import 'package:lucky_store/domain/usecases/register_purchase.dart';
 import 'package:lucky_store/domain/usecases/register_sale.dart';
@@ -25,6 +26,18 @@ void main() {
         suggestedPriceBox: const Money(6500),
       ));
 
+  /// Lot of [qty] boxes (product's box size) or units costing [total] in all.
+  PurchaseLot lotOf(Product p, int qty, Presentation pres, Money total) =>
+      switch (pres) {
+        Presentation.box => BoxLot(
+            boxes: qty,
+            unitsPerBox: p.unitsPerBox,
+            pricePerBox: Money(total.cents ~/ qty),
+          ),
+        Presentation.unit =>
+          LooseUnitsLot(units: qty, unitPrice: Money(total.cents ~/ qty)),
+      };
+
   Future<void> buy(
     Product p,
     int qty,
@@ -37,9 +50,7 @@ void main() {
         lines: [
           PurchaseLineInput(
             productId: p.id,
-            quantity: qty,
-            presentation: pres,
-            lineTotal: Money.parse(total),
+            lot: lotOf(p, qty, pres, Money.parse(total)),
           ),
         ],
       );
@@ -80,15 +91,11 @@ void main() {
       await env.registerPurchase(lines: [
         PurchaseLineInput(
           productId: p.id,
-          quantity: 1,
-          presentation: Presentation.box,
-          lineTotal: const Money(4800),
+          lot: BoxLot(boxes: 1, unitsPerBox: 24, pricePerBox: const Money(4800)),
         ),
         PurchaseLineInput(
           productId: p.id,
-          quantity: 6,
-          presentation: Presentation.unit,
-          lineTotal: const Money(1800),
+          lot: LooseUnitsLot(units: 6, unitPrice: const Money(300)),
         ),
       ]);
       final after = await reload(p);
@@ -97,14 +104,54 @@ void main() {
       expect(after.avgCost.raw, 22000);
     });
 
+    test('a lot keeps its own box size, expiry and code', () async {
+      final p = await newCandy(); // product default: box of 24
+      await env.registerPurchase(lines: [
+        PurchaseLineInput(
+          productId: p.id,
+          lot: BoxLot(
+            boxes: 1,
+            unitsPerBox: 36, // this supplier brings boxes of 36
+            pricePerBox: Money.parse('72'),
+            expiry: DateTime(2027, 3, 15),
+            lotCode: 'L-2291',
+          ),
+        ),
+        PurchaseLineInput(
+          productId: p.id,
+          lot: LooseUnitsLot(
+            units: 12,
+            unitPrice: Money.parse('1,50'),
+            expiryFrom: DateTime(2027, 1, 10),
+            expiryTo: DateTime(2027, 2, 20),
+          ),
+        ),
+      ]);
+
+      final after = await reload(p);
+      expect(after.stockUnits, 48);
+      expect(after.unitsPerBox, 24, reason: 'product default untouched');
+      // (36*2,00 + 12*1,50) / 48 = 1,875
+      expect(after.avgCost.raw, 18750);
+
+      final lines = (await env.purchases.getAll()).single.lines;
+      expect(lines[0].unitsPerBox, 36);
+      expect(lines[0].unitsBase, 36);
+      expect(lines[0].expiryFrom, DateTime(2027, 3, 15));
+      expect(lines[0].expiryTo, DateTime(2027, 3, 15));
+      expect(lines[0].lotCode, 'L-2291');
+      expect(lines[1].unitsPerBox, isNull);
+      expect(lines[1].expiryFrom, DateTime(2027, 1, 10));
+      expect(lines[1].expiryTo, DateTime(2027, 2, 20));
+      expect(lines[1].unitCost.raw, 15000);
+    });
+
     test('unknown product and empty purchases are rejected', () async {
       expect(
         () => env.registerPurchase(lines: [
-          const PurchaseLineInput(
+          PurchaseLineInput(
             productId: 'nope',
-            quantity: 1,
-            presentation: Presentation.unit,
-            lineTotal: Money(100),
+            lot: LooseUnitsLot(units: 1, unitPrice: const Money(100)),
           ),
         ]),
         throwsA(isA<EntityNotFoundException>()),

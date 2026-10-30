@@ -15,11 +15,19 @@ class InvalidQuantityException extends DomainException {
 
 class InvalidUnitsPerBoxException extends DomainException {
   const InvalidUnitsPerBoxException(int unitsPerBox)
-      : super('unidades_por_caja debe ser >= 1 (recibido: $unitsPerBox)');
+      : super('Las unidades por caja deben ser al menos 1 (recibido: $unitsPerBox)');
 }
 
 class InvalidAmountException extends DomainException {
   const InvalidAmountException(super.message);
+}
+
+class InvalidExpiryRangeException extends DomainException {
+  InvalidExpiryRangeException(DateTime from, DateTime to)
+      : super('La fecha de vencimiento final (${_day(to)}) es anterior a la '
+            'inicial (${_day(from)})');
+
+  static String _day(DateTime d) => '${d.day}/${d.month}/${d.year}';
 }
 
 class InsufficientStockException extends DomainException {

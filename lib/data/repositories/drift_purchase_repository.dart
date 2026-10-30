@@ -45,6 +45,10 @@ class DriftPurchaseRepository implements PurchaseRepository {
                 unitsBase: Value(l.unitsBase),
                 lineTotalCents: Value(l.lineTotal.cents),
                 unitCostRaw: Value(l.unitCost.raw),
+                unitsPerBox: Value(l.unitsPerBox),
+                expiryFrom: Value(l.expiryFrom),
+                expiryTo: Value(l.expiryTo),
+                lotCode: Value(l.lotCode),
               ));
         }
         return p;
@@ -107,6 +111,10 @@ class DriftPurchaseRepository implements PurchaseRepository {
             unitsBase: r.unitsBase,
             lineTotal: Money(r.lineTotalCents),
             unitCost: UnitCost(r.unitCostRaw),
+            unitsPerBox: r.unitsPerBox,
+            expiryFrom: r.expiryFrom,
+            expiryTo: r.expiryTo,
+            lotCode: r.lotCode,
           ));
     }
     return [
