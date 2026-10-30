@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../common/coming_soon_page.dart';
+import '../home/home_page.dart';
 import '../history/history_page.dart';
 import '../products/products_page.dart';
 import '../purchases/purchase_page.dart';
@@ -15,10 +15,10 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _index = 1; // Productos is the first screen that exists.
+  int _index = 0;
 
   static const _pages = <Widget>[
-    ComingSoonPage(title: 'Inicio', icon: Icons.insights_outlined),
+    HomePage(),
     ProductsPage(),
     SalePage(),
     PurchasePage(),
