@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/quantity/presentation.dart';
+import '../../domain/purchasing/purchase_lot.dart';
 import '../common/quantity_stepper.dart';
 import '../common/validators.dart';
 import '../format/date_format.dart';
@@ -169,63 +170,17 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
   }
 }
 
-class _LineCard extends ConsumerStatefulWidget {
+/// One lot: the owner first says HOW it was bought (box or loose units) and
+/// the form below changes, because each way asks for different data.
+class _LineCard extends ConsumerWidget {
   const _LineCard({super.key, required this.line});
 
   final DraftPurchaseLine line;
 
   @override
-  ConsumerState<_LineCard> createState() => _LineCardState();
-}
-
-class _LineCardState extends ConsumerState<_LineCard> {
-  late final TextEditingController _qty;
-  late final TextEditingController _price;
-
-  @override
-  void initState() {
-    super.initState();
-    _qty = TextEditingController(text: '${widget.line.quantity}');
-    _price = TextEditingController(text: widget.line.priceText);
-  }
-
-  /// Switching box/unit clears the price in the draft: mirror it.
-  @override
-  void didUpdateWidget(covariant _LineCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.line.priceText != _price.text) {
-      _price.text = widget.line.priceText;
-    }
-  }
-
-  @override
-  void dispose() {
-    _qty.dispose();
-    _price.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final line = widget.line;
-    final product = line.product;
+  Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(purchaseDraftProvider.notifier);
     final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
-    final isBox = line.presentation == Presentation.box;
-
-    final units = line.unitsBase;
-    final total = line.lineTotal;
-    final unitCost = line.unitCost;
-    String? averagePreview;
-    if (units != null && total != null && unitCost != null) {
-      final next = ref
-          .read(costStrategyProvider)
-          .applyPurchase(product.stockState, units: units, total: total);
-      averagePreview = product.stockUnits > 0
-          ? 'Costo promedio pasa de ${product.avgCost.format()} a ${next.avgCost.format()}'
-          : 'Costo promedio: ${next.avgCost.format()}';
-    }
 
     return Card(
       child: Padding(
@@ -236,7 +191,10 @@ class _LineCardState extends ConsumerState<_LineCard> {
             Row(
               children: [
                 Expanded(
-                  child: Text(product.name, style: theme.textTheme.titleMedium),
+                  child: Text(
+                    line.product.name,
+                    style: theme.textTheme.titleMedium,
+                  ),
                 ),
                 IconButton(
                   tooltip: 'Quitar',
@@ -251,75 +209,373 @@ class _LineCardState extends ConsumerState<_LineCard> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 4),
-                  if (product.unitsPerBox > 1) ...[
-                    SegmentedButton<Presentation>(
-                      showSelectedIcon: false,
-                      segments: [
-                        ButtonSegment(
-                          value: Presentation.box,
-                          label: Text('Caja (${product.unitsPerBox} u)'),
-                        ),
-                        const ButtonSegment(
-                          value: Presentation.unit,
-                          label: Text('Unidad'),
-                        ),
-                      ],
-                      selected: {line.presentation},
-                      onSelectionChanged: (s) =>
-                          notifier.setPresentation(line.id, s.first),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      QuantityStepper(
-                        controller: _qty,
-                        onChanged: (q) => notifier.setQuantity(line.id, q),
+                  SegmentedButton<Presentation>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(
+                        value: Presentation.box,
+                        icon: Icon(Icons.inventory_2_outlined),
+                        label: Text('Caja'),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _price,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          onChanged: (v) => notifier.setPrice(line.id, v),
-                          decoration: InputDecoration(
-                            labelText: isBox
-                                ? 'Precio por caja'
-                                : 'Precio por unidad',
-                            prefixText: 'Bs ',
-                            errorText: line.priceText.isEmpty
-                                ? null
-                                : validateMoney(line.priceText, required: true),
-                          ),
-                        ),
+                      ButtonSegment(
+                        value: Presentation.unit,
+                        icon: Icon(Icons.scatter_plot_outlined),
+                        label: Text('Por unidades'),
                       ),
                     ],
+                    selected: {line.mode},
+                    onSelectionChanged: (s) =>
+                        notifier.setMode(line.id, s.first),
                   ),
-                  if (unitCost != null) ...[
-                    const SizedBox(height: 12),
-                    _InfoRow(
-                      label: 'Total ($units u)',
-                      value: total!.format(),
-                      emphasis: true,
+                  const SizedBox(height: 12),
+                  // Keyed by mode: switching builds fresh fields/controllers.
+                  switch (line.form) {
+                    BoxLotForm f => _BoxLotFields(
+                      key: ValueKey('${line.id}-box'),
+                      form: f,
+                      onChanged: (next) => notifier.updateForm(line.id, next),
                     ),
-                    if (isBox)
-                      _InfoRow(
-                        label: 'Sale a',
-                        value: '${unitCost.format()} c/u',
-                      ),
-                    Text(
-                      averagePreview!,
-                      style: theme.textTheme.bodySmall?.copyWith(color: muted),
+                    LooseLotForm f => _LooseLotFields(
+                      key: ValueKey('${line.id}-loose'),
+                      form: f,
+                      onChanged: (next) => notifier.updateForm(line.id, next),
                     ),
-                  ],
+                  },
+                  _LotSummary(line: line),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Box: how many boxes and the price of ONE, the size of this box (it changes
+/// between suppliers), its code and its single expiry date.
+class _BoxLotFields extends StatefulWidget {
+  const _BoxLotFields({super.key, required this.form, required this.onChanged});
+
+  final BoxLotForm form;
+  final ValueChanged<BoxLotForm> onChanged;
+
+  @override
+  State<_BoxLotFields> createState() => _BoxLotFieldsState();
+}
+
+class _BoxLotFieldsState extends State<_BoxLotFields> {
+  late final _boxes = TextEditingController(text: '${widget.form.boxes}');
+  late final _size = TextEditingController(text: widget.form.unitsPerBoxText);
+  late final _price = TextEditingController(text: widget.form.priceText);
+  late final _code = TextEditingController(text: widget.form.lotCode);
+
+  @override
+  void dispose() {
+    _boxes.dispose();
+    _size.dispose();
+    _price.dispose();
+    _code.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final form = widget.form;
+    final size = form.unitsPerBox;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            QuantityStepper(
+              controller: _boxes,
+              onChanged: (q) => widget.onChanged(form.copyWith(boxes: q)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _MoneyField(
+                controller: _price,
+                label: 'Precio por caja',
+                onChanged: (v) => widget.onChanged(form.copyWith(priceText: v)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _size,
+                keyboardType: TextInputType.number,
+                onChanged: (v) =>
+                    widget.onChanged(form.copyWith(unitsPerBoxText: v)),
+                decoration: InputDecoration(
+                  labelText: 'Unidades por caja',
+                  errorText: form.unitsPerBoxText.isEmpty ||
+                          (size != null && size >= 1)
+                      ? null
+                      : 'Mínimo 1',
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: _code,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (v) => widget.onChanged(form.copyWith(lotCode: v)),
+                decoration: const InputDecoration(
+                  labelText: 'Código (opcional)',
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          children: [
+            _ExpiryChip(
+              label: 'Vence',
+              value: form.expiry,
+              onChanged: (d) => widget.onChanged(form.copyWith(expiry: () => d)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Loose units: price per unit, then either the count or the money spent,
+/// and an expiry range since informal lots are not uniform.
+class _LooseLotFields extends StatefulWidget {
+  const _LooseLotFields({
+    super.key,
+    required this.form,
+    required this.onChanged,
+  });
+
+  final LooseLotForm form;
+  final ValueChanged<LooseLotForm> onChanged;
+
+  @override
+  State<_LooseLotFields> createState() => _LooseLotFieldsState();
+}
+
+class _LooseLotFieldsState extends State<_LooseLotFields> {
+  late final _units = TextEditingController(text: '${widget.form.units}');
+  late final _price = TextEditingController(text: widget.form.unitPriceText);
+  late final _amount = TextEditingController(text: widget.form.amountText);
+
+  @override
+  void dispose() {
+    _units.dispose();
+    _price.dispose();
+    _amount.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final form = widget.form;
+    final byAmount = form.entry == LooseEntry.amount;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MoneyField(
+          controller: _price,
+          label: 'Precio por unidad',
+          onChanged: (v) => widget.onChanged(form.copyWith(unitPriceText: v)),
+        ),
+        const SizedBox(height: 12),
+        SegmentedButton<LooseEntry>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(value: LooseEntry.quantity, label: Text('Cantidad')),
+            ButtonSegment(value: LooseEntry.amount, label: Text('Monto pagado')),
+          ],
+          selected: {form.entry},
+          onSelectionChanged: (s) =>
+              widget.onChanged(form.copyWith(entry: s.first)),
+        ),
+        const SizedBox(height: 12),
+        if (byAmount)
+          _MoneyField(
+            controller: _amount,
+            label: 'Monto pagado',
+            onChanged: (v) => widget.onChanged(form.copyWith(amountText: v)),
+          )
+        else
+          Row(
+            children: [
+              QuantityStepper(
+                controller: _units,
+                onChanged: (q) => widget.onChanged(form.copyWith(units: q)),
+              ),
+              const SizedBox(width: 12),
+              const Text('unidades'),
+            ],
+          ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            _ExpiryChip(
+              label: 'Vence desde',
+              value: form.expiryFrom,
+              onChanged: (d) =>
+                  widget.onChanged(form.copyWith(expiryFrom: () => d)),
+            ),
+            _ExpiryChip(
+              label: 'hasta',
+              value: form.expiryTo,
+              firstDate: form.expiryFrom,
+              onChanged: (d) =>
+                  widget.onChanged(form.copyWith(expiryTo: () => d)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MoneyField extends StatelessWidget {
+  const _MoneyField({
+    required this.controller,
+    required this.label,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = controller.text;
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixText: 'Bs ',
+        errorText: text.isEmpty ? null : validateMoney(text, required: true),
+      ),
+    );
+  }
+}
+
+/// Optional expiry date: tap to pick, the x removes it.
+class _ExpiryChip extends StatelessWidget {
+  const _ExpiryChip({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.firstDate,
+  });
+
+  final String label;
+  final DateTime? value;
+  final ValueChanged<DateTime?> onChanged;
+
+  /// Earliest selectable day (the start of a range for its end).
+  final DateTime? firstDate;
+
+  Future<void> _pick(BuildContext context) async {
+    final now = DateTime.now();
+    final first = firstDate ?? DateTime(now.year - 1);
+    final picked = await showDatePicker(
+      context: context,
+      helpText: 'Fecha de vencimiento',
+      initialDate: value ?? (first.isAfter(now) ? first : now),
+      firstDate: first,
+      lastDate: DateTime(now.year + 10),
+    );
+    if (picked != null) onChanged(picked);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = value;
+    return InputChip(
+      avatar: const Icon(Icons.event_busy_outlined, size: 18),
+      label: Text(v == null ? '$label (opcional)' : '$label ${formatDate(v)}'),
+      onPressed: () => _pick(context),
+      onDeleted: v == null ? null : () => onChanged(null),
+      deleteButtonTooltipMessage: 'Quitar fecha',
+    );
+  }
+}
+
+/// What the typed lot amounts to, and how it moves the average cost.
+class _LotSummary extends ConsumerWidget {
+  const _LotSummary({required this.line});
+
+  final DraftPurchaseLine line;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final error = line.ruleError;
+    if (error != null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Text(
+          error,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+        ),
+      );
+    }
+    final lot = line.lot;
+    if (lot == null) return const SizedBox.shrink();
+
+    final product = line.product;
+    final next = ref.read(costStrategyProvider).applyPurchase(
+          product.stockState,
+          units: lot.unitsBase,
+          total: lot.lineTotal,
+        );
+    final averagePreview = product.stockUnits > 0
+        ? 'Costo promedio pasa de ${product.avgCost.format()} a ${next.avgCost.format()}'
+        : 'Costo promedio: ${next.avgCost.format()}';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _InfoRow(
+            label: 'Total (${lot.unitsBase} u)',
+            value: lot.lineTotal.format(),
+            emphasis: true,
+          ),
+          // A box price hides the unit cost; a loose lot by amount hides the
+          // count. Show the figure the owner did not type.
+          switch (lot) {
+            BoxLot() => _InfoRow(
+              label: 'Sale a',
+              value: '${lot.unitCost.format()} c/u',
+            ),
+            LooseUnitsLot(:final units) => _InfoRow(
+              label: 'Unidades',
+              value: '$units',
+            ),
+          },
+          Text(
+            averagePreview,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }

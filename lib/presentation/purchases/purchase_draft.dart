@@ -1,83 +1,200 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
 import '../../core/money/unit_cost.dart';
 import '../../core/quantity/presentation.dart';
 import '../../core/util/clock.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/purchase.dart';
+import '../../domain/purchasing/purchase_lot.dart';
 import '../../domain/usecases/register_purchase.dart';
 import '../common/validators.dart';
 
-/// One line being typed. The user enters the price of ONE box (or unit);
-/// the line total and what each unit comes out at are derived from it.
-/// [priceText] stays raw so the field keeps exactly what the user wrote.
-class DraftPurchaseLine {
-  const DraftPurchaseLine({
-    required this.id,
-    required this.product,
-    required this.quantity,
-    required this.presentation,
+/// What the owner has typed for one lot, field by field (texts stay raw so
+/// the fields keep exactly what was written). Each way of buying has its own
+/// form; [build] turns it into the domain [PurchaseLot], which owns the rules.
+sealed class LotForm {
+  const LotForm();
+
+  Presentation get mode;
+
+  /// The lot, or null while a field is missing/unparseable. Throws a
+  /// [DomainException] when the fields parse but break a rule.
+  PurchaseLot? build();
+}
+
+/// Sealed box from a supplier: price of one box, size of THIS box, one
+/// expiry date and the code printed on it.
+final class BoxLotForm extends LotForm {
+  const BoxLotForm({
+    this.boxes = 1,
+    required this.unitsPerBoxText,
     this.priceText = '',
+    this.expiry,
+    this.lotCode = '',
   });
 
-  /// Starts in boxes when the product has them: that is how stock is bought.
+  /// The product's usual box size is only a starting point.
+  factory BoxLotForm.forProduct(Product p) =>
+      BoxLotForm(unitsPerBoxText: '${p.unitsPerBox}');
+
+  final int boxes;
+  final String unitsPerBoxText;
+  final String priceText;
+  final DateTime? expiry;
+  final String lotCode;
+
+  int? get unitsPerBox => int.tryParse(unitsPerBoxText.trim());
+
+  @override
+  Presentation get mode => Presentation.box;
+
+  @override
+  PurchaseLot? build() {
+    final price = tryParseMoney(priceText);
+    final size = unitsPerBox;
+    if (price == null || size == null || boxes < 1) return null;
+    return BoxLot(
+      boxes: boxes,
+      unitsPerBox: size,
+      pricePerBox: price,
+      expiry: expiry,
+      lotCode: lotCode,
+    );
+  }
+
+  BoxLotForm copyWith({
+    int? boxes,
+    String? unitsPerBoxText,
+    String? priceText,
+    DateTime? Function()? expiry,
+    String? lotCode,
+  }) => BoxLotForm(
+    boxes: boxes ?? this.boxes,
+    unitsPerBoxText: unitsPerBoxText ?? this.unitsPerBoxText,
+    priceText: priceText ?? this.priceText,
+    expiry: expiry != null ? expiry() : this.expiry,
+    lotCode: lotCode ?? this.lotCode,
+  );
+}
+
+/// Loose units are counted, or derived from the money spent.
+enum LooseEntry { quantity, amount }
+
+/// Informal purchase of loose units: price per unit, then either how many
+/// or how much was spent, and an expiry range (units may not match).
+final class LooseLotForm extends LotForm {
+  const LooseLotForm({
+    this.entry = LooseEntry.quantity,
+    this.units = 1,
+    this.unitPriceText = '',
+    this.amountText = '',
+    this.expiryFrom,
+    this.expiryTo,
+  });
+
+  final LooseEntry entry;
+  final int units;
+  final String unitPriceText;
+  final String amountText;
+  final DateTime? expiryFrom;
+  final DateTime? expiryTo;
+
+  @override
+  Presentation get mode => Presentation.unit;
+
+  @override
+  PurchaseLot? build() {
+    final price = tryParseMoney(unitPriceText);
+    if (price == null) return null;
+    switch (entry) {
+      case LooseEntry.quantity:
+        if (units < 1) return null;
+        return LooseUnitsLot(
+          units: units,
+          unitPrice: price,
+          expiryFrom: expiryFrom,
+          expiryTo: expiryTo,
+        );
+      case LooseEntry.amount:
+        final amount = tryParseMoney(amountText);
+        if (amount == null) return null;
+        return LooseUnitsLot.byAmount(
+          amount: amount,
+          unitPrice: price,
+          expiryFrom: expiryFrom,
+          expiryTo: expiryTo,
+        );
+    }
+  }
+
+  LooseLotForm copyWith({
+    LooseEntry? entry,
+    int? units,
+    String? unitPriceText,
+    String? amountText,
+    DateTime? Function()? expiryFrom,
+    DateTime? Function()? expiryTo,
+  }) => LooseLotForm(
+    entry: entry ?? this.entry,
+    units: units ?? this.units,
+    unitPriceText: unitPriceText ?? this.unitPriceText,
+    amountText: amountText ?? this.amountText,
+    expiryFrom: expiryFrom != null ? expiryFrom() : this.expiryFrom,
+    expiryTo: expiryTo != null ? expiryTo() : this.expiryTo,
+  );
+}
+
+/// One product being bought, as one lot.
+class DraftPurchaseLine {
+  DraftPurchaseLine({
+    required this.id,
+    required this.product,
+    required this.form,
+  });
+
+  /// Starts as a box when the product usually comes in boxes.
   factory DraftPurchaseLine.forProduct(Product product) => DraftPurchaseLine(
     id: newId(),
     product: product,
-    quantity: 1,
-    presentation: product.unitsPerBox > 1
-        ? Presentation.box
-        : Presentation.unit,
+    form: product.unitsPerBox > 1
+        ? BoxLotForm.forProduct(product)
+        : const LooseLotForm(),
   );
 
   final String id;
   final Product product;
-  final int quantity;
-  final Presentation presentation;
+  final LotForm form;
 
-  /// Price paid per [presentation] (one box or one unit), as typed.
-  final String priceText;
+  Presentation get mode => form.mode;
 
-  Money? get price => tryParseMoney(priceText);
+  late final (PurchaseLot?, String?) _built = () {
+    try {
+      return (form.build(), null);
+    } on DomainException catch (e) {
+      return (null, e.message);
+    }
+  }();
 
-  /// `price x quantity`: exact, integer centavos.
-  Money? get lineTotal => quantity < 1 ? null : price?.times(quantity);
+  /// The valid lot, or null while incomplete or rejected.
+  PurchaseLot? get lot => _built.$1;
+
+  /// Why the domain rejected what was typed (e.g. an amount that does not
+  /// buy whole units). Null while the fields are just incomplete.
+  String? get ruleError => _built.$2;
+
+  Money? get lineTotal => lot?.lineTotal;
+  int? get unitsBase => lot?.unitsBase;
 
   /// What each base unit comes out at ("sale a").
-  UnitCost? get unitCost {
-    final total = lineTotal;
-    final units = unitsBase;
-    if (total == null || units == null || total.isNegative) return null;
-    return UnitCost.fromTotal(total, units);
-  }
+  UnitCost? get unitCost => lot?.unitCost;
 
-  /// Quantity in base units, or null while the quantity is invalid.
-  int? get unitsBase => quantity < 1
-      ? null
-      : toBaseUnits(
-          quantity: quantity,
-          presentation: presentation,
-          unitsPerBox: product.unitsPerBox,
-        );
+  bool get isValid => lot != null;
 
-  bool get isValid {
-    final p = price;
-    return quantity >= 1 && p != null && !p.isNegative;
-  }
-
-  DraftPurchaseLine copyWith({
-    int? quantity,
-    Presentation? presentation,
-    String? priceText,
-  }) => DraftPurchaseLine(
-    id: id,
-    product: product,
-    quantity: quantity ?? this.quantity,
-    presentation: presentation ?? this.presentation,
-    priceText: priceText ?? this.priceText,
-  );
+  DraftPurchaseLine withForm(LotForm form) =>
+      DraftPurchaseLine(id: id, product: product, form: form);
 }
 
 class PurchaseDraftState {
@@ -131,26 +248,28 @@ class PurchaseDraft extends Notifier<PurchaseDraftState> {
     );
   }
 
+  /// Box and loose purchases ask for different things, so switching starts a
+  /// blank form: a box price is never kept as a unit price by accident.
+  void setMode(String id, Presentation mode) => _updateLine(
+    id,
+    (l) => l.mode == mode
+        ? l
+        : l.withForm(
+            mode == Presentation.box
+                ? BoxLotForm.forProduct(l.product)
+                : const LooseLotForm(),
+          ),
+  );
+
+  /// Replaces the line's form; it must keep the line's current mode.
+  void updateForm(String id, LotForm form) =>
+      _updateLine(id, (l) => l.mode == form.mode ? l.withForm(form) : l);
+
   void _updateLine(String id, DraftPurchaseLine Function(DraftPurchaseLine) f) {
     state = state.copyWith(
       lines: [for (final l in state.lines) l.id == id ? f(l) : l],
     );
   }
-
-  void setQuantity(String id, int quantity) =>
-      _updateLine(id, (l) => l.copyWith(quantity: quantity));
-
-  /// The typed price meant "per box" or "per unit": switching clears it so a
-  /// unit price is never registered as a box price by accident.
-  void setPresentation(String id, Presentation presentation) => _updateLine(
-    id,
-    (l) => l.presentation == presentation
-        ? l
-        : l.copyWith(presentation: presentation, priceText: ''),
-  );
-
-  void setPrice(String id, String text) =>
-      _updateLine(id, (l) => l.copyWith(priceText: text));
 
   void setDate(DateTime date) => state = state.copyWith(date: date);
   void setSupplier(String value) => state = state.copyWith(supplier: value);
@@ -168,12 +287,7 @@ class PurchaseDraft extends Notifier<PurchaseDraftState> {
       notes: draft.notes.trim().isEmpty ? null : draft.notes.trim(),
       lines: [
         for (final l in draft.lines)
-          PurchaseLineInput(
-            productId: l.product.id,
-            quantity: l.quantity,
-            presentation: l.presentation,
-            lineTotal: l.lineTotal!,
-          ),
+          PurchaseLineInput(productId: l.product.id, lot: l.lot!),
       ],
     );
     clear();
