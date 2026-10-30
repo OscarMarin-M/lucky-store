@@ -134,22 +134,22 @@ class _DaySection extends StatelessWidget {
             ],
           ),
         ),
-        Card(
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              for (var i = 0; i < day.entries.length; i++) ...[
-                if (i > 0) const Divider(height: 1, indent: 72),
-                _EntryTile(entry: day.entries[i], byId: byId),
-              ],
-            ],
-          ),
-        ),
+        for (var i = 0; i < day.entries.length; i++) ...[
+          if (i > 0) const SizedBox(height: 8),
+          _EntryTile(entry: day.entries[i], byId: byId),
+        ],
       ],
     );
   }
 }
+
+/// Each kind has its color so sales, purchases and write-offs are told apart
+/// at a glance: green sale, blue purchase, red write-off.
+Color _kindColor(ColorScheme scheme, HistoryEntry e) => switch (e) {
+  SaleEntry() => scheme.gain,
+  PurchaseEntry() => scheme.purchase,
+  WriteOffEntry() => scheme.loss,
+};
 
 class _EntryTile extends StatelessWidget {
   const _EntryTile({required this.entry, required this.byId});
@@ -215,15 +215,28 @@ class _EntryTile extends StatelessWidget {
         ),
     };
 
-    return ListTile(
-      onTap: onTap,
-      leading: CircleAvatar(
-        backgroundColor: scheme.surfaceContainerHighest,
-        child: Icon(icon, color: scheme.onSurfaceVariant),
+    final kind = _kindColor(scheme, entry);
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: Color.alphaBlend(
+        kind.withValues(alpha: 0.10),
+        scheme.surfaceContainerLow,
       ),
-      title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: trailing,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: kind.withValues(alpha: 0.35)),
+      ),
+      child: ListTile(
+        onTap: onTap,
+        leading: CircleAvatar(
+          backgroundColor: kind.withValues(alpha: 0.20),
+          child: Icon(icon, color: kind),
+        ),
+        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
+        trailing: trailing,
+      ),
     );
   }
 }

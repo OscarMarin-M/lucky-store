@@ -59,12 +59,22 @@ class _HomePageState extends ConsumerState<HomePage> {
                 children: [
                   _SummaryGrid(summary: d.summary),
                   if (d.hasAlerts) ...[
-                    const _SectionTitle('Atención'),
+                    _SectionTitle(
+                      'Atención',
+                      icon: Icons.warning_amber_rounded,
+                      color: Theme.of(context).colorScheme.tertiary,
+                    ),
                     _AlertsCard(dashboard: d),
                   ],
-                  const _SectionTitle('Ganancia por producto'),
+                  const _SectionTitle(
+                    'Ganancia por producto',
+                    icon: Icons.leaderboard_outlined,
+                  ),
                   _ResultsCard(results: d.results),
-                  const _SectionTitle('Inventario'),
+                  const _SectionTitle(
+                    'Inventario',
+                    icon: Icons.inventory_2_outlined,
+                  ),
                   _InventoryCard(dashboard: d),
                 ],
               ),
@@ -76,16 +86,40 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
+/// Section header that stands out from the cards: icon, larger bold text in
+/// the accent color and a rule to the edge.
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
+  const _SectionTitle(this.text, {required this.icon, this.color});
 
   final String text;
+  final IconData icon;
+
+  /// Defaults to the theme accent; "Atención" uses a warning tone.
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
-    child: Text(text, style: Theme.of(context).textTheme.titleSmall),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final c = color ?? theme.colorScheme.primary;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, 28, 2, 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 22, color: c),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: c,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Divider(color: c.withValues(alpha: 0.35))),
+        ],
+      ),
+    );
+  }
 }
 
 Color _profitColor(ColorScheme scheme, Money m) =>

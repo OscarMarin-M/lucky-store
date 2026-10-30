@@ -57,4 +57,7 @@ InputBorder _fieldBorder(BorderSide side) => UnderlineInputBorder(
 extension MoneyColors on ColorScheme {
   Color get gain => const Color(0xFF4CD694);
   Color get loss => const Color(0xFFFF6B6B);
+
+  /// Purchases in the history: money out for stock, neither gain nor loss.
+  Color get purchase => const Color(0xFF6EA8FE);
 }
