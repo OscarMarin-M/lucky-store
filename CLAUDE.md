@@ -19,12 +19,24 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
 - Costo: promedio ponderado. Ganancia por venta = (precio venta - costo promedio vigente) * cantidad.
   Diseñar para poder migrar a FIFO después.
 - Todas las tablas: id UUID, created_at, updated_at, deleted_at (borrado lógico).
+- Compras = "lotes" (`PurchaseLot`), cada modo con su propia lógica:
+  - Caja: precio total de la caja, unidades por caja del lote (varía por proveedor),
+    1 fecha de vencimiento opcional y 1 código.
+  - Por unidades: precio por unidad, cantidad O monto pagado, rango de vencimiento opcional.
+  - `unidades_por_caja` del producto es solo el valor por defecto; una compra nunca lo cambia.
+- Venta = "pedido" (caja promocional = pedido con varios productos). Los cargos
+  adicionales (mano de obra, empaque, impresión...) los PAGA EL CLIENTE: suman al
+  total y a la ganancia del pedido, no descuentan stock ni son un costo de la tienda.
+- Regalo = venta a Bs 0 (su costo queda como pérdida en la ganancia).
+- Ganancia del período = ganancia de ventas - pérdida por bajas (vencido, dañado...).
 
 ## Flujo de trabajo
 - Planificar antes de codificar en cambios grandes.
 - Commits pequeños y descriptivos, una funcionalidad por rama.
 - Tests obligatorios para la lógica de costos y conversión de cajas.
 - Comandos: `flutter pub get`, `dart run build_runner build`, `flutter test`, `flutter analyze`
+- Push: `git -c credential.helper=manager push origin main` (en esta PC `git push`
+  a secas falla: no hay credential helper global ni `gh`).
 
 ## Notas técnicas
 - Capas: `lib/core` (Money en centavos, UnitCost a 4 decimales, presentaciones),
