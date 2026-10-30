@@ -33,6 +33,7 @@ class DriftProductRepository
         suggestedPriceBox: row.suggestedPriceBoxCents == null
             ? null
             : Money(row.suggestedPriceBoxCents!),
+        minStockUnits: row.minStockUnits,
         isActive: row.isActive,
       );
 
@@ -49,6 +50,7 @@ class DriftProductRepository
         avgCostRaw: Value(p.avgCost.raw),
         suggestedPriceUnitCents: Value(p.suggestedPriceUnit.cents),
         suggestedPriceBoxCents: Value(p.suggestedPriceBox?.cents),
+        minStockUnits: Value(p.minStockUnits),
         isActive: Value(p.isActive),
       );
 

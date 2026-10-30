@@ -142,6 +142,17 @@ class $ProductsTable extends Products
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _minStockUnitsMeta = const VerificationMeta(
+    'minStockUnits',
+  );
+  @override
+  late final GeneratedColumn<int> minStockUnits = GeneratedColumn<int>(
+    'min_stock_units',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -156,6 +167,7 @@ class $ProductsTable extends Products
     suggestedPriceUnitCents,
     suggestedPriceBoxCents,
     isActive,
+    minStockUnits,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -258,6 +270,15 @@ class $ProductsTable extends Products
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('min_stock_units')) {
+      context.handle(
+        _minStockUnitsMeta,
+        minStockUnits.isAcceptableOrUnknown(
+          data['min_stock_units']!,
+          _minStockUnitsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -315,6 +336,10 @@ class $ProductsTable extends Products
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      minStockUnits: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}min_stock_units'],
+      ),
     );
   }
 
@@ -345,6 +370,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final int suggestedPriceUnitCents;
   final int? suggestedPriceBoxCents;
   final bool isActive;
+
+  /// v3: "stock bajo" threshold in base units; null = no alert.
+  final int? minStockUnits;
   const ProductRow({
     required this.id,
     required this.createdAt,
@@ -358,6 +386,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     required this.suggestedPriceUnitCents,
     this.suggestedPriceBoxCents,
     required this.isActive,
+    this.minStockUnits,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -380,6 +409,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       map['suggested_price_box_cents'] = Variable<int>(suggestedPriceBoxCents);
     }
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || minStockUnits != null) {
+      map['min_stock_units'] = Variable<int>(minStockUnits);
+    }
     return map;
   }
 
@@ -401,6 +433,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ? const Value.absent()
           : Value(suggestedPriceBoxCents),
       isActive: Value(isActive),
+      minStockUnits: minStockUnits == null && nullToAbsent
+          ? const Value.absent()
+          : Value(minStockUnits),
     );
   }
 
@@ -426,6 +461,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         json['suggestedPriceBoxCents'],
       ),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      minStockUnits: serializer.fromJson<int?>(json['minStockUnits']),
     );
   }
   @override
@@ -446,6 +482,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       ),
       'suggestedPriceBoxCents': serializer.toJson<int?>(suggestedPriceBoxCents),
       'isActive': serializer.toJson<bool>(isActive),
+      'minStockUnits': serializer.toJson<int?>(minStockUnits),
     };
   }
 
@@ -462,6 +499,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     int? suggestedPriceUnitCents,
     Value<int?> suggestedPriceBoxCents = const Value.absent(),
     bool? isActive,
+    Value<int?> minStockUnits = const Value.absent(),
   }) => ProductRow(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -478,6 +516,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         ? suggestedPriceBoxCents.value
         : this.suggestedPriceBoxCents,
     isActive: isActive ?? this.isActive,
+    minStockUnits: minStockUnits.present
+        ? minStockUnits.value
+        : this.minStockUnits,
   );
   ProductRow copyWithCompanion(ProductsCompanion data) {
     return ProductRow(
@@ -503,6 +544,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ? data.suggestedPriceBoxCents.value
           : this.suggestedPriceBoxCents,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      minStockUnits: data.minStockUnits.present
+          ? data.minStockUnits.value
+          : this.minStockUnits,
     );
   }
 
@@ -520,7 +564,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('avgCostRaw: $avgCostRaw, ')
           ..write('suggestedPriceUnitCents: $suggestedPriceUnitCents, ')
           ..write('suggestedPriceBoxCents: $suggestedPriceBoxCents, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('minStockUnits: $minStockUnits')
           ..write(')'))
         .toString();
   }
@@ -539,6 +584,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     suggestedPriceUnitCents,
     suggestedPriceBoxCents,
     isActive,
+    minStockUnits,
   );
   @override
   bool operator ==(Object other) =>
@@ -555,7 +601,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.avgCostRaw == this.avgCostRaw &&
           other.suggestedPriceUnitCents == this.suggestedPriceUnitCents &&
           other.suggestedPriceBoxCents == this.suggestedPriceBoxCents &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.minStockUnits == this.minStockUnits);
 }
 
 class ProductsCompanion extends UpdateCompanion<ProductRow> {
@@ -571,6 +618,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<int> suggestedPriceUnitCents;
   final Value<int?> suggestedPriceBoxCents;
   final Value<bool> isActive;
+  final Value<int?> minStockUnits;
   final Value<int> rowid;
   const ProductsCompanion({
     this.id = const Value.absent(),
@@ -585,6 +633,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.suggestedPriceUnitCents = const Value.absent(),
     this.suggestedPriceBoxCents = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.minStockUnits = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
@@ -600,6 +649,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.suggestedPriceUnitCents = const Value.absent(),
     this.suggestedPriceBoxCents = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.minStockUnits = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        createdAt = Value(createdAt),
@@ -618,6 +668,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<int>? suggestedPriceUnitCents,
     Expression<int>? suggestedPriceBoxCents,
     Expression<bool>? isActive,
+    Expression<int>? minStockUnits,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -635,6 +686,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (suggestedPriceBoxCents != null)
         'suggested_price_box_cents': suggestedPriceBoxCents,
       if (isActive != null) 'is_active': isActive,
+      if (minStockUnits != null) 'min_stock_units': minStockUnits,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -652,6 +704,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Value<int>? suggestedPriceUnitCents,
     Value<int?>? suggestedPriceBoxCents,
     Value<bool>? isActive,
+    Value<int?>? minStockUnits,
     Value<int>? rowid,
   }) {
     return ProductsCompanion(
@@ -669,6 +722,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       suggestedPriceBoxCents:
           suggestedPriceBoxCents ?? this.suggestedPriceBoxCents,
       isActive: isActive ?? this.isActive,
+      minStockUnits: minStockUnits ?? this.minStockUnits,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -716,6 +770,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (minStockUnits.present) {
+      map['min_stock_units'] = Variable<int>(minStockUnits.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -737,6 +794,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('suggestedPriceUnitCents: $suggestedPriceUnitCents, ')
           ..write('suggestedPriceBoxCents: $suggestedPriceBoxCents, ')
           ..write('isActive: $isActive, ')
+          ..write('minStockUnits: $minStockUnits, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4446,6 +4504,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<int> suggestedPriceUnitCents,
   Value<int?> suggestedPriceBoxCents,
   Value<bool> isActive,
+  Value<int?> minStockUnits,
   Value<int> rowid,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
@@ -4461,6 +4520,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<int> suggestedPriceUnitCents,
   Value<int?> suggestedPriceBoxCents,
   Value<bool> isActive,
+  Value<int?> minStockUnits,
   Value<int> rowid,
 });
 
@@ -4591,6 +4651,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get minStockUnits => $composableBuilder(
+    column: $table.minStockUnits,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4738,6 +4803,11 @@ class $$ProductsTableOrderingComposer
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get minStockUnits => $composableBuilder(
+    column: $table.minStockUnits,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProductsTableAnnotationComposer
@@ -4794,6 +4864,11 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<int> get minStockUnits => $composableBuilder(
+    column: $table.minStockUnits,
+    builder: (column) => column,
+  );
 
   Expression<T> purchaseLinesRefs<T extends Object>(
     Expression<T> Function($$PurchaseLinesTableAnnotationComposer a) f,
@@ -4915,6 +4990,7 @@ class $$ProductsTableTableManager
                 Value<int> suggestedPriceUnitCents = const Value.absent(),
                 Value<int?> suggestedPriceBoxCents = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<int?> minStockUnits = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsCompanion(
                 id: id,
@@ -4929,6 +5005,7 @@ class $$ProductsTableTableManager
                 suggestedPriceUnitCents: suggestedPriceUnitCents,
                 suggestedPriceBoxCents: suggestedPriceBoxCents,
                 isActive: isActive,
+                minStockUnits: minStockUnits,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4945,6 +5022,7 @@ class $$ProductsTableTableManager
                 Value<int> suggestedPriceUnitCents = const Value.absent(),
                 Value<int?> suggestedPriceBoxCents = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<int?> minStockUnits = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsCompanion.insert(
                 id: id,
@@ -4959,6 +5037,7 @@ class $$ProductsTableTableManager
                 suggestedPriceUnitCents: suggestedPriceUnitCents,
                 suggestedPriceBoxCents: suggestedPriceBoxCents,
                 isActive: isActive,
+                minStockUnits: minStockUnits,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -28,6 +28,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   late final TextEditingController _unitsPerBox;
   late final TextEditingController _priceUnit;
   late final TextEditingController _priceBox;
+  late final TextEditingController _minStock;
   late bool _isActive;
   bool _saving = false;
 
@@ -46,6 +47,9 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     _priceBox = TextEditingController(
       text: p?.suggestedPriceBox?.format(symbol: false) ?? '',
     );
+    _minStock = TextEditingController(
+      text: p?.minStockUnits == null ? '' : '${p!.minStockUnits}',
+    );
     _isActive = p?.isActive ?? true;
   }
 
@@ -56,6 +60,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     _unitsPerBox.dispose();
     _priceUnit.dispose();
     _priceBox.dispose();
+    _minStock.dispose();
     super.dispose();
   }
 
@@ -74,6 +79,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     final priceBox = unitsPerBox > 1 && priceBoxText.isNotEmpty
         ? Money.parse(priceBoxText)
         : null;
+    // Empty = no "stock bajo" alert for this product.
+    final minStock = int.tryParse(_minStock.text.trim());
 
     try {
       final existing = widget.product;
@@ -86,6 +93,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             unitsPerBox: unitsPerBox,
             suggestedPriceUnit: priceUnit,
             suggestedPriceBox: priceBox,
+            minStockUnits: minStock,
           ),
         );
       } else {
@@ -96,6 +104,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             unitsPerBox: unitsPerBox,
             suggestedPriceUnit: priceUnit,
             suggestedPriceBox: priceBox,
+            minStockUnits: minStock,
             isActive: _isActive,
           ),
         );
@@ -210,6 +219,17 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                   : 'Puedes cambiarlo al vender. El costo sale de las compras.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _minStock,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Stock mínimo (opcional)',
+                suffixText: 'u',
+                helperText: 'Inicio avisa cuando quedan esas unidades o menos',
               ),
             ),
             if (_isEdit) ...[

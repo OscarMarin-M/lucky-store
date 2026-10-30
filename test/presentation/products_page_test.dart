@@ -115,6 +115,9 @@ void main() {
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Twix Caramelo');
     await tester.enterText(find.widgetWithText(TextFormField, 'Por caja'), '');
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Stock mínimo (opcional)'), '12');
+    await tester.ensureVisible(find.text('Guardar cambios'));
     await tester.tap(find.text('Guardar cambios'));
     await tester.pumpAndSettle();
 
@@ -124,6 +127,7 @@ void main() {
         .single;
     expect(saved.name, 'Twix Caramelo');
     expect(saved.suggestedPriceBox, isNull);
+    expect(saved.minStockUnits, 12);
     expect(find.text('Bs 48,00 / caja'), findsOneWidget); // 12 x 4,00
     await teardown(tester);
   });

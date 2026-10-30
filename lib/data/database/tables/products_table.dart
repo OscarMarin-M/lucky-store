@@ -24,4 +24,7 @@ class Products extends Table with BaseColumns {
   IntColumn get suggestedPriceBoxCents => integer().nullable()();
 
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+
+  /// v3: "stock bajo" threshold in base units; null = no alert.
+  IntColumn get minStockUnits => integer().nullable()();
 }

@@ -32,7 +32,9 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   `lib/data` (Drift + repositorios), `lib/app/providers.dart` (Riverpod, raíz de
   composición), `lib/presentation` (pantallas). CRUD nuevo: heredar `DriftCrudRepository`.
 - Cambio de esquema: subir `schemaVersion`, agregar el paso en `migration` y ejecutar
-  `dart run drift_dev schema dump lib/data/database/app_database.dart drift_schemas/`.
+  `dart run drift_dev schema dump lib/data/database/app_database.dart drift_schemas/`,
+  luego `dart run drift_dev schema generate drift_schemas/ test/generated_migrations/`
+  y subir la versión esperada en `test/data/migration_test.dart`.
 - Tests de widgets con Drift: sembrar datos ANTES de montar la pantalla (dentro de
   `tester.runAsync`); al final desmontar, `container.dispose()` y cerrar la base con
   `tester.runAsync(db.close)`. No usar `pumpAndSettle` con un campo de texto enfocado.

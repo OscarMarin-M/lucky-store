@@ -22,7 +22,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,6 +40,10 @@ class AppDatabase extends _$AppDatabase {
               "UPDATE purchase_lines SET units_per_box = units_base / quantity "
               "WHERE presentation = 'box' AND quantity > 0",
             );
+          }
+          if (from < 3) {
+            // Optional minimum stock per product for the "stock bajo" alert.
+            await m.addColumn(products, products.minStockUnits);
           }
         },
         beforeOpen: (details) async {

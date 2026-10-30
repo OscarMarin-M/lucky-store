@@ -19,6 +19,7 @@ class Product extends BaseEntity {
     this.avgCost = UnitCost.zero,
     this.suggestedPriceUnit = Money.zero,
     this.suggestedPriceBox,
+    this.minStockUnits,
     this.isActive = true,
   });
 
@@ -30,6 +31,7 @@ class Product extends BaseEntity {
     int unitsPerBox = 1,
     Money suggestedPriceUnit = Money.zero,
     Money? suggestedPriceBox,
+    int? minStockUnits,
     Clock clock = DateTime.now,
   }) {
     if (unitsPerBox < 1) throw InvalidUnitsPerBoxException(unitsPerBox);
@@ -43,6 +45,7 @@ class Product extends BaseEntity {
       unitsPerBox: unitsPerBox,
       suggestedPriceUnit: suggestedPriceUnit,
       suggestedPriceBox: suggestedPriceBox,
+      minStockUnits: minStockUnits,
     );
   }
 
@@ -63,12 +66,22 @@ class Product extends BaseEntity {
   /// Suggested price of a whole box; when null it is units x unit price.
   final Money? suggestedPriceBox;
 
+  /// At or below this many base units the product shows as "stock bajo" in
+  /// Inicio. Null = no alert for this product.
+  final int? minStockUnits;
+
   final bool isActive;
 
   StockState get stockState => StockState(units: stockUnits, avgCost: avgCost);
 
   /// Value of the inventory at average cost.
   Money get stockValue => avgCost.totalFor(stockUnits);
+
+  /// Never true for a product without a minimum.
+  bool get isLowStock {
+    final min = minStockUnits;
+    return min != null && stockUnits <= min;
+  }
 
   /// Suggested price for one [presentation]; the sale can override it.
   Money suggestedPriceFor(Presentation presentation) => switch (presentation) {
@@ -87,6 +100,7 @@ class Product extends BaseEntity {
     required int unitsPerBox,
     required Money suggestedPriceUnit,
     Money? suggestedPriceBox,
+    int? minStockUnits,
     required bool isActive,
   }) {
     if (unitsPerBox < 1) throw InvalidUnitsPerBoxException(unitsPerBox);
@@ -102,6 +116,7 @@ class Product extends BaseEntity {
       avgCost: avgCost,
       suggestedPriceUnit: suggestedPriceUnit,
       suggestedPriceBox: suggestedPriceBox,
+      minStockUnits: minStockUnits,
       isActive: isActive,
     );
   }
@@ -116,6 +131,7 @@ class Product extends BaseEntity {
     UnitCost? avgCost,
     Money? suggestedPriceUnit,
     Money? suggestedPriceBox,
+    int? minStockUnits,
     bool? isActive,
   }) {
     if (unitsPerBox != null && unitsPerBox < 1) {
@@ -133,6 +149,7 @@ class Product extends BaseEntity {
       avgCost: avgCost ?? this.avgCost,
       suggestedPriceUnit: suggestedPriceUnit ?? this.suggestedPriceUnit,
       suggestedPriceBox: suggestedPriceBox ?? this.suggestedPriceBox,
+      minStockUnits: minStockUnits ?? this.minStockUnits,
       isActive: isActive ?? this.isActive,
     );
   }

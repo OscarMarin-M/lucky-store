@@ -33,6 +33,25 @@ void main() {
     expect(read.avgCost, UnitCost.zero);
     expect(read.isActive, isTrue);
     expect(read.deletedAt, isNull);
+    expect(read.minStockUnits, isNull);
+
+    // The minimum is set and cleared from the product form (withDetails).
+    final withMin = await env.products.update(read.withDetails(
+      name: read.name,
+      sku: read.sku,
+      unitsPerBox: read.unitsPerBox,
+      suggestedPriceUnit: read.suggestedPriceUnit,
+      minStockUnits: 12,
+      isActive: true,
+    ));
+    expect((await env.products.getById(p.id))!.minStockUnits, 12);
+    await env.products.update(withMin.withDetails(
+      name: read.name,
+      unitsPerBox: read.unitsPerBox,
+      suggestedPriceUnit: read.suggestedPriceUnit,
+      isActive: true,
+    ));
+    expect((await env.products.getById(p.id))!.minStockUnits, isNull);
   });
 
   test('update changes fields and bumps updatedAt', () async {

@@ -13,11 +13,13 @@ void main() {
 
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
-  test('v1 -> v2 produces exactly the v2 schema', () async {
-    final connection = await verifier.startAt(1);
-    final db = AppDatabase(connection);
-    await verifier.migrateAndValidate(db, 2);
-    await db.close();
+  test('every old version migrates to exactly the current schema', () async {
+    for (final from in [1, 2]) {
+      final connection = await verifier.startAt(from);
+      final db = AppDatabase(connection);
+      await verifier.migrateAndValidate(db, 3);
+      await db.close();
+    }
   });
 
   test('v1 purchases survive and box lines recover their box size', () async {
@@ -43,7 +45,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 2);
+    await verifier.migrateAndValidate(db, 3);
 
     final purchase =
         (await DriftPurchaseRepository(db).getById('c1'))!;
