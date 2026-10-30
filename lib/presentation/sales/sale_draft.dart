@@ -86,9 +86,10 @@ class DraftSaleLine {
   );
 }
 
-/// A cost of the order that is not a product (labor, printing...), as typed.
-class DraftExtraCost {
-  const DraftExtraCost({
+/// Something charged on the order that is not a product (assembly,
+/// packaging...), as typed. It adds to the total and to the profit.
+class DraftExtraCharge {
+  const DraftExtraCharge({
     required this.id,
     this.concept = '',
     this.amountText = '',
@@ -108,8 +109,8 @@ class DraftExtraCost {
     return concept.trim().isNotEmpty && a != null && a.cents > 0;
   }
 
-  DraftExtraCost copyWith({String? concept, String? amountText}) =>
-      DraftExtraCost(
+  DraftExtraCharge copyWith({String? concept, String? amountText}) =>
+      DraftExtraCharge(
         id: id,
         concept: concept ?? this.concept,
         amountText: amountText ?? this.amountText,
@@ -120,7 +121,7 @@ class SaleDraftState {
   const SaleDraftState({
     this.lines = const [],
     this.date,
-    this.extraCosts = const [],
+    this.extraCharges = const [],
     this.notes = '',
   });
 
@@ -129,16 +130,16 @@ class SaleDraftState {
   /// Null = now (resolved when registering).
   final DateTime? date;
 
-  final List<DraftExtraCost> extraCosts;
+  final List<DraftExtraCharge> extraCharges;
 
   /// Names the order, e.g. "Caja San Valentín para Ana".
   final String notes;
 
-  /// Extra costs that will be registered (blank rows are skipped).
-  Iterable<DraftExtraCost> get filledExtraCosts =>
-      extraCosts.where((c) => !c.isBlank);
+  /// Extra charges that will be registered (blank rows are skipped).
+  Iterable<DraftExtraCharge> get filledExtraCharges =>
+      extraCharges.where((c) => !c.isBlank);
 
-  Money get extraCostsTotal => filledExtraCosts
+  Money get extraChargesTotal => filledExtraCharges
       .map((c) => c.isValid ? c.amount! : Money.zero)
       .sum;
 
@@ -167,23 +168,26 @@ class SaleDraftState {
             l.hasValidPrice &&
             fitsStock(l.product, allowNegativeStock: allowNegativeStock),
       ) &&
-      filledExtraCosts.every((c) => c.isValid);
+      filledExtraCharges.every((c) => c.isValid);
 
-  /// What the customer pays: extra costs are the shop's, not charged.
-  Money get total => lines.map((l) => l.lineTotal ?? Money.zero).sum;
+  Money get productsTotal =>
+      lines.map((l) => l.lineTotal ?? Money.zero).sum;
+
+  /// What the customer pays: products plus extra charges.
+  Money get total => productsTotal + extraChargesTotal;
 
   Money get estimatedProfit =>
-      lines.map((l) => l.estimatedProfit ?? Money.zero).sum - extraCostsTotal;
+      lines.map((l) => l.estimatedProfit ?? Money.zero).sum + extraChargesTotal;
 
   SaleDraftState copyWith({
     List<DraftSaleLine>? lines,
     DateTime? date,
-    List<DraftExtraCost>? extraCosts,
+    List<DraftExtraCharge>? extraCharges,
     String? notes,
   }) => SaleDraftState(
     lines: lines ?? this.lines,
     date: date ?? this.date,
-    extraCosts: extraCosts ?? this.extraCosts,
+    extraCharges: extraCharges ?? this.extraCharges,
     notes: notes ?? this.notes,
   );
 }
@@ -238,26 +242,26 @@ class SaleDraft extends Notifier<SaleDraftState> {
   void setDate(DateTime date) => state = state.copyWith(date: date);
   void setNotes(String value) => state = state.copyWith(notes: value);
 
-  /// New extra cost row, optionally with a common concept already filled.
-  void addExtraCost([String concept = '']) => state = state.copyWith(
-    extraCosts: [
-      ...state.extraCosts,
-      DraftExtraCost(id: newId(), concept: concept),
+  /// New extra charge row, optionally with a common concept already filled.
+  void addExtraCharge([String concept = '']) => state = state.copyWith(
+    extraCharges: [
+      ...state.extraCharges,
+      DraftExtraCharge(id: newId(), concept: concept),
     ],
   );
 
-  void updateExtraCost(String id, {String? concept, String? amountText}) =>
+  void updateExtraCharge(String id, {String? concept, String? amountText}) =>
       state = state.copyWith(
-        extraCosts: [
-          for (final c in state.extraCosts)
+        extraCharges: [
+          for (final c in state.extraCharges)
             c.id == id
                 ? c.copyWith(concept: concept, amountText: amountText)
                 : c,
         ],
       );
 
-  void removeExtraCost(String id) => state = state.copyWith(
-    extraCosts: state.extraCosts.where((c) => c.id != id).toList(),
+  void removeExtraCharge(String id) => state = state.copyWith(
+    extraCharges: state.extraCharges.where((c) => c.id != id).toList(),
   );
 
   void clear() => state = const SaleDraftState();
@@ -269,9 +273,9 @@ class SaleDraft extends Notifier<SaleDraftState> {
     final sale = await ref.read(registerSaleProvider)(
       date: draft.date,
       notes: draft.notes.trim().isEmpty ? null : draft.notes.trim(),
-      extraCosts: [
-        for (final c in draft.filledExtraCosts)
-          ExtraCostInput(concept: c.concept, amount: c.amount ?? Money.zero),
+      extraCharges: [
+        for (final c in draft.filledExtraCharges)
+          ExtraChargeInput(concept: c.concept, amount: c.amount ?? Money.zero),
       ],
       lines: [
         for (final l in draft.lines)

@@ -194,10 +194,10 @@ void main() {
       expect(after.avgCost.raw, 23333, reason: 'selling must not change the average');
     });
 
-    test('an order with extra costs: they lower its profit, not its total',
+    test('an order with extra charges: the customer pays them, all profit',
         () async {
-      // Promo box: 2 boxes' worth of candy sold as one order at Bs 150,
-      // plus labor and printing paid by the shop.
+      // Promo box: 30 candies at Bs 5,00 plus assembly and printing charged
+      // on top.
       final sale = await env.registerSale(
         notes: 'Caja San Valentín',
         lines: [
@@ -208,28 +208,30 @@ void main() {
             unitPrice: const Money(500),
           ),
         ],
-        extraCosts: [
-          ExtraCostInput(concept: ' Mano de obra ', amount: Money.parse('10')),
-          ExtraCostInput(concept: 'Impresión', amount: Money.parse('4,50')),
+        extraCharges: [
+          ExtraChargeInput(concept: ' Mano de obra ', amount: Money.parse('10')),
+          ExtraChargeInput(concept: 'Impresión', amount: Money.parse('4,50')),
         ],
       );
 
       // 30 x 5,00 = 150; cost 30 x 2,3333 = 70,00; lines profit 80,00
-      expect(sale.total, const Money(15000));
+      expect(sale.linesTotal, const Money(15000));
+      expect(sale.extraChargesTotal, const Money(1450));
+      expect(sale.total, const Money(16450));
       expect(sale.linesProfit, const Money(8000));
-      expect(sale.extraCostsTotal, const Money(1450));
-      expect(sale.profit, const Money(6550));
+      expect(sale.profit, const Money(9450));
 
       final stored = (await env.sales.getById(sale.id))!;
       expect(stored.notes, 'Caja San Valentín');
-      expect(stored.profit, const Money(6550));
-      expect(stored.extraCosts.map((c) => c.concept), ['Mano de obra', 'Impresión']);
-      expect(stored.extraCosts.map((c) => c.amount.cents), [1000, 450]);
+      expect(stored.total, const Money(16450));
+      expect(stored.profit, const Money(9450));
+      expect(stored.extraCharges.map((c) => c.concept), ['Mano de obra', 'Impresión']);
+      expect(stored.extraCharges.map((c) => c.amount.cents), [1000, 450]);
       expect((await reload(p)).stockUnits, 42, reason: 'extras are not stock');
     });
 
-    test('extra costs need a concept and an amount above 0', () async {
-      Future<void> sell(ExtraCostInput c) => env.registerSale(
+    test('extra charges need a concept and an amount above 0', () async {
+      Future<void> sell(ExtraChargeInput c) => env.registerSale(
             lines: [
               SaleLineInput(
                 productId: p.id,
@@ -237,11 +239,11 @@ void main() {
                 presentation: Presentation.unit,
               ),
             ],
-            extraCosts: [c],
+            extraCharges: [c],
           );
-      expect(() => sell(ExtraCostInput(concept: ' ', amount: Money.parse('1'))),
+      expect(() => sell(ExtraChargeInput(concept: ' ', amount: Money.parse('1'))),
           throwsA(isA<InvalidAmountException>()));
-      expect(() => sell(const ExtraCostInput(concept: 'Cinta', amount: Money.zero)),
+      expect(() => sell(const ExtraChargeInput(concept: 'Cinta', amount: Money.zero)),
           throwsA(isA<InvalidAmountException>()));
       expect((await reload(p)).stockUnits, 72, reason: 'nothing was sold');
     });

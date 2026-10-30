@@ -112,21 +112,21 @@ void main() {
     expect(s.purchasesTotal, const Money(4800));
     expect(s.writeOffLoss, const Money(200));
     expect(s.netProfit, const Money(700));
-    expect(s.extraCosts, Money.zero);
+    expect(s.extraCharges, Money.zero);
   });
 
-  test('summary: extra costs of orders are already inside the sales profit', () {
+  test('summary: extra charges are already inside sales total and profit', () {
     final now = DateTime(2026, 10, 29);
     final order = Sale(
       id: 'o',
       createdAt: now,
       updatedAt: now,
       date: now,
-      total: const Money(6000),
-      profit: const Money(3000), // lines 3650 - extras 650
+      total: const Money(6650), // products 6000 + charges 650
+      profit: const Money(3650), // products 3000 + charges 650
       lines: const [],
-      extraCosts: [
-        SaleExtraCost(
+      extraCharges: [
+        SaleExtraCharge(
           id: 'e1',
           createdAt: now,
           updatedAt: now,
@@ -134,7 +134,7 @@ void main() {
           concept: 'Mano de obra',
           amount: const Money(500),
         ),
-        SaleExtraCost(
+        SaleExtraCharge(
           id: 'e2',
           createdAt: now,
           updatedAt: now,
@@ -145,8 +145,9 @@ void main() {
       ],
     );
     final s = PeriodSummary.of(sales: [order], purchases: [], writeOffs: []);
-    expect(s.extraCosts, const Money(650));
-    expect(s.netProfit, const Money(3000), reason: 'not subtracted twice');
+    expect(s.extraCharges, const Money(650));
+    expect(s.salesTotal, const Money(6650));
+    expect(s.netProfit, const Money(3650), reason: 'not added twice');
   });
 
   test('results per product subtract write-offs; loss-only products appear', () {

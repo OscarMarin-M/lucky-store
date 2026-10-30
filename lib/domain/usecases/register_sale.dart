@@ -25,9 +25,10 @@ class SaleLineInput {
   final Money? unitPrice;
 }
 
-/// A cost of the order that is not a product (see `SaleExtraCost`).
-class ExtraCostInput {
-  const ExtraCostInput({required this.concept, required this.amount});
+/// Something charged on the order that is not a product (see
+/// `SaleExtraCharge`).
+class ExtraChargeInput {
+  const ExtraChargeInput({required this.concept, required this.amount});
 
   final String concept;
   final Money amount;
@@ -35,12 +36,12 @@ class ExtraCostInput {
   void validate() {
     if (concept.trim().isEmpty) {
       throw const InvalidAmountException(
-        'Cada costo adicional necesita un concepto',
+        'Cada cargo adicional necesita un concepto',
       );
     }
     if (amount.cents <= 0) {
       throw InvalidAmountException(
-        'El costo adicional "${concept.trim()}" debe ser mayor a 0',
+        'El cargo adicional "${concept.trim()}" debe ser mayor a 0',
       );
     }
   }
@@ -75,10 +76,10 @@ class RegisterSale {
     DateTime? date,
     String? notes,
     required List<SaleLineInput> lines,
-    List<ExtraCostInput> extraCosts = const [],
+    List<ExtraChargeInput> extraCharges = const [],
   }) {
     if (lines.isEmpty) throw const EmptyDocumentException();
-    for (final c in extraCosts) {
+    for (final c in extraCharges) {
       c.validate();
     }
 
@@ -121,8 +122,8 @@ class RegisterSale {
       }
 
       final extras = [
-        for (final c in extraCosts)
-          SaleExtraCost(
+        for (final c in extraCharges)
+          SaleExtraCharge(
             id: newId(),
             createdAt: now,
             updatedAt: now,
@@ -137,11 +138,13 @@ class RegisterSale {
         updatedAt: now,
         date: date ?? now,
         notes: notes,
-        total: built.map((l) => l.lineTotal).sum,
-        profit: built.map((l) => l.profit).sum -
+        // Extra charges are paid by the customer and cost no stock.
+        total: built.map((l) => l.lineTotal).sum +
+            extras.map((c) => c.amount).sum,
+        profit: built.map((l) => l.profit).sum +
             extras.map((c) => c.amount).sum,
         lines: built,
-        extraCosts: extras,
+        extraCharges: extras,
       ));
       await ledger.flush();
       return sale;

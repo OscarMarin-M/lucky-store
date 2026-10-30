@@ -121,7 +121,7 @@ void main() {
     await teardown(tester);
   });
 
-  testWidgets('an order with a name and an extra cost', (tester) async {
+  testWidgets('an order with a name and an extra charge', (tester) async {
     await pumpPage(tester);
     await addGum(tester);
     await tester.tap(find.byTooltip('Más')); // 2 u: Bs 6,00, profit Bs 2,00
@@ -136,21 +136,23 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, 'Monto'), '1,50');
     await tester.pump();
 
-    expect(find.text('Costos adicionales'), findsNWidgets(2)); // section + footer
-    expect(find.text('-Bs 1,50'), findsOneWidget);
-    expect(find.text('Bs 0,50'), findsOneWidget, reason: 'estimated profit');
+    expect(find.text('Cargos adicionales'), findsOneWidget);
+    expect(find.text('Incluye cargos adicionales'), findsOneWidget);
+    expect(find.text('+Bs 1,50'), findsOneWidget);
+    expect(find.text('Bs 7,50'), findsOneWidget, reason: 'total with the charge');
+    expect(find.text('Bs 3,50'), findsOneWidget, reason: 'estimated profit');
 
     await tester.tap(charge);
     await tester.pumpAndSettle();
-    expect(find.text('Venta registrada · Bs 6,00 · ganancia Bs 0,50'), findsOneWidget);
+    expect(find.text('Venta registrada · Bs 7,50 · ganancia Bs 3,50'), findsOneWidget);
 
     final sale = (await tester.runAsync(
       () => container.read(saleRepositoryProvider).getAll(),
     ))!
         .single;
     expect(sale.notes, 'Caja para Ana');
-    expect(sale.extraCosts.single.concept, 'Mano de obra');
-    expect(sale.extraCosts.single.amount, const Money(150));
+    expect(sale.extraCharges.single.concept, 'Mano de obra');
+    expect(sale.extraCharges.single.amount, const Money(150));
     await teardown(tester);
   });
 }

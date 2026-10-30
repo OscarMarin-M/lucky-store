@@ -59,7 +59,7 @@ class SaleDetailPage extends ConsumerWidget {
             _SaleLineCard(line: l, name: productName(byId, l.productId)),
             const SizedBox(height: 10),
           ],
-          if (sale.extraCosts.isNotEmpty) ...[
+          if (sale.extraCharges.isNotEmpty) ...[
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -67,15 +67,15 @@ class SaleDetailPage extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Costos adicionales',
+                      'Cargos adicionales',
                       style: theme.textTheme.titleMedium,
                     ),
                     const SizedBox(height: 6),
-                    for (final c in sale.extraCosts)
+                    for (final c in sale.extraCharges)
                       DetailRow(
                         label: c.concept,
-                        value: '-${c.amount.format()}',
-                        color: theme.colorScheme.loss,
+                        value: '+${c.amount.format()}',
+                        color: theme.colorScheme.gain,
                       ),
                   ],
                 ),
@@ -84,10 +84,12 @@ class SaleDetailPage extends ConsumerWidget {
             const SizedBox(height: 10),
           ],
           _TotalsCard(rows: [
+            if (sale.extraCharges.isNotEmpty) ...[
+              ('Productos', sale.linesTotal.format(), null),
+              ('Cargos adicionales', sale.extraChargesTotal.format(), null),
+            ],
             ('Total cobrado', sale.total.format(), null),
             ('Costo de productos', cost.format(), null),
-            if (sale.extraCosts.isNotEmpty)
-              ('Costos adicionales', sale.extraCostsTotal.format(), null),
             if (discount.cents > 0) ('Descuentos', discount.format(), null),
             (
               'Ganancia',

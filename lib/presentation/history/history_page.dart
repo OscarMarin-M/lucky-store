@@ -179,8 +179,8 @@ class _EntryTile extends StatelessWidget {
             '$time · Venta',
             // A named order lists its products under the name.
             if (sale.notes != null) _names(sale.lines.map((l) => l.productId)),
-            if (sale.extraCosts.isNotEmpty)
-              '+ ${sale.extraCosts.length == 1 ? '1 costo adicional' : '${sale.extraCosts.length} costos adicionales'}',
+            if (sale.extraCharges.isNotEmpty)
+              '+ ${sale.extraCharges.length == 1 ? '1 cargo adicional' : '${sale.extraCharges.length} cargos adicionales'}',
           ].join(' · '),
           _Amounts(
             top: sale.total.format(),

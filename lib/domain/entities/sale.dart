@@ -55,12 +55,11 @@ class SaleLine extends BaseEntity {
   Money get discount => (suggestedUnitPrice - unitPrice).times(quantity);
 }
 
-/// A cost of an order that is not a product: labor to assemble a promo box,
-/// printing the package, a ribbon bought on the spot... It is not charged to
-/// the customer (the price of the lines already covers it) and it lowers the
-/// profit of that sale only.
-class SaleExtraCost extends BaseEntity {
-  const SaleExtraCost({
+/// Something charged on an order that is not a product: assembling a promo
+/// box, its packaging, printing... The customer pays it on top of the
+/// products, and since it takes nothing from stock it is all profit.
+class SaleExtraCharge extends BaseEntity {
+  const SaleExtraCharge({
     required super.id,
     required super.createdAt,
     required super.updatedAt,
@@ -77,7 +76,7 @@ class SaleExtraCost extends BaseEntity {
   final Money amount;
 }
 
-/// A sale or "pedido": several product lines plus optional extra costs.
+/// A sale or "pedido": several product lines plus optional extra charges.
 class Sale extends BaseEntity {
   const Sale({
     required super.id,
@@ -89,7 +88,7 @@ class Sale extends BaseEntity {
     required this.total,
     required this.profit,
     required this.lines,
-    this.extraCosts = const [],
+    this.extraCharges = const [],
   });
 
   final DateTime date;
@@ -97,16 +96,19 @@ class Sale extends BaseEntity {
   /// Free text; also names the order ("Caja San Valentín para Ana").
   final String? notes;
 
-  /// What the customer paid: the sum of the lines.
+  /// What the customer paid: the lines plus the [extraCharges].
   final Money total;
 
-  /// Lines profit minus [extraCosts]: what this sale really left.
+  /// Lines profit plus [extraCharges] (they have no cost).
   final Money profit;
   final List<SaleLine> lines;
-  final List<SaleExtraCost> extraCosts;
+  final List<SaleExtraCharge> extraCharges;
 
-  Money get extraCostsTotal => extraCosts.map((c) => c.amount).sum;
+  Money get extraChargesTotal => extraCharges.map((c) => c.amount).sum;
 
-  /// Profit of the products alone, before the extra costs.
+  /// What the products alone were charged.
+  Money get linesTotal => lines.map((l) => l.lineTotal).sum;
+
+  /// Profit of the products alone, without the extra charges.
   Money get linesProfit => lines.map((l) => l.profit).sum;
 }

@@ -17,7 +17,7 @@ part 'app_database.g.dart';
     PurchaseLines,
     Sales,
     SaleLines,
-    SaleExtraCosts,
+    SaleExtraCharges,
     StockAdjustments,
   ],
 )
@@ -30,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,9 +54,24 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(products, products.minStockUnits);
           }
           if (from < 4) {
-            // Orders can carry costs that are not products.
-            await m.createTable(saleExtraCosts);
-            await m.createIndex(saleExtraCostsSaleIdx);
+            // Orders can carry charges that are not products.
+            await m.createTable(saleExtraCharges);
+            await m.createIndex(saleExtraChargesSaleIdx);
+          } else if (from == 4) {
+            // v4 treated them as costs of the shop (subtracted from profit);
+            // they are charges paid by the customer. Rename the table and
+            // fix the sales: add them to the total and, instead of
+            // subtracting them from the profit, add them.
+            await m.renameTable(saleExtraCharges, 'sale_extra_costs');
+            await customStatement('DROP INDEX IF EXISTS sale_extra_costs_sale_idx');
+            await m.createIndex(saleExtraChargesSaleIdx);
+            const charges = '(SELECT COALESCE(SUM(c.amount_cents), 0) '
+                'FROM sale_extra_charges c '
+                'WHERE c.sale_id = sales.id AND c.deleted_at IS NULL)';
+            await customStatement(
+              'UPDATE sales SET total_cents = total_cents + $charges, '
+              'profit_cents = profit_cents + 2 * $charges',
+            );
           }
         },
         beforeOpen: (details) async {

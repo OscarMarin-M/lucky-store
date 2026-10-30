@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/data/database/app_database.dart';
 import 'package:lucky_store/data/repositories/drift_purchase_repository.dart';
+import 'package:lucky_store/data/repositories/drift_sale_repository.dart';
 
 import '../generated_migrations/schema.dart';
 
@@ -14,10 +15,10 @@ void main() {
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
   test('every old version migrates to exactly the current schema', () async {
-    for (final from in [1, 2, 3]) {
+    for (final from in [1, 2, 3, 4]) {
       final connection = await verifier.startAt(from);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 4);
+      await verifier.migrateAndValidate(db, 5);
       await db.close();
     }
   });
@@ -45,7 +46,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 4);
+    await verifier.migrateAndValidate(db, 5);
 
     final purchase =
         (await DriftPurchaseRepository(db).getById('c1'))!;
@@ -57,6 +58,42 @@ void main() {
     expect(box.expiryFrom, isNull);
     expect(loose.unitsPerBox, isNull);
     expect(loose.lineTotal.cents, 1200);
+    await db.close();
+  });
+
+  test('v4 "extra costs" become charges: added to total and profit', () async {
+    final schema = await verifier.schemaAt(4);
+    const ts = "'2026-10-29T10:00:00.000'";
+    // v4 stored a sale of Bs 30 (profit 10) with Bs 5 of extras already
+    // subtracted from its profit: profit 5.
+    schema.rawDatabase
+      ..execute(
+        "INSERT INTO products (id, created_at, updated_at, name) "
+        "VALUES ('p1', $ts, $ts, 'Snickers')",
+      )
+      ..execute(
+        "INSERT INTO sales (id, created_at, updated_at, date, total_cents, "
+        "profit_cents) VALUES ('s1', $ts, $ts, $ts, 3000, 500), "
+        "('s2', $ts, $ts, $ts, 600, 200)",
+      )
+      ..execute(
+        "INSERT INTO sale_extra_costs (id, created_at, updated_at, sale_id, "
+        "concept, amount_cents) VALUES "
+        "('e1', $ts, $ts, 's1', 'Mano de obra', 300), "
+        "('e2', $ts, $ts, 's1', 'Empaque', 200)",
+      );
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, 5);
+
+    final repo = DriftSaleRepository(db);
+    final s1 = (await repo.getById('s1'))!;
+    expect(s1.extraCharges.map((c) => c.concept), ['Mano de obra', 'Empaque']);
+    expect(s1.total.cents, 3500); // 30 + 5 charged
+    expect(s1.profit.cents, 1500); // 10 from products + 5 charged
+    final s2 = (await repo.getById('s2'))!;
+    expect(s2.total.cents, 600, reason: 'sales without extras untouched');
+    expect(s2.profit.cents, 200);
     await db.close();
   });
 }

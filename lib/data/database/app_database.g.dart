@@ -3632,12 +3632,12 @@ class SaleLinesCompanion extends UpdateCompanion<SaleLineRow> {
   }
 }
 
-class $SaleExtraCostsTable extends SaleExtraCosts
-    with TableInfo<$SaleExtraCostsTable, SaleExtraCostRow> {
+class $SaleExtraChargesTable extends SaleExtraCharges
+    with TableInfo<$SaleExtraChargesTable, SaleExtraChargeRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
-  $SaleExtraCostsTable(this.attachedDatabase, [this._alias]);
+  $SaleExtraChargesTable(this.attachedDatabase, [this._alias]);
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -3728,10 +3728,10 @@ class $SaleExtraCostsTable extends SaleExtraCosts
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'sale_extra_costs';
+  static const String $name = 'sale_extra_charges';
   @override
   VerificationContext validateIntegrity(
-    Insertable<SaleExtraCostRow> instance, {
+    Insertable<SaleExtraChargeRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3796,9 +3796,9 @@ class $SaleExtraCostsTable extends SaleExtraCosts
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  SaleExtraCostRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+  SaleExtraChargeRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return SaleExtraCostRow(
+    return SaleExtraChargeRow(
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -3831,13 +3831,13 @@ class $SaleExtraCostsTable extends SaleExtraCosts
   }
 
   @override
-  $SaleExtraCostsTable createAlias(String alias) {
-    return $SaleExtraCostsTable(attachedDatabase, alias);
+  $SaleExtraChargesTable createAlias(String alias) {
+    return $SaleExtraChargesTable(attachedDatabase, alias);
   }
 }
 
-class SaleExtraCostRow extends DataClass
-    implements Insertable<SaleExtraCostRow> {
+class SaleExtraChargeRow extends DataClass
+    implements Insertable<SaleExtraChargeRow> {
   final String id;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -3845,7 +3845,7 @@ class SaleExtraCostRow extends DataClass
   final String saleId;
   final String concept;
   final int amountCents;
-  const SaleExtraCostRow({
+  const SaleExtraChargeRow({
     required this.id,
     required this.createdAt,
     required this.updatedAt,
@@ -3869,8 +3869,8 @@ class SaleExtraCostRow extends DataClass
     return map;
   }
 
-  SaleExtraCostsCompanion toCompanion(bool nullToAbsent) {
-    return SaleExtraCostsCompanion(
+  SaleExtraChargesCompanion toCompanion(bool nullToAbsent) {
+    return SaleExtraChargesCompanion(
       id: Value(id),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -3883,12 +3883,12 @@ class SaleExtraCostRow extends DataClass
     );
   }
 
-  factory SaleExtraCostRow.fromJson(
+  factory SaleExtraChargeRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return SaleExtraCostRow(
+    return SaleExtraChargeRow(
       id: serializer.fromJson<String>(json['id']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -3912,7 +3912,7 @@ class SaleExtraCostRow extends DataClass
     };
   }
 
-  SaleExtraCostRow copyWith({
+  SaleExtraChargeRow copyWith({
     String? id,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -3920,7 +3920,7 @@ class SaleExtraCostRow extends DataClass
     String? saleId,
     String? concept,
     int? amountCents,
-  }) => SaleExtraCostRow(
+  }) => SaleExtraChargeRow(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -3929,8 +3929,8 @@ class SaleExtraCostRow extends DataClass
     concept: concept ?? this.concept,
     amountCents: amountCents ?? this.amountCents,
   );
-  SaleExtraCostRow copyWithCompanion(SaleExtraCostsCompanion data) {
-    return SaleExtraCostRow(
+  SaleExtraChargeRow copyWithCompanion(SaleExtraChargesCompanion data) {
+    return SaleExtraChargeRow(
       id: data.id.present ? data.id.value : this.id,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -3945,7 +3945,7 @@ class SaleExtraCostRow extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('SaleExtraCostRow(')
+    return (StringBuffer('SaleExtraChargeRow(')
           ..write('id: $id, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -3970,7 +3970,7 @@ class SaleExtraCostRow extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is SaleExtraCostRow &&
+      (other is SaleExtraChargeRow &&
           other.id == this.id &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -3980,7 +3980,7 @@ class SaleExtraCostRow extends DataClass
           other.amountCents == this.amountCents);
 }
 
-class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
+class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
   final Value<String> id;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -3989,7 +3989,7 @@ class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
   final Value<String> concept;
   final Value<int> amountCents;
   final Value<int> rowid;
-  const SaleExtraCostsCompanion({
+  const SaleExtraChargesCompanion({
     this.id = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -3999,7 +3999,7 @@ class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
     this.amountCents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
-  SaleExtraCostsCompanion.insert({
+  SaleExtraChargesCompanion.insert({
     required String id,
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -4014,7 +4014,7 @@ class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
        saleId = Value(saleId),
        concept = Value(concept),
        amountCents = Value(amountCents);
-  static Insertable<SaleExtraCostRow> custom({
+  static Insertable<SaleExtraChargeRow> custom({
     Expression<String>? id,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -4036,7 +4036,7 @@ class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
     });
   }
 
-  SaleExtraCostsCompanion copyWith({
+  SaleExtraChargesCompanion copyWith({
     Value<String>? id,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -4046,7 +4046,7 @@ class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
     Value<int>? amountCents,
     Value<int>? rowid,
   }) {
-    return SaleExtraCostsCompanion(
+    return SaleExtraChargesCompanion(
       id: id ?? this.id,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -4090,7 +4090,7 @@ class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
 
   @override
   String toString() {
-    return (StringBuffer('SaleExtraCostsCompanion(')
+    return (StringBuffer('SaleExtraChargesCompanion(')
           ..write('id: $id, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -4893,7 +4893,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PurchaseLinesTable purchaseLines = $PurchaseLinesTable(this);
   late final $SalesTable sales = $SalesTable(this);
   late final $SaleLinesTable saleLines = $SaleLinesTable(this);
-  late final $SaleExtraCostsTable saleExtraCosts = $SaleExtraCostsTable(this);
+  late final $SaleExtraChargesTable saleExtraCharges = $SaleExtraChargesTable(
+    this,
+  );
   late final $StockAdjustmentsTable stockAdjustments = $StockAdjustmentsTable(
     this,
   );
@@ -4929,9 +4931,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'sale_lines_product_idx',
     'CREATE INDEX sale_lines_product_idx ON sale_lines (product_id)',
   );
-  late final Index saleExtraCostsSaleIdx = Index(
-    'sale_extra_costs_sale_idx',
-    'CREATE INDEX sale_extra_costs_sale_idx ON sale_extra_costs (sale_id)',
+  late final Index saleExtraChargesSaleIdx = Index(
+    'sale_extra_charges_sale_idx',
+    'CREATE INDEX sale_extra_charges_sale_idx ON sale_extra_charges (sale_id)',
   );
   late final Index stockAdjustmentsProductIdx = Index(
     'stock_adjustments_product_idx',
@@ -4951,7 +4953,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     purchaseLines,
     sales,
     saleLines,
-    saleExtraCosts,
+    saleExtraCharges,
     stockAdjustments,
     productsNameIdx,
     productsSkuIdx,
@@ -4961,7 +4963,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     salesDateIdx,
     saleLinesSaleIdx,
     saleLinesProductIdx,
-    saleExtraCostsSaleIdx,
+    saleExtraChargesSaleIdx,
     stockAdjustmentsProductIdx,
     stockAdjustmentsDateIdx,
   ];
@@ -6641,19 +6643,21 @@ final class $$SalesTableReferences
     );
   }
 
-  static MultiTypedResultKey<$SaleExtraCostsTable, List<SaleExtraCostRow>>
-  _saleExtraCostsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.saleExtraCosts,
-    aliasName: 'sales__id__sale_extra_costs__sale_id',
+  static MultiTypedResultKey<$SaleExtraChargesTable, List<SaleExtraChargeRow>>
+  _saleExtraChargesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.saleExtraCharges,
+    aliasName: 'sales__id__sale_extra_charges__sale_id',
   );
 
-  $$SaleExtraCostsTableProcessedTableManager get saleExtraCostsRefs {
-    final manager = $$SaleExtraCostsTableTableManager(
+  $$SaleExtraChargesTableProcessedTableManager get saleExtraChargesRefs {
+    final manager = $$SaleExtraChargesTableTableManager(
       $_db,
-      $_db.saleExtraCosts,
+      $_db.saleExtraCharges,
     ).filter((f) => f.saleId.id.sqlEquals($_itemColumn<String>('id')!));
 
-    final cache = $_typedResult.readTableOrNull(_saleExtraCostsRefsTable($_db));
+    final cache = $_typedResult.readTableOrNull(
+      _saleExtraChargesRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -6733,22 +6737,22 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
     return f(composer);
   }
 
-  Expression<bool> saleExtraCostsRefs(
-    Expression<bool> Function($$SaleExtraCostsTableFilterComposer f) f,
+  Expression<bool> saleExtraChargesRefs(
+    Expression<bool> Function($$SaleExtraChargesTableFilterComposer f) f,
   ) {
-    final $$SaleExtraCostsTableFilterComposer composer = $composerBuilder(
+    final $$SaleExtraChargesTableFilterComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.saleExtraCosts,
+      referencedTable: $db.saleExtraCharges,
       getReferencedColumn: (t) => t.saleId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$SaleExtraCostsTableFilterComposer(
+          }) => $$SaleExtraChargesTableFilterComposer(
             $db: $db,
-            $table: $db.saleExtraCosts,
+            $table: $db.saleExtraCharges,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6871,22 +6875,22 @@ class $$SalesTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> saleExtraCostsRefs<T extends Object>(
-    Expression<T> Function($$SaleExtraCostsTableAnnotationComposer a) f,
+  Expression<T> saleExtraChargesRefs<T extends Object>(
+    Expression<T> Function($$SaleExtraChargesTableAnnotationComposer a) f,
   ) {
-    final $$SaleExtraCostsTableAnnotationComposer composer = $composerBuilder(
+    final $$SaleExtraChargesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
       getCurrentColumn: (t) => t.id,
-      referencedTable: $db.saleExtraCosts,
+      referencedTable: $db.saleExtraCharges,
       getReferencedColumn: (t) => t.saleId,
       builder:
           (
             joinBuilder, {
             $addJoinBuilderToRootComposer,
             $removeJoinBuilderFromRootComposer,
-          }) => $$SaleExtraCostsTableAnnotationComposer(
+          }) => $$SaleExtraChargesTableAnnotationComposer(
             $db: $db,
-            $table: $db.saleExtraCosts,
+            $table: $db.saleExtraCharges,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6910,7 +6914,10 @@ class $$SalesTableTableManager
           $$SalesTableUpdateCompanionBuilder,
           (SaleRow, $$SalesTableReferences),
           SaleRow,
-          PrefetchHooks Function({bool saleLinesRefs, bool saleExtraCostsRefs})
+          PrefetchHooks Function({
+            bool saleLinesRefs,
+            bool saleExtraChargesRefs,
+          })
         > {
   $$SalesTableTableManager(_$AppDatabase db, $SalesTable table)
     : super(
@@ -6976,12 +6983,12 @@ class $$SalesTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({saleLinesRefs = false, saleExtraCostsRefs = false}) {
+              ({saleLinesRefs = false, saleExtraChargesRefs = false}) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (saleLinesRefs) db.saleLines,
-                    if (saleExtraCostsRefs) db.saleExtraCosts,
+                    if (saleExtraChargesRefs) db.saleExtraCharges,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -7006,22 +7013,22 @@ class $$SalesTableTableManager
                           referencedColumn: 'sale_id',
                           typedResults: items,
                         ),
-                      if (saleExtraCostsRefs)
+                      if (saleExtraChargesRefs)
                         await $_getPrefetchedDataByColumns<
                           SaleRow,
                           $SalesTable,
-                          SaleExtraCostRow,
-                          $SaleExtraCostsTable
+                          SaleExtraChargeRow,
+                          $SaleExtraChargesTable
                         >(
                           currentTable: table,
                           referencedTable: $$SalesTableReferences
-                              ._saleExtraCostsRefsTable(db),
+                              ._saleExtraChargesRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$SalesTableReferences(
                                 db,
                                 table,
                                 p0,
-                              ).saleExtraCostsRefs,
+                              ).saleExtraChargesRefs,
                           currentColumn: 'id',
                           referencedColumn: 'sale_id',
                           typedResults: items,
@@ -7046,7 +7053,7 @@ typedef $$SalesTableProcessedTableManager =
       $$SalesTableUpdateCompanionBuilder,
       (SaleRow, $$SalesTableReferences),
       SaleRow,
-      PrefetchHooks Function({bool saleLinesRefs, bool saleExtraCostsRefs})
+      PrefetchHooks Function({bool saleLinesRefs, bool saleExtraChargesRefs})
     >;
 typedef $$SaleLinesTableCreateCompanionBuilder = SaleLinesCompanion Function({
   required String id,
@@ -7651,8 +7658,8 @@ typedef $$SaleLinesTableProcessedTableManager =
       SaleLineRow,
       PrefetchHooks Function({bool saleId, bool productId})
     >;
-typedef $$SaleExtraCostsTableCreateCompanionBuilder =
-    SaleExtraCostsCompanion Function({
+typedef $$SaleExtraChargesTableCreateCompanionBuilder =
+    SaleExtraChargesCompanion Function({
       required String id,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -7662,8 +7669,8 @@ typedef $$SaleExtraCostsTableCreateCompanionBuilder =
       required int amountCents,
       Value<int> rowid,
     });
-typedef $$SaleExtraCostsTableUpdateCompanionBuilder =
-    SaleExtraCostsCompanion Function({
+typedef $$SaleExtraChargesTableUpdateCompanionBuilder =
+    SaleExtraChargesCompanion Function({
       Value<String> id,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -7674,17 +7681,21 @@ typedef $$SaleExtraCostsTableUpdateCompanionBuilder =
       Value<int> rowid,
     });
 
-final class $$SaleExtraCostsTableReferences
+final class $$SaleExtraChargesTableReferences
     extends
-        BaseReferences<_$AppDatabase, $SaleExtraCostsTable, SaleExtraCostRow> {
-  $$SaleExtraCostsTableReferences(
+        BaseReferences<
+          _$AppDatabase,
+          $SaleExtraChargesTable,
+          SaleExtraChargeRow
+        > {
+  $$SaleExtraChargesTableReferences(
     super.$_db,
     super.$_table,
     super.$_typedResult,
   );
 
   static $SalesTable _saleIdTable(_$AppDatabase db) =>
-      db.sales.createAlias('sale_extra_costs__sale_id__sales__id');
+      db.sales.createAlias('sale_extra_charges__sale_id__sales__id');
 
   $$SalesTableProcessedTableManager get saleId {
     final $_column = $_itemColumn<String>('sale_id')!;
@@ -7701,9 +7712,9 @@ final class $$SaleExtraCostsTableReferences
   }
 }
 
-class $$SaleExtraCostsTableFilterComposer
-    extends Composer<_$AppDatabase, $SaleExtraCostsTable> {
-  $$SaleExtraCostsTableFilterComposer({
+class $$SaleExtraChargesTableFilterComposer
+    extends Composer<_$AppDatabase, $SaleExtraChargesTable> {
+  $$SaleExtraChargesTableFilterComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7764,9 +7775,9 @@ class $$SaleExtraCostsTableFilterComposer
   }
 }
 
-class $$SaleExtraCostsTableOrderingComposer
-    extends Composer<_$AppDatabase, $SaleExtraCostsTable> {
-  $$SaleExtraCostsTableOrderingComposer({
+class $$SaleExtraChargesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SaleExtraChargesTable> {
+  $$SaleExtraChargesTableOrderingComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7827,9 +7838,9 @@ class $$SaleExtraCostsTableOrderingComposer
   }
 }
 
-class $$SaleExtraCostsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $SaleExtraCostsTable> {
-  $$SaleExtraCostsTableAnnotationComposer({
+class $$SaleExtraChargesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SaleExtraChargesTable> {
+  $$SaleExtraChargesTableAnnotationComposer({
     required super.$db,
     required super.$table,
     super.joinBuilder,
@@ -7880,34 +7891,34 @@ class $$SaleExtraCostsTableAnnotationComposer
   }
 }
 
-class $$SaleExtraCostsTableTableManager
+class $$SaleExtraChargesTableTableManager
     extends
         RootTableManager<
           _$AppDatabase,
-          $SaleExtraCostsTable,
-          SaleExtraCostRow,
-          $$SaleExtraCostsTableFilterComposer,
-          $$SaleExtraCostsTableOrderingComposer,
-          $$SaleExtraCostsTableAnnotationComposer,
-          $$SaleExtraCostsTableCreateCompanionBuilder,
-          $$SaleExtraCostsTableUpdateCompanionBuilder,
-          (SaleExtraCostRow, $$SaleExtraCostsTableReferences),
-          SaleExtraCostRow,
+          $SaleExtraChargesTable,
+          SaleExtraChargeRow,
+          $$SaleExtraChargesTableFilterComposer,
+          $$SaleExtraChargesTableOrderingComposer,
+          $$SaleExtraChargesTableAnnotationComposer,
+          $$SaleExtraChargesTableCreateCompanionBuilder,
+          $$SaleExtraChargesTableUpdateCompanionBuilder,
+          (SaleExtraChargeRow, $$SaleExtraChargesTableReferences),
+          SaleExtraChargeRow,
           PrefetchHooks Function({bool saleId})
         > {
-  $$SaleExtraCostsTableTableManager(
+  $$SaleExtraChargesTableTableManager(
     _$AppDatabase db,
-    $SaleExtraCostsTable table,
+    $SaleExtraChargesTable table,
   ) : super(
         TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
-              $$SaleExtraCostsTableFilterComposer($db: db, $table: table),
+              $$SaleExtraChargesTableFilterComposer($db: db, $table: table),
           createOrderingComposer: () =>
-              $$SaleExtraCostsTableOrderingComposer($db: db, $table: table),
+              $$SaleExtraChargesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
-              $$SaleExtraCostsTableAnnotationComposer($db: db, $table: table),
+              $$SaleExtraChargesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -7918,7 +7929,7 @@ class $$SaleExtraCostsTableTableManager
                 Value<String> concept = const Value.absent(),
                 Value<int> amountCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
-              }) => SaleExtraCostsCompanion(
+              }) => SaleExtraChargesCompanion(
                 id: id,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7938,7 +7949,7 @@ class $$SaleExtraCostsTableTableManager
                 required String concept,
                 required int amountCents,
                 Value<int> rowid = const Value.absent(),
-              }) => SaleExtraCostsCompanion.insert(
+              }) => SaleExtraChargesCompanion.insert(
                 id: id,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7951,8 +7962,10 @@ class $$SaleExtraCostsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable<$SaleExtraCostsTable, SaleExtraCostRow>(table),
-                  $$SaleExtraCostsTableReferences(db, table, e),
+                  e.readTable<$SaleExtraChargesTable, SaleExtraChargeRow>(
+                    table,
+                  ),
+                  $$SaleExtraChargesTableReferences(db, table, e),
                 ),
               )
               .toList(),
@@ -7980,9 +7993,9 @@ class $$SaleExtraCostsTableTableManager
                       state = state.withJoin(
                         currentTable: table,
                         currentColumn: table.saleId,
-                        referencedTable: $$SaleExtraCostsTableReferences
+                        referencedTable: $$SaleExtraChargesTableReferences
                             ._saleIdTable(db),
-                        referencedColumn: $$SaleExtraCostsTableReferences
+                        referencedColumn: $$SaleExtraChargesTableReferences
                             ._saleIdTable(db)
                             .id,
                       ) as T;
@@ -7999,18 +8012,18 @@ class $$SaleExtraCostsTableTableManager
       );
 }
 
-typedef $$SaleExtraCostsTableProcessedTableManager =
+typedef $$SaleExtraChargesTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
-      $SaleExtraCostsTable,
-      SaleExtraCostRow,
-      $$SaleExtraCostsTableFilterComposer,
-      $$SaleExtraCostsTableOrderingComposer,
-      $$SaleExtraCostsTableAnnotationComposer,
-      $$SaleExtraCostsTableCreateCompanionBuilder,
-      $$SaleExtraCostsTableUpdateCompanionBuilder,
-      (SaleExtraCostRow, $$SaleExtraCostsTableReferences),
-      SaleExtraCostRow,
+      $SaleExtraChargesTable,
+      SaleExtraChargeRow,
+      $$SaleExtraChargesTableFilterComposer,
+      $$SaleExtraChargesTableOrderingComposer,
+      $$SaleExtraChargesTableAnnotationComposer,
+      $$SaleExtraChargesTableCreateCompanionBuilder,
+      $$SaleExtraChargesTableUpdateCompanionBuilder,
+      (SaleExtraChargeRow, $$SaleExtraChargesTableReferences),
+      SaleExtraChargeRow,
       PrefetchHooks Function({bool saleId})
     >;
 typedef $$StockAdjustmentsTableCreateCompanionBuilder =
@@ -8516,8 +8529,8 @@ class $AppDatabaseManager {
       $$SalesTableTableManager(_db, _db.sales);
   $$SaleLinesTableTableManager get saleLines =>
       $$SaleLinesTableTableManager(_db, _db.saleLines);
-  $$SaleExtraCostsTableTableManager get saleExtraCosts =>
-      $$SaleExtraCostsTableTableManager(_db, _db.saleExtraCosts);
+  $$SaleExtraChargesTableTableManager get saleExtraCharges =>
+      $$SaleExtraChargesTableTableManager(_db, _db.saleExtraCharges);
   $$StockAdjustmentsTableTableManager get stockAdjustments =>
       $$StockAdjustmentsTableTableManager(_db, _db.stockAdjustments);
 }

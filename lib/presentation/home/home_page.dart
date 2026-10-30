@@ -72,7 +72,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   _ResultsCard(
                     results: d.results,
-                    extraCosts: d.summary.extraCosts,
+                    extraCharges: d.summary.extraCharges,
                   ),
                   const _SectionTitle(
                     'Inventario',
@@ -155,10 +155,10 @@ class _SummaryGrid extends StatelessWidget {
                 label: 'Ganancia',
                 value: s.netProfit.format(),
                 valueColor: _profitColor(scheme, s.netProfit),
-                detail: switch ((s.writeOffLoss.cents > 0, s.extraCosts.cents > 0)) {
-                  (true, true) => 'ya restadas bajas y costos extra',
+                detail: switch ((s.writeOffLoss.cents > 0, s.extraCharges.cents > 0)) {
+                  (true, true) => 'con cargos extra, menos bajas',
                   (true, false) => 'ya restadas las bajas',
-                  (false, true) => 'ya restados los costos extra',
+                  (false, true) => 'incluye cargos adicionales',
                   (false, false) => 'de lo vendido',
                 },
               ),
@@ -289,13 +289,13 @@ class _AlertsCard extends StatelessWidget {
 
 /// Best products first; the rest behind "Ver todos" so the screen stays short.
 class _ResultsCard extends StatefulWidget {
-  const _ResultsCard({required this.results, required this.extraCosts});
+  const _ResultsCard({required this.results, required this.extraCharges});
 
   final List<ProductResult> results;
 
-  /// Orders' costs that belong to no product: a last row so the list adds
-  /// up to the profit card.
-  final Money extraCosts;
+  /// Charges of the orders that belong to no product: a last row so the
+  /// list adds up to the profit card.
+  final Money extraCharges;
 
   @override
   State<_ResultsCard> createState() => _ResultsCardState();
@@ -336,15 +336,15 @@ class _ResultsCardState extends State<_ResultsCard> {
               onPressed: () => setState(() => _expanded = !_expanded),
               child: Text(_expanded ? 'Ver menos' : 'Ver todos (${all.length})'),
             ),
-          if (widget.extraCosts.cents > 0) ...[
+          if (widget.extraCharges.cents > 0) ...[
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.receipt_long_outlined),
-              title: const Text('Costos adicionales de pedidos'),
-              subtitle: const Text('mano de obra, empaque, impresión…'),
+              title: const Text('Cargos adicionales de pedidos'),
+              subtitle: const Text('armado, empaque, impresión…'),
               trailing: Text(
-                '-${widget.extraCosts.format()}',
-                style: theme.textTheme.titleSmall?.copyWith(color: scheme.loss),
+                '+${widget.extraCharges.format()}',
+                style: theme.textTheme.titleSmall?.copyWith(color: scheme.gain),
               ),
             ),
           ],

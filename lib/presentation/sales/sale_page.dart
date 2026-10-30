@@ -13,7 +13,7 @@ import '../theme/app_theme.dart';
 import 'sale_draft.dart';
 
 /// "Vender" tab: a cart (or "pedido") of products with editable prices, plus
-/// optional extra costs for promo boxes (labor, printing...).
+/// optional extra charges for promo boxes (assembly, packaging...).
 class SalePage extends ConsumerStatefulWidget {
   const SalePage({super.key});
 
@@ -82,7 +82,7 @@ class _SalePageState extends ConsumerState<SalePage> {
     final allowNegative = ref.watch(inventoryPolicyProvider).allowNegativeStock;
     final theme = Theme.of(context);
     final profit = draft.estimatedProfit;
-    final extras = draft.extraCostsTotal;
+    final extras = draft.extraChargesTotal;
 
     // Keep the note field in step when the cart is emptied after charging.
     ref.listen(saleDraftProvider, (_, next) {
@@ -162,18 +162,18 @@ class _SalePageState extends ConsumerState<SalePage> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Costos adicionales', style: theme.textTheme.titleSmall),
+            Text('Cargos adicionales', style: theme.textTheme.titleSmall),
             const SizedBox(height: 2),
             Text(
-              'Lo que gastas tú en este pedido y no es un producto. '
-              'No se cobra al cliente: se resta de la ganancia.',
+              'Lo que cobras en este pedido además de los productos '
+              '(armado, empaque, impresión…). Se suma al total y a la ganancia.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 8),
-            for (final c in draft.extraCosts) ...[
-              _ExtraCostRow(key: ValueKey(c.id), cost: c),
+            for (final c in draft.extraCharges) ...[
+              _ExtraChargeRow(key: ValueKey(c.id), charge: c),
               const SizedBox(height: 8),
             ],
             Wrap(
@@ -184,12 +184,12 @@ class _SalePageState extends ConsumerState<SalePage> {
                   ActionChip(
                     avatar: const Icon(Icons.add, size: 18),
                     label: Text(concept),
-                    onPressed: () => notifier.addExtraCost(concept),
+                    onPressed: () => notifier.addExtraCharge(concept),
                   ),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 18),
                   label: const Text('Otro'),
-                  onPressed: notifier.addExtraCost,
+                  onPressed: notifier.addExtraCharge,
                 ),
               ],
             ),
@@ -214,14 +214,14 @@ class _SalePageState extends ConsumerState<SalePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Costos adicionales',
+                      'Incluye cargos adicionales',
                       style: TextStyle(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
-                      '-${extras.format()}',
-                      style: TextStyle(color: theme.colorScheme.loss),
+                      '+${extras.format()}',
+                      style: TextStyle(color: theme.colorScheme.gain),
                     ),
                   ],
                 ),
@@ -468,19 +468,19 @@ class _Note extends StatelessWidget {
   );
 }
 
-/// `[ concept ] [ Bs amount ] (x)`: one extra cost of the order.
-class _ExtraCostRow extends ConsumerStatefulWidget {
-  const _ExtraCostRow({super.key, required this.cost});
+/// `[ concept ] [ Bs amount ] (x)`: one extra charge of the order.
+class _ExtraChargeRow extends ConsumerStatefulWidget {
+  const _ExtraChargeRow({super.key, required this.charge});
 
-  final DraftExtraCost cost;
+  final DraftExtraCharge charge;
 
   @override
-  ConsumerState<_ExtraCostRow> createState() => _ExtraCostRowState();
+  ConsumerState<_ExtraChargeRow> createState() => _ExtraChargeRowState();
 }
 
-class _ExtraCostRowState extends ConsumerState<_ExtraCostRow> {
-  late final _concept = TextEditingController(text: widget.cost.concept);
-  late final _amount = TextEditingController(text: widget.cost.amountText);
+class _ExtraChargeRowState extends ConsumerState<_ExtraChargeRow> {
+  late final _concept = TextEditingController(text: widget.charge.concept);
+  late final _amount = TextEditingController(text: widget.charge.amountText);
 
   @override
   void dispose() {
@@ -492,7 +492,7 @@ class _ExtraCostRowState extends ConsumerState<_ExtraCostRow> {
   @override
   Widget build(BuildContext context) {
     final notifier = ref.read(saleDraftProvider.notifier);
-    final c = widget.cost;
+    final c = widget.charge;
     final amountError = c.amountText.isEmpty
         ? null
         : (validateMoney(c.amountText, required: true) ??
@@ -505,7 +505,7 @@ class _ExtraCostRowState extends ConsumerState<_ExtraCostRow> {
           child: TextField(
             controller: _concept,
             textCapitalization: TextCapitalization.sentences,
-            onChanged: (v) => notifier.updateExtraCost(c.id, concept: v),
+            onChanged: (v) => notifier.updateExtraCharge(c.id, concept: v),
             decoration: InputDecoration(
               labelText: 'Concepto',
               errorText: c.concept.trim().isEmpty && c.amountText.isNotEmpty
@@ -520,7 +520,7 @@ class _ExtraCostRowState extends ConsumerState<_ExtraCostRow> {
           child: TextField(
             controller: _amount,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (v) => notifier.updateExtraCost(c.id, amountText: v),
+            onChanged: (v) => notifier.updateExtraCharge(c.id, amountText: v),
             decoration: InputDecoration(
               labelText: 'Monto',
               prefixText: 'Bs ',
@@ -529,9 +529,9 @@ class _ExtraCostRowState extends ConsumerState<_ExtraCostRow> {
           ),
         ),
         IconButton(
-          tooltip: 'Quitar costo',
+          tooltip: 'Quitar cargo',
           icon: const Icon(Icons.close),
-          onPressed: () => notifier.removeExtraCost(c.id),
+          onPressed: () => notifier.removeExtraCharge(c.id),
         ),
       ],
     );

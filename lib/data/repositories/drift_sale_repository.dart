@@ -42,8 +42,8 @@ class DriftSaleRepository implements SaleRepository {
                 profitCents: Value(l.profit.cents),
               ));
         }
-        for (final c in s.extraCosts) {
-          await _db.into(_db.saleExtraCosts).insert(SaleExtraCostsCompanion(
+        for (final c in s.extraCharges) {
+          await _db.into(_db.saleExtraCharges).insert(SaleExtraChargesCompanion(
                 id: Value(c.id),
                 createdAt: Value(c.createdAt),
                 updatedAt: Value(c.updatedAt),
@@ -158,7 +158,7 @@ class DriftSaleRepository implements SaleRepository {
             profit: Money(r.profitCents),
           ));
     }
-    final extraRows = await (_db.select(_db.saleExtraCosts)
+    final extraRows = await (_db.select(_db.saleExtraCharges)
           ..where((t) =>
               t.saleId.isIn(headers.map((h) => h.id)) & t.deletedAt.isNull())
           ..orderBy([
@@ -166,9 +166,9 @@ class DriftSaleRepository implements SaleRepository {
             (t) => OrderingTerm.asc(const CustomExpression<int>('rowid')),
           ]))
         .get();
-    final extrasBySale = <String, List<SaleExtraCost>>{};
+    final extrasBySale = <String, List<SaleExtraCharge>>{};
     for (final r in extraRows) {
-      extrasBySale.putIfAbsent(r.saleId, () => []).add(SaleExtraCost(
+      extrasBySale.putIfAbsent(r.saleId, () => []).add(SaleExtraCharge(
             id: r.id,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt,
@@ -190,7 +190,7 @@ class DriftSaleRepository implements SaleRepository {
           total: Money(h.totalCents),
           profit: Money(h.profitCents),
           lines: bySale[h.id] ?? const [],
-          extraCosts: extrasBySale[h.id] ?? const [],
+          extraCharges: extrasBySale[h.id] ?? const [],
         ),
     ];
   }

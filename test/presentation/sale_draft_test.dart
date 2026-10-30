@@ -141,56 +141,58 @@ void main() {
     expect(state().lines, hasLength(1));
   });
 
-  group('extra costs (promo box / pedido)', () {
-    String costId([int i = 0]) => state().extraCosts[i].id;
+  group('extra charges (promo box / pedido)', () {
+    String chargeId([int i = 0]) => state().extraCharges[i].id;
 
-    test('lower the estimated profit, not the total charged', () {
+    test('add to the total charged and to the estimated profit', () {
       draft()
         ..addProduct(snickers)
         ..setQuantity(firstId(), 10) // 10 x 3,00 = 30; cost 20
-        ..addExtraCost('Mano de obra');
-      draft().updateExtraCost(costId(), amountText: '5');
-      draft().addExtraCost();
-      draft().updateExtraCost(costId(1), concept: 'Cinta', amountText: '1,50');
+        ..addExtraCharge('Mano de obra');
+      draft().updateExtraCharge(chargeId(), amountText: '5');
+      draft().addExtraCharge();
+      draft().updateExtraCharge(chargeId(1), concept: 'Cinta', amountText: '1,50');
 
-      expect(state().total, const Money(3000));
-      expect(state().extraCostsTotal, const Money(650));
-      expect(state().estimatedProfit, const Money(350)); // 10 - 6,50
+      expect(state().productsTotal, const Money(3000));
+      expect(state().total, const Money(3650));
+      expect(state().extraChargesTotal, const Money(650));
+      expect(state().estimatedProfit, const Money(1650)); // 10 + 6,50
       expect(canSubmit(), isTrue);
     });
 
     test('a blank row is ignored; a half-filled one blocks charging', () {
       draft()
         ..addProduct(snickers)
-        ..addExtraCost();
+        ..addExtraCharge();
       expect(canSubmit(), isTrue, reason: 'blank row');
 
-      draft().updateExtraCost(costId(), amountText: '2');
+      draft().updateExtraCharge(chargeId(), amountText: '2');
       expect(canSubmit(), isFalse, reason: 'amount without concept');
 
-      draft().updateExtraCost(costId(), concept: 'Empaque', amountText: '0');
+      draft().updateExtraCharge(chargeId(), concept: 'Empaque', amountText: '0');
       expect(canSubmit(), isFalse, reason: 'amount 0');
 
-      draft().removeExtraCost(costId());
-      expect(state().extraCosts, isEmpty);
+      draft().removeExtraCharge(chargeId());
+      expect(state().extraCharges, isEmpty);
       expect(canSubmit(), isTrue);
     });
 
-    test('submit stores the note and the extra costs, then clears them',
+    test('submit stores the note and the extra charges, then clears them',
         () async {
       draft()
         ..addProduct(snickers)
         ..setNotes('  Caja San Valentín ')
-        ..addExtraCost('Impresión')
-        ..addExtraCost(); // left blank
-      draft().updateExtraCost(costId(), amountText: '4');
+        ..addExtraCharge('Impresión')
+        ..addExtraCharge(); // left blank
+      draft().updateExtraCharge(chargeId(), amountText: '4');
 
       final sale = await draft().submit();
 
       expect(sale.notes, 'Caja San Valentín');
-      expect(sale.extraCosts.single.concept, 'Impresión');
-      expect(sale.profit, const Money(-300)); // 3 - 2 - 4
-      expect(state().extraCosts, isEmpty);
+      expect(sale.extraCharges.single.concept, 'Impresión');
+      expect(sale.total, const Money(700)); // 3 + 4
+      expect(sale.profit, const Money(500)); // 3 - 2 + 4
+      expect(state().extraCharges, isEmpty);
       expect(state().notes, isEmpty);
     });
   });
