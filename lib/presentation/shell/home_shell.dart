@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../common/coming_soon_page.dart';
+import '../history/history_page.dart';
 import '../products/products_page.dart';
 import '../purchases/purchase_page.dart';
 import '../sales/sale_page.dart';
@@ -21,7 +22,7 @@ class _HomeShellState extends State<HomeShell> {
     ProductsPage(),
     SalePage(),
     PurchasePage(),
-    ComingSoonPage(title: 'Historial', icon: Icons.history),
+    HistoryPage(),
   ];
 
   @override

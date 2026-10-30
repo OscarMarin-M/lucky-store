@@ -15,3 +15,17 @@ String formatStock(int units, int unitsPerBox) {
   ];
   return parts.join(' + ');
 }
+
+/// How a document line was counted: `2 cajas de 24 u`, `1 caja de 36 u` or
+/// `10 u`. [unitsPerBox] is the box size of that line (it can differ per
+/// lot), derived from [unitsBase] when the line did not store it.
+String formatLineQuantity({
+  required int quantity,
+  required bool isBox,
+  required int unitsBase,
+  int? unitsPerBox,
+}) {
+  if (!isBox) return '$quantity u';
+  final size = unitsPerBox ?? (quantity == 0 ? 0 : unitsBase ~/ quantity);
+  return '$quantity ${quantity == 1 ? 'caja' : 'cajas'} de $size u';
+}

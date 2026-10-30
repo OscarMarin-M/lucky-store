@@ -8,6 +8,8 @@ import '../data/repositories/drift_stock_adjustment_repository.dart';
 import '../domain/costing/cost_strategy.dart';
 import '../domain/costing/weighted_average_cost_strategy.dart';
 import '../domain/entities/product.dart';
+import '../domain/entities/purchase.dart';
+import '../domain/entities/sale.dart';
 import '../domain/entities/stock_adjustment.dart';
 import '../domain/repositories/document_repositories.dart';
 import '../domain/repositories/product_repository.dart';
@@ -107,4 +109,26 @@ final productAdjustmentsProvider =
 /// Active products, ordered by name, refreshed on every change.
 final productsProvider = StreamProvider<List<Product>>(
   (ref) => ref.watch(productRepositoryProvider).watchAll(),
+);
+
+/// Every product by id, deleted ones included: old documents must still show
+/// the name of a product that no longer exists.
+final productsByIdProvider = FutureProvider<Map<String, Product>>((ref) async {
+  await ref.watch(productsProvider.future); // refresh when products change
+  final all = await ref
+      .watch(productRepositoryProvider)
+      .getAll(includeDeleted: true);
+  return {for (final p in all) p.id: p};
+});
+
+final purchasesProvider = StreamProvider<List<Purchase>>(
+  (ref) => ref.watch(purchaseRepositoryProvider).watchAll(),
+);
+
+final salesProvider = StreamProvider<List<Sale>>(
+  (ref) => ref.watch(saleRepositoryProvider).watchAll(),
+);
+
+final stockAdjustmentsProvider = StreamProvider<List<StockAdjustment>>(
+  (ref) => ref.watch(stockAdjustmentRepositoryProvider).watchAll(),
 );
