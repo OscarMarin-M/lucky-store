@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky_store/app/providers.dart';
 import 'package:lucky_store/core/money/money.dart';
+import 'package:lucky_store/core/money/unit_cost.dart';
 import 'package:lucky_store/data/database/app_database.dart';
 import 'package:lucky_store/domain/entities/product.dart';
 import 'package:lucky_store/domain/repositories/product_repository.dart';
@@ -167,6 +168,41 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('Twix'), findsOneWidget);
     expect(find.text('Gomitas'), findsNothing);
+    await teardown(tester);
+  });
+
+  testWidgets('cards show stock, cost and what each unit leaves; filters',
+      (tester) async {
+    await pumpPage(tester, seed: (repo) async {
+      final s = await repo.create(Product.create(
+        name: 'Snickers',
+        unitsPerBox: 24,
+        suggestedPriceUnit: const Money(300),
+        minStockUnits: 30,
+      ));
+      await repo.updateInventory(s.id, stockUnits: 26, avgCost: const UnitCost(20000));
+      await repo.create(Product.create(name: 'Gomitas', suggestedPriceUnit: const Money(100)));
+    });
+
+    // Snickers: 26 u (1 box + 2), cost 2,00, leaves 1,00 per unit (33%).
+    expect(find.text('Stock bajo'), findsOneWidget);
+    expect(find.text('1 caja + 2 u'), findsOneWidget);
+    expect(find.text('Bs 2,0000'), findsOneWidget);
+    expect(find.text('Bs 1,00'), findsOneWidget);
+    expect(find.text('33% margen'), findsOneWidget);
+    expect(find.text('Sin stock'), findsOneWidget, reason: 'Gomitas');
+    expect(find.text('En stock: Bs 52,00'), findsOneWidget);
+
+    await tester.tap(find.text('Stock bajo (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Snickers'), findsOneWidget);
+    expect(find.text('Gomitas'), findsNothing);
+
+    await tester.tap(find.text('Sin stock (1)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Snickers'), findsNothing);
+    expect(find.text('Gomitas'), findsOneWidget);
+    expect(find.text('1 de 2 productos'), findsOneWidget);
     await teardown(tester);
   });
 }

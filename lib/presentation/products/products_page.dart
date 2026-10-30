@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/money/money.dart';
 import '../../core/quantity/presentation.dart';
 import '../../domain/entities/product.dart';
 import '../format/stock_format.dart';
@@ -52,10 +53,13 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
       );
   }
 
+  _StockFilter _stockFilter = _StockFilter.all;
+
   List<Product> _filter(List<Product> all) {
     final q = _query.trim().toLowerCase();
     return all.where((p) {
       if (_dismissed.contains(p.id)) return false;
+      if (!_stockFilter.accepts(p)) return false;
       if (q.isEmpty) return true;
       return p.name.toLowerCase().contains(q) ||
           (p.sku?.toLowerCase().contains(q) ?? false);
@@ -65,6 +69,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
   @override
   Widget build(BuildContext context) {
     final products = ref.watch(productsProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Productos')),
@@ -80,6 +85,11 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
         data: (all) {
           if (all.isEmpty) return _EmptyState(onCreate: _openForm);
           final visible = _filter(all);
+          final shown = all.where((p) => !_dismissed.contains(p.id));
+          final value = shown
+              .where((p) => p.stockUnits > 0)
+              .map((p) => p.stockValue)
+              .fold(Money.zero, (a, b) => a + b);
           return Column(
             children: [
               Padding(
@@ -90,6 +100,44 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                     hintText: 'Buscar por nombre o código',
                     prefixIcon: Icon(Icons.search),
                   ),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    for (final f in _StockFilter.values) ...[
+                      ChoiceChip(
+                        label: Text(
+                          '${f.label} (${shown.where(f.accepts).length})',
+                        ),
+                        selected: _stockFilter == f,
+                        onSelected: (_) => setState(() => _stockFilter = f),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Row(
+                  children: [
+                    Text(
+                      '${visible.length} de ${shown.length} productos',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      'En stock: ${value.format()}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               Expanded(
@@ -122,6 +170,26 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
   }
 }
 
+/// Quick filters over the catalog; each counts its products in the chip.
+enum _StockFilter {
+  all('Todos'),
+  inStock('Con stock'),
+  low('Stock bajo'),
+  out('Sin stock');
+
+  const _StockFilter(this.label);
+  final String label;
+
+  bool accepts(Product p) => switch (this) {
+    _StockFilter.all => true,
+    _StockFilter.inStock => p.stockUnits > 0,
+    _StockFilter.low => p.isLowStock,
+    _StockFilter.out => p.stockUnits <= 0,
+  };
+}
+
+/// Catalog card: name and prices on top; below, the three figures the owner
+/// checks most: how much there is, what it cost and what each unit leaves.
 class _ProductCard extends StatelessWidget {
   const _ProductCard({required this.product, required this.onTap});
 
@@ -131,67 +199,123 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final p = product;
     final noStock = p.stockUnits <= 0;
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
     final hasBoxes = p.unitsPerBox > 1;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
 
-    final subtitle = [
-      if (p.sku != null) 'Cód. ${p.sku}',
-      if (!p.isActive) 'Inactivo',
-    ].join(' · ');
+    // What one unit leaves at the suggested price; only once there is a cost.
+    final hasCost = p.avgCost.raw > 0;
+    final unitProfit = p.suggestedPriceUnit - p.avgCost.totalFor(1);
+    final margin = p.suggestedPriceUnit.cents == 0
+        ? null
+        : unitProfit.cents * 100 / p.suggestedPriceUnit.cents;
 
-    // Left column = what the product is / how much there is; right column =
-    // money. Each row pairs both sides on the same baseline.
+    final (Color statusColor, String? status) = !p.isActive
+        ? (scheme.outline, 'Inactivo')
+        : noStock
+        ? (scheme.loss, 'Sin stock')
+        : p.isLowStock
+        ? (scheme.tertiary, 'Stock bajo')
+        : (scheme.gain, null);
+
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _PairRow(
-                left: Text(
-                  p.name,
-                  style: theme.textTheme.titleMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                right: Text(
-                  '${p.suggestedPriceUnit.format()} / u',
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-              if (subtitle.isNotEmpty || hasBoxes)
-                _PairRow(
-                  left: Text(subtitle, style: muted),
-                  right: hasBoxes
-                      ? Text(
+              Row(
+                children: [
+                  _Initials(name: p.name, color: statusColor),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          p.name,
+                          style: theme.textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (status != null)
+                              _Pill(text: status, color: statusColor),
+                            if (hasBoxes)
+                              Text('Caja de ${p.unitsPerBox} u', style: muted),
+                            if (p.sku != null)
+                              Text('Cód. ${p.sku}', style: muted),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${p.suggestedPriceUnit.format()} / u',
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      if (hasBoxes)
+                        Text(
                           '${p.suggestedPriceFor(Presentation.box).format()} / caja',
                           style: muted,
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              const SizedBox(height: 10),
-              _PairRow(
-                left: Text(
-                  noStock
-                      ? 'Sin stock'
-                      : hasBoxes && p.stockUnits >= p.unitsPerBox
-                      ? '${formatStock(p.stockUnits, p.unitsPerBox)} · ${p.stockUnits} u'
-                      : formatStock(p.stockUnits, p.unitsPerBox),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: noStock ? theme.colorScheme.loss : null,
-                    fontWeight: FontWeight.w600,
+                        ),
+                    ],
                   ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                right: noStock
-                    ? const SizedBox.shrink()
-                    : Text('Costo ${p.avgCost.format()} / u', style: muted),
+                child: Row(
+                  children: [
+                    _Figure(
+                      label: 'Stock',
+                      // The pill already says "Sin stock".
+                      value: noStock
+                          ? '${p.stockUnits} u'
+                          : formatStock(p.stockUnits, p.unitsPerBox),
+                      detail: hasBoxes && p.stockUnits >= p.unitsPerBox
+                          ? '${p.stockUnits} u'
+                          : null,
+                      color: noStock ? scheme.loss : null,
+                    ),
+                    _Figure(
+                      label: 'Costo',
+                      value: hasCost ? p.avgCost.format() : '—',
+                      detail: hasCost ? 'por unidad' : 'sin compras',
+                    ),
+                    _Figure(
+                      label: 'Ganas c/u',
+                      value: hasCost ? unitProfit.format() : '—',
+                      detail: hasCost && margin != null
+                          ? '${margin.toStringAsFixed(0)}% margen'
+                          : null,
+                      color: hasCost
+                          ? (unitProfit.isNegative ? scheme.loss : scheme.gain)
+                          : null,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -201,23 +325,93 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
-/// `left ........ right` on a shared baseline; the left side yields space.
-class _PairRow extends StatelessWidget {
-  const _PairRow({required this.left, required this.right});
+/// Round badge with the product's initials, tinted by its stock status.
+class _Initials extends StatelessWidget {
+  const _Initials({required this.name, required this.color});
 
-  final Widget left;
-  final Widget right;
+  final String name;
+  final Color color;
 
   @override
-  Widget build(BuildContext context) => Row(
-    crossAxisAlignment: CrossAxisAlignment.baseline,
-    textBaseline: TextBaseline.alphabetic,
-    children: [
-      Expanded(child: left),
-      const SizedBox(width: 12),
-      right,
-    ],
+  Widget build(BuildContext context) {
+    final words = name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    final initials = words.take(2).map((w) => w[0].toUpperCase()).join();
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: color.withValues(alpha: 0.18),
+      child: Text(
+        initials.isEmpty ? '?' : initials,
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text, required this.color});
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+        color: color,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
   );
+}
+
+/// One of the three columns at the bottom of a product card.
+class _Figure extends StatelessWidget {
+  const _Figure({
+    required this.label,
+    required this.value,
+    this.detail,
+    this.color,
+  });
+
+  final String label;
+  final String value;
+  final String? detail;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    return Expanded(
+      child: Column(
+        children: [
+          Text(label, style: theme.textTheme.labelSmall?.copyWith(color: muted)),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          if (detail != null)
+            Text(
+              detail!,
+              style: theme.textTheme.labelSmall?.copyWith(color: muted),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DeleteBackground extends StatelessWidget {

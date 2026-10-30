@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/money.dart';
 import '../../domain/reports/dashboard_reports.dart';
+import '../common/section_title.dart';
 import '../format/date_format.dart';
 import '../format/stock_format.dart';
 import '../theme/app_theme.dart';
@@ -59,14 +60,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                 children: [
                   _SummaryGrid(summary: d.summary),
                   if (d.hasAlerts) ...[
-                    _SectionTitle(
+                    SectionTitle(
                       'Atención',
                       icon: Icons.warning_amber_rounded,
                       color: Theme.of(context).colorScheme.tertiary,
                     ),
                     _AlertsCard(dashboard: d),
                   ],
-                  const _SectionTitle(
+                  const SectionTitle(
                     'Ganancia por producto',
                     icon: Icons.leaderboard_outlined,
                   ),
@@ -74,7 +75,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     results: d.results,
                     extraCharges: d.summary.extraCharges,
                   ),
-                  const _SectionTitle(
+                  const SectionTitle(
                     'Inventario',
                     icon: Icons.inventory_2_outlined,
                   ),
@@ -83,42 +84,6 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Section header that stands out from the cards: icon, larger bold text in
-/// the accent color and a rule to the edge.
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text, {required this.icon, this.color});
-
-  final String text;
-  final IconData icon;
-
-  /// Defaults to the theme accent; "Atención" uses a warning tone.
-  final Color? color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final c = color ?? theme.colorScheme.primary;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(2, 28, 2, 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: c),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: c,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Divider(color: c.withValues(alpha: 0.35))),
         ],
       ),
     );
