@@ -194,6 +194,58 @@ void main() {
       expect(after.avgCost.raw, 23333, reason: 'selling must not change the average');
     });
 
+    test('an order with extra costs: they lower its profit, not its total',
+        () async {
+      // Promo box: 2 boxes' worth of candy sold as one order at Bs 150,
+      // plus labor and printing paid by the shop.
+      final sale = await env.registerSale(
+        notes: 'Caja San Valentín',
+        lines: [
+          SaleLineInput(
+            productId: p.id,
+            quantity: 30,
+            presentation: Presentation.unit,
+            unitPrice: const Money(500),
+          ),
+        ],
+        extraCosts: [
+          ExtraCostInput(concept: ' Mano de obra ', amount: Money.parse('10')),
+          ExtraCostInput(concept: 'Impresión', amount: Money.parse('4,50')),
+        ],
+      );
+
+      // 30 x 5,00 = 150; cost 30 x 2,3333 = 70,00; lines profit 80,00
+      expect(sale.total, const Money(15000));
+      expect(sale.linesProfit, const Money(8000));
+      expect(sale.extraCostsTotal, const Money(1450));
+      expect(sale.profit, const Money(6550));
+
+      final stored = (await env.sales.getById(sale.id))!;
+      expect(stored.notes, 'Caja San Valentín');
+      expect(stored.profit, const Money(6550));
+      expect(stored.extraCosts.map((c) => c.concept), ['Mano de obra', 'Impresión']);
+      expect(stored.extraCosts.map((c) => c.amount.cents), [1000, 450]);
+      expect((await reload(p)).stockUnits, 42, reason: 'extras are not stock');
+    });
+
+    test('extra costs need a concept and an amount above 0', () async {
+      Future<void> sell(ExtraCostInput c) => env.registerSale(
+            lines: [
+              SaleLineInput(
+                productId: p.id,
+                quantity: 1,
+                presentation: Presentation.unit,
+              ),
+            ],
+            extraCosts: [c],
+          );
+      expect(() => sell(ExtraCostInput(concept: ' ', amount: Money.parse('1'))),
+          throwsA(isA<InvalidAmountException>()));
+      expect(() => sell(const ExtraCostInput(concept: 'Cinta', amount: Money.zero)),
+          throwsA(isA<InvalidAmountException>()));
+      expect((await reload(p)).stockUnits, 72, reason: 'nothing was sold');
+    });
+
     test('box sale with an edited price keeps the suggested one and the discount',
         () async {
       final sale = await env.registerSale(lines: [

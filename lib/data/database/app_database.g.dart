@@ -3632,6 +3632,478 @@ class SaleLinesCompanion extends UpdateCompanion<SaleLineRow> {
   }
 }
 
+class $SaleExtraCostsTable extends SaleExtraCosts
+    with TableInfo<$SaleExtraCostsTable, SaleExtraCostRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SaleExtraCostsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _saleIdMeta = const VerificationMeta('saleId');
+  @override
+  late final GeneratedColumn<String> saleId = GeneratedColumn<String>(
+    'sale_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES sales (id)',
+    ),
+  );
+  static const VerificationMeta _conceptMeta = const VerificationMeta(
+    'concept',
+  );
+  @override
+  late final GeneratedColumn<String> concept = GeneratedColumn<String>(
+    'concept',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountCentsMeta = const VerificationMeta(
+    'amountCents',
+  );
+  @override
+  late final GeneratedColumn<int> amountCents = GeneratedColumn<int>(
+    'amount_cents',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    saleId,
+    concept,
+    amountCents,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sale_extra_costs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SaleExtraCostRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('sale_id')) {
+      context.handle(
+        _saleIdMeta,
+        saleId.isAcceptableOrUnknown(data['sale_id']!, _saleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_saleIdMeta);
+    }
+    if (data.containsKey('concept')) {
+      context.handle(
+        _conceptMeta,
+        concept.isAcceptableOrUnknown(data['concept']!, _conceptMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_conceptMeta);
+    }
+    if (data.containsKey('amount_cents')) {
+      context.handle(
+        _amountCentsMeta,
+        amountCents.isAcceptableOrUnknown(
+          data['amount_cents']!,
+          _amountCentsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountCentsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SaleExtraCostRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SaleExtraCostRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      saleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sale_id'],
+      )!,
+      concept: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}concept'],
+      )!,
+      amountCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_cents'],
+      )!,
+    );
+  }
+
+  @override
+  $SaleExtraCostsTable createAlias(String alias) {
+    return $SaleExtraCostsTable(attachedDatabase, alias);
+  }
+}
+
+class SaleExtraCostRow extends DataClass
+    implements Insertable<SaleExtraCostRow> {
+  final String id;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  final String saleId;
+  final String concept;
+  final int amountCents;
+  const SaleExtraCostRow({
+    required this.id,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+    required this.saleId,
+    required this.concept,
+    required this.amountCents,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    map['sale_id'] = Variable<String>(saleId);
+    map['concept'] = Variable<String>(concept);
+    map['amount_cents'] = Variable<int>(amountCents);
+    return map;
+  }
+
+  SaleExtraCostsCompanion toCompanion(bool nullToAbsent) {
+    return SaleExtraCostsCompanion(
+      id: Value(id),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      saleId: Value(saleId),
+      concept: Value(concept),
+      amountCents: Value(amountCents),
+    );
+  }
+
+  factory SaleExtraCostRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SaleExtraCostRow(
+      id: serializer.fromJson<String>(json['id']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      saleId: serializer.fromJson<String>(json['saleId']),
+      concept: serializer.fromJson<String>(json['concept']),
+      amountCents: serializer.fromJson<int>(json['amountCents']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'saleId': serializer.toJson<String>(saleId),
+      'concept': serializer.toJson<String>(concept),
+      'amountCents': serializer.toJson<int>(amountCents),
+    };
+  }
+
+  SaleExtraCostRow copyWith({
+    String? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+    String? saleId,
+    String? concept,
+    int? amountCents,
+  }) => SaleExtraCostRow(
+    id: id ?? this.id,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    saleId: saleId ?? this.saleId,
+    concept: concept ?? this.concept,
+    amountCents: amountCents ?? this.amountCents,
+  );
+  SaleExtraCostRow copyWithCompanion(SaleExtraCostsCompanion data) {
+    return SaleExtraCostRow(
+      id: data.id.present ? data.id.value : this.id,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      saleId: data.saleId.present ? data.saleId.value : this.saleId,
+      concept: data.concept.present ? data.concept.value : this.concept,
+      amountCents: data.amountCents.present
+          ? data.amountCents.value
+          : this.amountCents,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SaleExtraCostRow(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('saleId: $saleId, ')
+          ..write('concept: $concept, ')
+          ..write('amountCents: $amountCents')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    saleId,
+    concept,
+    amountCents,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SaleExtraCostRow &&
+          other.id == this.id &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.saleId == this.saleId &&
+          other.concept == this.concept &&
+          other.amountCents == this.amountCents);
+}
+
+class SaleExtraCostsCompanion extends UpdateCompanion<SaleExtraCostRow> {
+  final Value<String> id;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<String> saleId;
+  final Value<String> concept;
+  final Value<int> amountCents;
+  final Value<int> rowid;
+  const SaleExtraCostsCompanion({
+    this.id = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.saleId = const Value.absent(),
+    this.concept = const Value.absent(),
+    this.amountCents = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SaleExtraCostsCompanion.insert({
+    required String id,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.deletedAt = const Value.absent(),
+    required String saleId,
+    required String concept,
+    required int amountCents,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       saleId = Value(saleId),
+       concept = Value(concept),
+       amountCents = Value(amountCents);
+  static Insertable<SaleExtraCostRow> custom({
+    Expression<String>? id,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<String>? saleId,
+    Expression<String>? concept,
+    Expression<int>? amountCents,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (saleId != null) 'sale_id': saleId,
+      if (concept != null) 'concept': concept,
+      if (amountCents != null) 'amount_cents': amountCents,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SaleExtraCostsCompanion copyWith({
+    Value<String>? id,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<String>? saleId,
+    Value<String>? concept,
+    Value<int>? amountCents,
+    Value<int>? rowid,
+  }) {
+    return SaleExtraCostsCompanion(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      saleId: saleId ?? this.saleId,
+      concept: concept ?? this.concept,
+      amountCents: amountCents ?? this.amountCents,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (saleId.present) {
+      map['sale_id'] = Variable<String>(saleId.value);
+    }
+    if (concept.present) {
+      map['concept'] = Variable<String>(concept.value);
+    }
+    if (amountCents.present) {
+      map['amount_cents'] = Variable<int>(amountCents.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SaleExtraCostsCompanion(')
+          ..write('id: $id, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('saleId: $saleId, ')
+          ..write('concept: $concept, ')
+          ..write('amountCents: $amountCents, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $StockAdjustmentsTable extends StockAdjustments
     with TableInfo<$StockAdjustmentsTable, StockAdjustmentRow> {
   @override
@@ -4421,6 +4893,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PurchaseLinesTable purchaseLines = $PurchaseLinesTable(this);
   late final $SalesTable sales = $SalesTable(this);
   late final $SaleLinesTable saleLines = $SaleLinesTable(this);
+  late final $SaleExtraCostsTable saleExtraCosts = $SaleExtraCostsTable(this);
   late final $StockAdjustmentsTable stockAdjustments = $StockAdjustmentsTable(
     this,
   );
@@ -4456,6 +4929,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'sale_lines_product_idx',
     'CREATE INDEX sale_lines_product_idx ON sale_lines (product_id)',
   );
+  late final Index saleExtraCostsSaleIdx = Index(
+    'sale_extra_costs_sale_idx',
+    'CREATE INDEX sale_extra_costs_sale_idx ON sale_extra_costs (sale_id)',
+  );
   late final Index stockAdjustmentsProductIdx = Index(
     'stock_adjustments_product_idx',
     'CREATE INDEX stock_adjustments_product_idx ON stock_adjustments (product_id)',
@@ -4474,6 +4951,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     purchaseLines,
     sales,
     saleLines,
+    saleExtraCosts,
     stockAdjustments,
     productsNameIdx,
     productsSkuIdx,
@@ -4483,6 +4961,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     salesDateIdx,
     saleLinesSaleIdx,
     saleLinesProductIdx,
+    saleExtraCostsSaleIdx,
     stockAdjustmentsProductIdx,
     stockAdjustmentsDateIdx,
   ];
@@ -6161,6 +6640,24 @@ final class $$SalesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$SaleExtraCostsTable, List<SaleExtraCostRow>>
+  _saleExtraCostsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.saleExtraCosts,
+    aliasName: 'sales__id__sale_extra_costs__sale_id',
+  );
+
+  $$SaleExtraCostsTableProcessedTableManager get saleExtraCostsRefs {
+    final manager = $$SaleExtraCostsTableTableManager(
+      $_db,
+      $_db.saleExtraCosts,
+    ).filter((f) => f.saleId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_saleExtraCostsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
@@ -6227,6 +6724,31 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
           }) => $$SaleLinesTableFilterComposer(
             $db: $db,
             $table: $db.saleLines,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> saleExtraCostsRefs(
+    Expression<bool> Function($$SaleExtraCostsTableFilterComposer f) f,
+  ) {
+    final $$SaleExtraCostsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.saleExtraCosts,
+      getReferencedColumn: (t) => t.saleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SaleExtraCostsTableFilterComposer(
+            $db: $db,
+            $table: $db.saleExtraCosts,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6348,6 +6870,31 @@ class $$SalesTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> saleExtraCostsRefs<T extends Object>(
+    Expression<T> Function($$SaleExtraCostsTableAnnotationComposer a) f,
+  ) {
+    final $$SaleExtraCostsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.saleExtraCosts,
+      getReferencedColumn: (t) => t.saleId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SaleExtraCostsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.saleExtraCosts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SalesTableTableManager
@@ -6363,7 +6910,7 @@ class $$SalesTableTableManager
           $$SalesTableUpdateCompanionBuilder,
           (SaleRow, $$SalesTableReferences),
           SaleRow,
-          PrefetchHooks Function({bool saleLinesRefs})
+          PrefetchHooks Function({bool saleLinesRefs, bool saleExtraCostsRefs})
         > {
   $$SalesTableTableManager(_$AppDatabase db, $SalesTable table)
     : super(
@@ -6428,33 +6975,61 @@ class $$SalesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({saleLinesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (saleLinesRefs) db.saleLines],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (saleLinesRefs)
-                    await $_getPrefetchedDataByColumns<
-                      SaleRow,
-                      $SalesTable,
-                      SaleLineRow,
-                      $SaleLinesTable
-                    >(
-                      currentTable: table,
-                      referencedTable: $$SalesTableReferences
-                          ._saleLinesRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$SalesTableReferences(db, table, p0).saleLinesRefs,
-                      currentColumn: 'id',
-                      referencedColumn: 'sale_id',
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({saleLinesRefs = false, saleExtraCostsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (saleLinesRefs) db.saleLines,
+                    if (saleExtraCostsRefs) db.saleExtraCosts,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (saleLinesRefs)
+                        await $_getPrefetchedDataByColumns<
+                          SaleRow,
+                          $SalesTable,
+                          SaleLineRow,
+                          $SaleLinesTable
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SalesTableReferences
+                              ._saleLinesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SalesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).saleLinesRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'sale_id',
+                          typedResults: items,
+                        ),
+                      if (saleExtraCostsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          SaleRow,
+                          $SalesTable,
+                          SaleExtraCostRow,
+                          $SaleExtraCostsTable
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SalesTableReferences
+                              ._saleExtraCostsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SalesTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).saleExtraCostsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'sale_id',
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -6471,7 +7046,7 @@ typedef $$SalesTableProcessedTableManager =
       $$SalesTableUpdateCompanionBuilder,
       (SaleRow, $$SalesTableReferences),
       SaleRow,
-      PrefetchHooks Function({bool saleLinesRefs})
+      PrefetchHooks Function({bool saleLinesRefs, bool saleExtraCostsRefs})
     >;
 typedef $$SaleLinesTableCreateCompanionBuilder = SaleLinesCompanion Function({
   required String id,
@@ -7076,6 +7651,368 @@ typedef $$SaleLinesTableProcessedTableManager =
       SaleLineRow,
       PrefetchHooks Function({bool saleId, bool productId})
     >;
+typedef $$SaleExtraCostsTableCreateCompanionBuilder =
+    SaleExtraCostsCompanion Function({
+      required String id,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<DateTime?> deletedAt,
+      required String saleId,
+      required String concept,
+      required int amountCents,
+      Value<int> rowid,
+    });
+typedef $$SaleExtraCostsTableUpdateCompanionBuilder =
+    SaleExtraCostsCompanion Function({
+      Value<String> id,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<String> saleId,
+      Value<String> concept,
+      Value<int> amountCents,
+      Value<int> rowid,
+    });
+
+final class $$SaleExtraCostsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $SaleExtraCostsTable, SaleExtraCostRow> {
+  $$SaleExtraCostsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SalesTable _saleIdTable(_$AppDatabase db) =>
+      db.sales.createAlias('sale_extra_costs__sale_id__sales__id');
+
+  $$SalesTableProcessedTableManager get saleId {
+    final $_column = $_itemColumn<String>('sale_id')!;
+
+    final manager = $$SalesTableTableManager(
+      $_db,
+      $_db.sales,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_saleIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SaleExtraCostsTableFilterComposer
+    extends Composer<_$AppDatabase, $SaleExtraCostsTable> {
+  $$SaleExtraCostsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get concept => $composableBuilder(
+    column: $table.concept,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SalesTableFilterComposer get saleId {
+    final $$SalesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.saleId,
+      referencedTable: $db.sales,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SalesTableFilterComposer(
+            $db: $db,
+            $table: $db.sales,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SaleExtraCostsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SaleExtraCostsTable> {
+  $$SaleExtraCostsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get concept => $composableBuilder(
+    column: $table.concept,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SalesTableOrderingComposer get saleId {
+    final $$SalesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.saleId,
+      referencedTable: $db.sales,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SalesTableOrderingComposer(
+            $db: $db,
+            $table: $db.sales,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SaleExtraCostsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SaleExtraCostsTable> {
+  $$SaleExtraCostsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get concept =>
+      $composableBuilder(column: $table.concept, builder: (column) => column);
+
+  GeneratedColumn<int> get amountCents => $composableBuilder(
+    column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  $$SalesTableAnnotationComposer get saleId {
+    final $$SalesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.saleId,
+      referencedTable: $db.sales,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SalesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.sales,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SaleExtraCostsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SaleExtraCostsTable,
+          SaleExtraCostRow,
+          $$SaleExtraCostsTableFilterComposer,
+          $$SaleExtraCostsTableOrderingComposer,
+          $$SaleExtraCostsTableAnnotationComposer,
+          $$SaleExtraCostsTableCreateCompanionBuilder,
+          $$SaleExtraCostsTableUpdateCompanionBuilder,
+          (SaleExtraCostRow, $$SaleExtraCostsTableReferences),
+          SaleExtraCostRow,
+          PrefetchHooks Function({bool saleId})
+        > {
+  $$SaleExtraCostsTableTableManager(
+    _$AppDatabase db,
+    $SaleExtraCostsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SaleExtraCostsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SaleExtraCostsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SaleExtraCostsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<String> saleId = const Value.absent(),
+                Value<String> concept = const Value.absent(),
+                Value<int> amountCents = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SaleExtraCostsCompanion(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                saleId: saleId,
+                concept: concept,
+                amountCents: amountCents,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<DateTime?> deletedAt = const Value.absent(),
+                required String saleId,
+                required String concept,
+                required int amountCents,
+                Value<int> rowid = const Value.absent(),
+              }) => SaleExtraCostsCompanion.insert(
+                id: id,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                saleId: saleId,
+                concept: concept,
+                amountCents: amountCents,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SaleExtraCostsTable, SaleExtraCostRow>(table),
+                  $$SaleExtraCostsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({saleId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (saleId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.saleId,
+                        referencedTable: $$SaleExtraCostsTableReferences
+                            ._saleIdTable(db),
+                        referencedColumn: $$SaleExtraCostsTableReferences
+                            ._saleIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SaleExtraCostsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SaleExtraCostsTable,
+      SaleExtraCostRow,
+      $$SaleExtraCostsTableFilterComposer,
+      $$SaleExtraCostsTableOrderingComposer,
+      $$SaleExtraCostsTableAnnotationComposer,
+      $$SaleExtraCostsTableCreateCompanionBuilder,
+      $$SaleExtraCostsTableUpdateCompanionBuilder,
+      (SaleExtraCostRow, $$SaleExtraCostsTableReferences),
+      SaleExtraCostRow,
+      PrefetchHooks Function({bool saleId})
+    >;
 typedef $$StockAdjustmentsTableCreateCompanionBuilder =
     StockAdjustmentsCompanion Function({
       required String id,
@@ -7579,6 +8516,8 @@ class $AppDatabaseManager {
       $$SalesTableTableManager(_db, _db.sales);
   $$SaleLinesTableTableManager get saleLines =>
       $$SaleLinesTableTableManager(_db, _db.saleLines);
+  $$SaleExtraCostsTableTableManager get saleExtraCosts =>
+      $$SaleExtraCostsTableTableManager(_db, _db.saleExtraCosts);
   $$StockAdjustmentsTableTableManager get stockAdjustments =>
       $$StockAdjustmentsTableTableManager(_db, _db.stockAdjustments);
 }

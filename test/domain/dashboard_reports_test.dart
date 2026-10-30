@@ -112,6 +112,41 @@ void main() {
     expect(s.purchasesTotal, const Money(4800));
     expect(s.writeOffLoss, const Money(200));
     expect(s.netProfit, const Money(700));
+    expect(s.extraCosts, Money.zero);
+  });
+
+  test('summary: extra costs of orders are already inside the sales profit', () {
+    final now = DateTime(2026, 10, 29);
+    final order = Sale(
+      id: 'o',
+      createdAt: now,
+      updatedAt: now,
+      date: now,
+      total: const Money(6000),
+      profit: const Money(3000), // lines 3650 - extras 650
+      lines: const [],
+      extraCosts: [
+        SaleExtraCost(
+          id: 'e1',
+          createdAt: now,
+          updatedAt: now,
+          saleId: 'o',
+          concept: 'Mano de obra',
+          amount: const Money(500),
+        ),
+        SaleExtraCost(
+          id: 'e2',
+          createdAt: now,
+          updatedAt: now,
+          saleId: 'o',
+          concept: 'Cinta',
+          amount: const Money(150),
+        ),
+      ],
+    );
+    final s = PeriodSummary.of(sales: [order], purchases: [], writeOffs: []);
+    expect(s.extraCosts, const Money(650));
+    expect(s.netProfit, const Money(3000), reason: 'not subtracted twice');
   });
 
   test('results per product subtract write-offs; loss-only products appear', () {

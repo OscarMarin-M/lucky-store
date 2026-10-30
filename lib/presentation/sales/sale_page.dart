@@ -12,7 +12,8 @@ import '../purchases/product_picker_sheet.dart';
 import '../theme/app_theme.dart';
 import 'sale_draft.dart';
 
-/// "Vender" tab: a cart of products with editable prices.
+/// "Vender" tab: a cart (or "pedido") of products with editable prices, plus
+/// optional extra costs for promo boxes (labor, printing...).
 class SalePage extends ConsumerStatefulWidget {
   const SalePage({super.key});
 
@@ -22,6 +23,16 @@ class SalePage extends ConsumerStatefulWidget {
 
 class _SalePageState extends ConsumerState<SalePage> {
   bool _submitting = false;
+  final _notes = TextEditingController();
+
+  /// Concepts offered as one-tap shortcuts; any other can be typed.
+  static const _commonConcepts = ['Mano de obra', 'Empaque', 'Impresión'];
+
+  @override
+  void dispose() {
+    _notes.dispose();
+    super.dispose();
+  }
 
   Future<void> _addProduct() async {
     final product = await pickProduct(context, forSale: true);
@@ -71,6 +82,12 @@ class _SalePageState extends ConsumerState<SalePage> {
     final allowNegative = ref.watch(inventoryPolicyProvider).allowNegativeStock;
     final theme = Theme.of(context);
     final profit = draft.estimatedProfit;
+    final extras = draft.extraCostsTotal;
+
+    // Keep the note field in step when the cart is emptied after charging.
+    ref.listen(saleDraftProvider, (_, next) {
+      if (next.notes != _notes.text) _notes.text = next.notes;
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -133,6 +150,50 @@ class _SalePageState extends ConsumerState<SalePage> {
               minimumSize: const Size.fromHeight(52),
             ),
           ),
+          if (draft.lines.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            TextField(
+              controller: _notes,
+              onChanged: notifier.setNotes,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Nombre del pedido o nota (opcional)',
+                hintText: 'Ej: Caja San Valentín para Ana',
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Costos adicionales', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 2),
+            Text(
+              'Lo que gastas tú en este pedido y no es un producto. '
+              'No se cobra al cliente: se resta de la ganancia.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final c in draft.extraCosts) ...[
+              _ExtraCostRow(key: ValueKey(c.id), cost: c),
+              const SizedBox(height: 8),
+            ],
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final concept in _commonConcepts)
+                  ActionChip(
+                    avatar: const Icon(Icons.add, size: 18),
+                    label: Text(concept),
+                    onPressed: () => notifier.addExtraCost(concept),
+                  ),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Otro'),
+                  onPressed: notifier.addExtraCost,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -148,6 +209,22 @@ class _SalePageState extends ConsumerState<SalePage> {
                   Text(draft.total.format(), style: theme.textTheme.titleLarge),
                 ],
               ),
+              if (draft.lines.isNotEmpty && extras.cents > 0)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Costos adicionales',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      '-${extras.format()}',
+                      style: TextStyle(color: theme.colorScheme.loss),
+                    ),
+                  ],
+                ),
               if (draft.lines.isNotEmpty)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -389,4 +466,74 @@ class _Note extends StatelessWidget {
       style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color),
     ),
   );
+}
+
+/// `[ concept ] [ Bs amount ] (x)`: one extra cost of the order.
+class _ExtraCostRow extends ConsumerStatefulWidget {
+  const _ExtraCostRow({super.key, required this.cost});
+
+  final DraftExtraCost cost;
+
+  @override
+  ConsumerState<_ExtraCostRow> createState() => _ExtraCostRowState();
+}
+
+class _ExtraCostRowState extends ConsumerState<_ExtraCostRow> {
+  late final _concept = TextEditingController(text: widget.cost.concept);
+  late final _amount = TextEditingController(text: widget.cost.amountText);
+
+  @override
+  void dispose() {
+    _concept.dispose();
+    _amount.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(saleDraftProvider.notifier);
+    final c = widget.cost;
+    final amountError = c.amountText.isEmpty
+        ? null
+        : (validateMoney(c.amountText, required: true) ??
+              (c.amount!.cents == 0 ? 'Mayor a 0' : null));
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: TextField(
+            controller: _concept,
+            textCapitalization: TextCapitalization.sentences,
+            onChanged: (v) => notifier.updateExtraCost(c.id, concept: v),
+            decoration: InputDecoration(
+              labelText: 'Concepto',
+              errorText: c.concept.trim().isEmpty && c.amountText.isNotEmpty
+                  ? 'Obligatorio'
+                  : null,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: TextField(
+            controller: _amount,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (v) => notifier.updateExtraCost(c.id, amountText: v),
+            decoration: InputDecoration(
+              labelText: 'Monto',
+              prefixText: 'Bs ',
+              errorText: amountError,
+            ),
+          ),
+        ),
+        IconButton(
+          tooltip: 'Quitar costo',
+          icon: const Icon(Icons.close),
+          onPressed: () => notifier.removeExtraCost(c.id),
+        ),
+      ],
+    );
+  }
 }

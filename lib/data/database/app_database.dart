@@ -11,7 +11,15 @@ import 'tables/stock_adjustments_table.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Products, Purchases, PurchaseLines, Sales, SaleLines, StockAdjustments],
+  tables: [
+    Products,
+    Purchases,
+    PurchaseLines,
+    Sales,
+    SaleLines,
+    SaleExtraCosts,
+    StockAdjustments,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -22,7 +30,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +52,11 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             // Optional minimum stock per product for the "stock bajo" alert.
             await m.addColumn(products, products.minStockUnits);
+          }
+          if (from < 4) {
+            // Orders can carry costs that are not products.
+            await m.createTable(saleExtraCosts);
+            await m.createIndex(saleExtraCostsSaleIdx);
           }
         },
         beforeOpen: (details) async {

@@ -35,3 +35,13 @@ class SaleLines extends Table with BaseColumns {
   IntColumn get costTotalCents => integer()();
   IntColumn get profitCents => integer()();
 }
+
+/// v4: costs of an order that are not products (labor, printing...). Their
+/// sum is already subtracted from `sales.profit_cents`.
+@DataClassName('SaleExtraCostRow')
+@TableIndex(name: 'sale_extra_costs_sale_idx', columns: {#saleId})
+class SaleExtraCosts extends Table with BaseColumns {
+  TextColumn get saleId => text().references(Sales, #id)();
+  TextColumn get concept => text()();
+  IntColumn get amountCents => integer()();
+}

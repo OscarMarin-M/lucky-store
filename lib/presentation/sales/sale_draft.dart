@@ -86,13 +86,61 @@ class DraftSaleLine {
   );
 }
 
+/// A cost of the order that is not a product (labor, printing...), as typed.
+class DraftExtraCost {
+  const DraftExtraCost({
+    required this.id,
+    this.concept = '',
+    this.amountText = '',
+  });
+
+  final String id;
+  final String concept;
+  final String amountText;
+
+  Money? get amount => tryParseMoney(amountText);
+
+  /// A row the owner added but left untouched: ignored, not an error.
+  bool get isBlank => concept.trim().isEmpty && amountText.trim().isEmpty;
+
+  bool get isValid {
+    final a = amount;
+    return concept.trim().isNotEmpty && a != null && a.cents > 0;
+  }
+
+  DraftExtraCost copyWith({String? concept, String? amountText}) =>
+      DraftExtraCost(
+        id: id,
+        concept: concept ?? this.concept,
+        amountText: amountText ?? this.amountText,
+      );
+}
+
 class SaleDraftState {
-  const SaleDraftState({this.lines = const [], this.date});
+  const SaleDraftState({
+    this.lines = const [],
+    this.date,
+    this.extraCosts = const [],
+    this.notes = '',
+  });
 
   final List<DraftSaleLine> lines;
 
   /// Null = now (resolved when registering).
   final DateTime? date;
+
+  final List<DraftExtraCost> extraCosts;
+
+  /// Names the order, e.g. "Caja San Valentín para Ana".
+  final String notes;
+
+  /// Extra costs that will be registered (blank rows are skipped).
+  Iterable<DraftExtraCost> get filledExtraCosts =>
+      extraCosts.where((c) => !c.isBlank);
+
+  Money get extraCostsTotal => filledExtraCosts
+      .map((c) => c.isValid ? c.amount! : Money.zero)
+      .sum;
 
   /// Base units requested per product across all lines.
   Map<String, int> get unitsByProduct {
@@ -118,15 +166,26 @@ class SaleDraftState {
             l.quantity >= 1 &&
             l.hasValidPrice &&
             fitsStock(l.product, allowNegativeStock: allowNegativeStock),
-      );
+      ) &&
+      filledExtraCosts.every((c) => c.isValid);
 
+  /// What the customer pays: extra costs are the shop's, not charged.
   Money get total => lines.map((l) => l.lineTotal ?? Money.zero).sum;
 
   Money get estimatedProfit =>
-      lines.map((l) => l.estimatedProfit ?? Money.zero).sum;
+      lines.map((l) => l.estimatedProfit ?? Money.zero).sum - extraCostsTotal;
 
-  SaleDraftState copyWith({List<DraftSaleLine>? lines, DateTime? date}) =>
-      SaleDraftState(lines: lines ?? this.lines, date: date ?? this.date);
+  SaleDraftState copyWith({
+    List<DraftSaleLine>? lines,
+    DateTime? date,
+    List<DraftExtraCost>? extraCosts,
+    String? notes,
+  }) => SaleDraftState(
+    lines: lines ?? this.lines,
+    date: date ?? this.date,
+    extraCosts: extraCosts ?? this.extraCosts,
+    notes: notes ?? this.notes,
+  );
 }
 
 class SaleDraft extends Notifier<SaleDraftState> {
@@ -177,6 +236,29 @@ class SaleDraft extends Notifier<SaleDraftState> {
   );
 
   void setDate(DateTime date) => state = state.copyWith(date: date);
+  void setNotes(String value) => state = state.copyWith(notes: value);
+
+  /// New extra cost row, optionally with a common concept already filled.
+  void addExtraCost([String concept = '']) => state = state.copyWith(
+    extraCosts: [
+      ...state.extraCosts,
+      DraftExtraCost(id: newId(), concept: concept),
+    ],
+  );
+
+  void updateExtraCost(String id, {String? concept, String? amountText}) =>
+      state = state.copyWith(
+        extraCosts: [
+          for (final c in state.extraCosts)
+            c.id == id
+                ? c.copyWith(concept: concept, amountText: amountText)
+                : c,
+        ],
+      );
+
+  void removeExtraCost(String id) => state = state.copyWith(
+    extraCosts: state.extraCosts.where((c) => c.id != id).toList(),
+  );
 
   void clear() => state = const SaleDraftState();
 
@@ -186,6 +268,11 @@ class SaleDraft extends Notifier<SaleDraftState> {
     final draft = state;
     final sale = await ref.read(registerSaleProvider)(
       date: draft.date,
+      notes: draft.notes.trim().isEmpty ? null : draft.notes.trim(),
+      extraCosts: [
+        for (final c in draft.filledExtraCosts)
+          ExtraCostInput(concept: c.concept, amount: c.amount ?? Money.zero),
+      ],
       lines: [
         for (final l in draft.lines)
           SaleLineInput(

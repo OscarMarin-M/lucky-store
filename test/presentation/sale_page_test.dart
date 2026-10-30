@@ -120,4 +120,37 @@ void main() {
     expect(tester.widget<FilledButton>(charge).onPressed, isNull);
     await teardown(tester);
   });
+
+  testWidgets('an order with a name and an extra cost', (tester) async {
+    await pumpPage(tester);
+    await addGum(tester);
+    await tester.tap(find.byTooltip('Más')); // 2 u: Bs 6,00, profit Bs 2,00
+    await tester.pump();
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Nombre del pedido o nota (opcional)'),
+      'Caja para Ana',
+    );
+    await tester.tap(find.text('Mano de obra'));
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextField, 'Monto'), '1,50');
+    await tester.pump();
+
+    expect(find.text('Costos adicionales'), findsNWidgets(2)); // section + footer
+    expect(find.text('-Bs 1,50'), findsOneWidget);
+    expect(find.text('Bs 0,50'), findsOneWidget, reason: 'estimated profit');
+
+    await tester.tap(charge);
+    await tester.pumpAndSettle();
+    expect(find.text('Venta registrada · Bs 6,00 · ganancia Bs 0,50'), findsOneWidget);
+
+    final sale = (await tester.runAsync(
+      () => container.read(saleRepositoryProvider).getAll(),
+    ))!
+        .single;
+    expect(sale.notes, 'Caja para Ana');
+    expect(sale.extraCosts.single.concept, 'Mano de obra');
+    expect(sale.extraCosts.single.amount, const Money(150));
+    await teardown(tester);
+  });
 }

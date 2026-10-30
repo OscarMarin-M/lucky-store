@@ -45,7 +45,8 @@ class SaleDetailPage extends ConsumerWidget {
     final discount = sale.lines.map((l) => l.discount).sum;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Venta')),
+      // The note names the order ("Caja San Valentín para Ana").
+      appBar: AppBar(title: Text(sale.notes ?? 'Venta')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
         children: [
@@ -58,9 +59,35 @@ class SaleDetailPage extends ConsumerWidget {
             _SaleLineCard(line: l, name: productName(byId, l.productId)),
             const SizedBox(height: 10),
           ],
+          if (sale.extraCosts.isNotEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Costos adicionales',
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    for (final c in sale.extraCosts)
+                      DetailRow(
+                        label: c.concept,
+                        value: '-${c.amount.format()}',
+                        color: theme.colorScheme.loss,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           _TotalsCard(rows: [
             ('Total cobrado', sale.total.format(), null),
-            ('Costo', cost.format(), null),
+            ('Costo de productos', cost.format(), null),
+            if (sale.extraCosts.isNotEmpty)
+              ('Costos adicionales', sale.extraCostsTotal.format(), null),
             if (discount.cents > 0) ('Descuentos', discount.format(), null),
             (
               'Ganancia',
@@ -70,10 +97,6 @@ class SaleDetailPage extends ConsumerWidget {
                   : theme.colorScheme.gain,
             ),
           ]),
-          if (sale.notes != null) ...[
-            const SizedBox(height: 12),
-            Text('Notas: ${sale.notes}'),
-          ],
         ],
       ),
     );

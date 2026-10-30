@@ -174,8 +174,14 @@ class _EntryTile extends StatelessWidget {
         VoidCallback onTap) = switch (entry) {
       SaleEntry(:final sale) => (
           Icons.point_of_sale_outlined,
-          _names(sale.lines.map((l) => l.productId)),
-          '$time · Venta',
+          sale.notes ?? _names(sale.lines.map((l) => l.productId)),
+          [
+            '$time · Venta',
+            // A named order lists its products under the name.
+            if (sale.notes != null) _names(sale.lines.map((l) => l.productId)),
+            if (sale.extraCosts.isNotEmpty)
+              '+ ${sale.extraCosts.length == 1 ? '1 costo adicional' : '${sale.extraCosts.length} costos adicionales'}',
+          ].join(' · '),
           _Amounts(
             top: sale.total.format(),
             bottom: '${sale.profit.isNegative ? '' : '+'}${sale.profit.format()}',

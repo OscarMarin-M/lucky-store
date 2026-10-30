@@ -25,6 +25,27 @@ class SaleLineInput {
   final Money? unitPrice;
 }
 
+/// A cost of the order that is not a product (see `SaleExtraCost`).
+class ExtraCostInput {
+  const ExtraCostInput({required this.concept, required this.amount});
+
+  final String concept;
+  final Money amount;
+
+  void validate() {
+    if (concept.trim().isEmpty) {
+      throw const InvalidAmountException(
+        'Cada costo adicional necesita un concepto',
+      );
+    }
+    if (amount.cents <= 0) {
+      throw InvalidAmountException(
+        'El costo adicional "${concept.trim()}" debe ser mayor a 0',
+      );
+    }
+  }
+}
+
 /// Registers a sale: freezes price, suggested price, cost and profit on each
 /// line and lowers stock, atomically. Fails if there is not enough stock
 /// (unless the policy allows negative stock).
@@ -54,8 +75,12 @@ class RegisterSale {
     DateTime? date,
     String? notes,
     required List<SaleLineInput> lines,
+    List<ExtraCostInput> extraCosts = const [],
   }) {
     if (lines.isEmpty) throw const EmptyDocumentException();
+    for (final c in extraCosts) {
+      c.validate();
+    }
 
     return _transactions.run(() async {
       final now = _clock();
@@ -95,6 +120,17 @@ class RegisterSale {
         ));
       }
 
+      final extras = [
+        for (final c in extraCosts)
+          SaleExtraCost(
+            id: newId(),
+            createdAt: now,
+            updatedAt: now,
+            saleId: saleId,
+            concept: c.concept.trim(),
+            amount: c.amount,
+          ),
+      ];
       final sale = await _sales.save(Sale(
         id: saleId,
         createdAt: now,
@@ -102,8 +138,10 @@ class RegisterSale {
         date: date ?? now,
         notes: notes,
         total: built.map((l) => l.lineTotal).sum,
-        profit: built.map((l) => l.profit).sum,
+        profit: built.map((l) => l.profit).sum -
+            extras.map((c) => c.amount).sum,
         lines: built,
+        extraCosts: extras,
       ));
       await ledger.flush();
       return sale;

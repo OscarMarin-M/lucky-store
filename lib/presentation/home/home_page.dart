@@ -70,7 +70,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                     'Ganancia por producto',
                     icon: Icons.leaderboard_outlined,
                   ),
-                  _ResultsCard(results: d.results),
+                  _ResultsCard(
+                    results: d.results,
+                    extraCosts: d.summary.extraCosts,
+                  ),
                   const _SectionTitle(
                     'Inventario',
                     icon: Icons.inventory_2_outlined,
@@ -152,9 +155,12 @@ class _SummaryGrid extends StatelessWidget {
                 label: 'Ganancia',
                 value: s.netProfit.format(),
                 valueColor: _profitColor(scheme, s.netProfit),
-                detail: s.writeOffLoss.cents > 0
-                    ? 'ya restadas las bajas'
-                    : 'de lo vendido',
+                detail: switch ((s.writeOffLoss.cents > 0, s.extraCosts.cents > 0)) {
+                  (true, true) => 'ya restadas bajas y costos extra',
+                  (true, false) => 'ya restadas las bajas',
+                  (false, true) => 'ya restados los costos extra',
+                  (false, false) => 'de lo vendido',
+                },
               ),
             ),
           ],
@@ -283,9 +289,13 @@ class _AlertsCard extends StatelessWidget {
 
 /// Best products first; the rest behind "Ver todos" so the screen stays short.
 class _ResultsCard extends StatefulWidget {
-  const _ResultsCard({required this.results});
+  const _ResultsCard({required this.results, required this.extraCosts});
 
   final List<ProductResult> results;
+
+  /// Orders' costs that belong to no product: a last row so the list adds
+  /// up to the profit card.
+  final Money extraCosts;
 
   @override
   State<_ResultsCard> createState() => _ResultsCardState();
@@ -326,6 +336,18 @@ class _ResultsCardState extends State<_ResultsCard> {
               onPressed: () => setState(() => _expanded = !_expanded),
               child: Text(_expanded ? 'Ver menos' : 'Ver todos (${all.length})'),
             ),
+          if (widget.extraCosts.cents > 0) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('Costos adicionales de pedidos'),
+              subtitle: const Text('mano de obra, empaque, impresión…'),
+              trailing: Text(
+                '-${widget.extraCosts.format()}',
+                style: theme.textTheme.titleSmall?.copyWith(color: scheme.loss),
+              ),
+            ),
+          ],
         ],
       ),
     );
