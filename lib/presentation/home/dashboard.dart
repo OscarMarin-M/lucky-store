@@ -21,6 +21,7 @@ class Dashboard {
   const Dashboard({
     required this.summary,
     required this.results,
+    required this.topSellers,
     required this.inventoryValue,
     required this.productsInStock,
     required this.lowStock,
@@ -29,6 +30,9 @@ class Dashboard {
 
   final PeriodSummary summary;
   final List<ProductResult> results;
+
+  /// Most sold in the period, with how long their stock lasts at that pace.
+  final List<TopSeller> topSellers;
   final Money inventoryValue;
   final int productsInStock;
   final List<Product> lowStock;
@@ -38,8 +42,10 @@ class Dashboard {
 }
 
 /// Recomputed whenever a product, purchase, sale or write-off changes.
-final dashboardProvider =
-    FutureProvider.family<Dashboard, HomePeriod>((ref, period) async {
+final dashboardProvider = FutureProvider.family<Dashboard, HomePeriod>((
+  ref,
+  period,
+) async {
   final products = await ref.watch(productsProvider.future);
   final byId = await ref.watch(productsByIdProvider.future);
   final purchases = await ref.watch(purchasesProvider.future);
@@ -48,15 +54,20 @@ final dashboardProvider =
 
   final now = DateTime.now();
   final range = reportPeriodFor(period, now);
-  final periodWriteOffs =
-      writeOffs.where((a) => range.contains(a.date)).toList();
+  final periodSales = sales.where((s) => range.contains(s.date)).toList();
+  final periodWriteOffs = writeOffs
+      .where((a) => range.contains(a.date))
+      .toList();
   final profit = await ref
       .watch(saleRepositoryProvider)
       .profitByProduct(from: range.from, to: range.to);
+  final firstSale = periodSales.isEmpty
+      ? null
+      : periodSales.map((s) => s.date).reduce((a, b) => a.isBefore(b) ? a : b);
 
   return Dashboard(
     summary: PeriodSummary.of(
-      sales: sales.where((s) => range.contains(s.date)).toList(),
+      sales: periodSales,
       purchases: purchases.where((p) => range.contains(p.date)).toList(),
       writeOffs: periodWriteOffs,
     ),
@@ -65,9 +76,18 @@ final dashboardProvider =
       writeOffs: periodWriteOffs,
       productsById: byId,
     ),
+    topSellers: topSellers(
+      sales: profit,
+      productsById: byId,
+      periodDays: elapsedDays(range, now, firstSale: firstSale),
+    ),
     inventoryValue: inventoryValue(products),
     productsInStock: products.where((p) => p.stockUnits > 0).length,
     lowStock: lowStock(products),
-    expiring: expiryAlerts(purchases: purchases, products: products, today: now),
+    expiring: expiryAlerts(
+      purchases: purchases,
+      products: products,
+      today: now,
+    ),
   );
 });

@@ -150,41 +150,44 @@ void main() {
     expect(s.netProfit, const Money(3650), reason: 'not added twice');
   });
 
-  test('results per product subtract write-offs; loss-only products appear', () {
-    final results = resultsByProduct(
-      sales: const [
-        ProductProfit(
-          productId: 'snickers',
-          productName: 'Snickers',
-          unitsSold: 10,
-          revenue: Money(3000),
-          cost: Money(2000),
-          profit: Money(1000),
-        ),
-        ProductProfit(
-          productId: 'twix',
-          productName: 'Twix',
-          unitsSold: 5,
-          revenue: Money(1500),
-          cost: Money(1000),
-          profit: Money(500),
-        ),
-      ],
-      writeOffs: [
-        _writeOff('snickers', 800),
-        _writeOff('gum', 300),
-        _writeOff('gum', 100),
-      ],
-      productsById: {'gum': _product('gum').copyWith(name: 'Chicle')},
-    );
+  test(
+    'results per product subtract write-offs; loss-only products appear',
+    () {
+      final results = resultsByProduct(
+        sales: const [
+          ProductProfit(
+            productId: 'snickers',
+            productName: 'Snickers',
+            unitsSold: 10,
+            revenue: Money(3000),
+            cost: Money(2000),
+            profit: Money(1000),
+          ),
+          ProductProfit(
+            productId: 'twix',
+            productName: 'Twix',
+            unitsSold: 5,
+            revenue: Money(1500),
+            cost: Money(1000),
+            profit: Money(500),
+          ),
+        ],
+        writeOffs: [
+          _writeOff('snickers', 800),
+          _writeOff('gum', 300),
+          _writeOff('gum', 100),
+        ],
+        productsById: {'gum': _product('gum').copyWith(name: 'Chicle')},
+      );
 
-    expect(results.map((r) => r.name), ['Twix', 'Snickers', 'Chicle']);
-    expect(results[1].netProfit, const Money(200)); // 1000 - 800
-    expect(results[1].marginPercent, closeTo(6.67, 0.01));
-    expect(results[2].netProfit, const Money(-400));
-    expect(results[2].unitsSold, 0);
-    expect(results[2].marginPercent, isNull);
-  });
+      expect(results.map((r) => r.name), ['Twix', 'Snickers', 'Chicle']);
+      expect(results[1].netProfit, const Money(200)); // 1000 - 800
+      expect(results[1].marginPercent, closeTo(6.67, 0.01));
+      expect(results[2].netProfit, const Money(-400));
+      expect(results[2].unitsSold, 0);
+      expect(results[2].marginPercent, isNull);
+    },
+  );
 
   test('inventory value ignores negative stock', () {
     expect(
@@ -271,6 +274,94 @@ void main() {
         today: today,
       );
       expect(alerts, isEmpty);
+    });
+  });
+
+  group('top sellers', () {
+    ProductProfit sold(String id, int units, {int revenue = 0}) =>
+        ProductProfit(
+          productId: id,
+          productName: id,
+          unitsSold: units,
+          revenue: Money(revenue),
+          cost: Money.zero,
+          profit: Money.zero,
+        );
+
+    test('elapsed days count today and stop at the period end', () {
+      final now = DateTime(2026, 11, 3, 15);
+      expect(elapsedDays(ReportPeriod.today(now), now), 1);
+      expect(elapsedDays(ReportPeriod.last7Days(now), now), 7);
+      // "Este mes" on the 3rd: 3 days lived, not 30.
+      expect(elapsedDays(ReportPeriod.thisMonth(now), now), 3);
+      // "Todo": since the first sale.
+      expect(
+        elapsedDays(
+          const ReportPeriod(),
+          now,
+          firstSale: DateTime(2026, 10, 25, 18),
+        ),
+        10,
+      );
+      expect(elapsedDays(const ReportPeriod(), now), 1);
+    });
+
+    test('ranks by units sold, ties by revenue, and limits the list', () {
+      final byId = {
+        for (final id in ['a', 'b', 'c', 'd']) id: _product(id, stock: 100),
+      };
+      final top = topSellers(
+        sales: [
+          sold('a', 5, revenue: 100),
+          sold('b', 20),
+          sold('c', 5, revenue: 300),
+          sold('d', 1),
+        ],
+        productsById: byId,
+        periodDays: 1,
+        limit: 3,
+      );
+      expect(top.map((t) => t.product.id), ['b', 'c', 'a']);
+    });
+
+    test('days of stock follow the pace; restock under a week', () {
+      final top = topSellers(
+        sales: [sold('fast', 70), sold('slow', 7), sold('empty', 3)],
+        productsById: {
+          'fast': _product('fast', stock: 30), // 10 u/día -> 3 días
+          'slow': _product('slow', stock: 30), // 1 u/día -> 30 días
+          'empty': _product('empty'),
+        },
+        periodDays: 7,
+      );
+      final byId = {for (final t in top) t.product.id: t};
+      expect(byId['fast']!.unitsPerDay, 10);
+      expect(byId['fast']!.daysOfStock, 3);
+      expect(byId['fast']!.needsRestock, isTrue);
+      expect(byId['slow']!.daysOfStock, 30);
+      expect(byId['slow']!.needsRestock, isFalse);
+      expect(byId['empty']!.daysOfStock, 0);
+      expect(byId['empty']!.needsRestock, isTrue);
+    });
+
+    test('a product under its minimum needs restock even if it lasts', () {
+      final top = topSellers(
+        sales: [sold('a', 1)],
+        productsById: {'a': _product('a', stock: 10, min: 10)},
+        periodDays: 30,
+      );
+      expect(top.single.needsRestock, isTrue);
+    });
+
+    test('skips deleted products', () {
+      final top = topSellers(
+        sales: [sold('gone', 9)],
+        productsById: {
+          'gone': _product('gone').copyWith(deletedAt: DateTime(2026, 10, 2)),
+        },
+        periodDays: 1,
+      );
+      expect(top, isEmpty);
     });
   });
 }

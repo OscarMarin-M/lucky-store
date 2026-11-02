@@ -17,7 +17,10 @@ class ReportPeriod {
   /// Today and the 6 days before it.
   factory ReportPeriod.last7Days(DateTime now) {
     final end = DateTime(now.year, now.month, now.day + 1);
-    return ReportPeriod(from: DateTime(now.year, now.month, now.day - 6), to: end);
+    return ReportPeriod(
+      from: DateTime(now.year, now.month, now.day - 6),
+      to: end,
+    );
   }
 
   factory ReportPeriod.thisMonth(DateTime now) => ReportPeriod(
@@ -138,18 +141,15 @@ List<ProductResult> resultsByProduct({
 }
 
 /// What the stock on hand cost (average cost); negative stock counts as 0.
-Money inventoryValue(Iterable<Product> products) => products
-    .where((p) => p.stockUnits > 0)
-    .map((p) => p.stockValue)
-    .sum;
+Money inventoryValue(Iterable<Product> products) =>
+    products.where((p) => p.stockUnits > 0).map((p) => p.stockValue).sum;
 
 /// Active products at or under their minimum, emptiest first.
 List<Product> lowStock(Iterable<Product> products) =>
-    products.where((p) => p.isActive && p.isLowStock).toList()
-      ..sort((a, b) {
-        final byUnits = a.stockUnits.compareTo(b.stockUnits);
-        return byUnits != 0 ? byUnits : a.name.compareTo(b.name);
-      });
+    products.where((p) => p.isActive && p.isLowStock).toList()..sort((a, b) {
+      final byUnits = a.stockUnits.compareTo(b.stockUnits);
+      return byUnits != 0 ? byUnits : a.name.compareTo(b.name);
+    });
 
 /// A lot that expires soon (or already did) and probably still has units.
 class ExpiryAlert {
@@ -209,16 +209,90 @@ List<ExpiryAlert> expiryAlerts({
       remaining -= left;
       final expiry = lot.expiryFrom;
       if (expiry == null || expiry.isAfter(limit)) continue;
-      alerts.add(ExpiryAlert(
-        product: product,
-        expiry: expiry,
-        unitsLeft: left,
-        daysLeft: DateTime(expiry.year, expiry.month, expiry.day)
-            .difference(day)
-            .inDays,
-      ));
+      alerts.add(
+        ExpiryAlert(
+          product: product,
+          expiry: expiry,
+          unitsLeft: left,
+          daysLeft: DateTime(
+            expiry.year,
+            expiry.month,
+            expiry.day,
+          ).difference(day).inDays,
+        ),
+      );
     }
   }
   alerts.sort((a, b) => a.expiry.compareTo(b.expiry));
   return alerts;
+}
+
+/// Whole days of [range] already lived up to [now], counting today: what the
+/// units sold must be divided by to get a daily pace. "Este mes" on the 3rd
+/// is 3 days, not 30. Without a start ("Todo") it counts from [firstSale].
+int elapsedDays(ReportPeriod range, DateTime now, {DateTime? firstSale}) {
+  final start = range.from ?? firstSale;
+  if (start == null) return 1;
+  final today = DateTime(now.year, now.month, now.day + 1);
+  final end = range.to != null && range.to!.isBefore(today) ? range.to! : today;
+  final first = DateTime(start.year, start.month, start.day);
+  final days = end.difference(first).inHours / 24;
+  return days < 1 ? 1 : days.round();
+}
+
+/// A best-selling product of the period with what is left of it, to know
+/// what to restock before it runs out.
+class TopSeller {
+  const TopSeller({
+    required this.product,
+    required this.unitsSold,
+    required this.revenue,
+    required this.unitsPerDay,
+  });
+
+  final Product product;
+
+  /// Base units that left the shop in the period, gifts included (they also
+  /// empty the shelf).
+  final int unitsSold;
+  final Money revenue;
+  final double unitsPerDay;
+
+  /// At the period's pace, how many days the current stock lasts.
+  double get daysOfStock =>
+      product.stockUnits <= 0 ? 0 : product.stockUnits / unitsPerDay;
+
+  /// Out of stock, under its minimum, or would run out within a week.
+  bool get needsRestock =>
+      product.stockUnits <= 0 ||
+      product.isLowStock ||
+      daysOfStock < TopSeller.restockWithinDays;
+
+  static const restockWithinDays = 7;
+}
+
+/// Products ranked by units sold (ties by revenue), at most [limit]. Deleted
+/// products are skipped: there is nothing to restock.
+List<TopSeller> topSellers({
+  required List<ProductProfit> sales,
+  required Map<String, Product> productsById,
+  required int periodDays,
+  int limit = 5,
+}) {
+  final ranked =
+      [
+        for (final s in sales)
+          if (productsById[s.productId] case final p?
+              when s.unitsSold > 0 && p.deletedAt == null)
+            TopSeller(
+              product: p,
+              unitsSold: s.unitsSold,
+              revenue: s.revenue,
+              unitsPerDay: s.unitsSold / periodDays,
+            ),
+      ]..sort((a, b) {
+        final byUnits = b.unitsSold.compareTo(a.unitsSold);
+        return byUnits != 0 ? byUnits : b.revenue.compareTo(a.revenue);
+      });
+  return ranked.take(limit).toList();
 }

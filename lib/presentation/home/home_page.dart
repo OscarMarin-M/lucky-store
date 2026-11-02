@@ -67,6 +67,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     _AlertsCard(dashboard: d),
                   ],
+                  if (d.topSellers.isNotEmpty) ...[
+                    const SectionTitle(
+                      'Más vendidos',
+                      icon: Icons.star_outline_rounded,
+                    ),
+                    _TopSellersCard(sellers: d.topSellers),
+                  ],
                   const SectionTitle(
                     'Ganancia por producto',
                     icon: Icons.leaderboard_outlined,
@@ -120,7 +127,10 @@ class _SummaryGrid extends StatelessWidget {
                 label: 'Ganancia',
                 value: s.netProfit.format(),
                 valueColor: _profitColor(scheme, s.netProfit),
-                detail: switch ((s.writeOffLoss.cents > 0, s.extraCharges.cents > 0)) {
+                detail: switch ((
+                  s.writeOffLoss.cents > 0,
+                  s.extraCharges.cents > 0,
+                )) {
                   (true, true) => 'con cargos extra, menos bajas',
                   (true, false) => 'ya restadas las bajas',
                   (false, true) => 'incluye cargos adicionales',
@@ -190,7 +200,10 @@ class _StatCard extends StatelessWidget {
                 style: theme.textTheme.titleLarge?.copyWith(color: valueColor),
               ),
             ),
-            Text(detail, style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+            Text(
+              detail,
+              style: theme.textTheme.bodySmall?.copyWith(color: muted),
+            ),
           ],
         ),
       ),
@@ -252,6 +265,90 @@ class _AlertsCard extends StatelessWidget {
   }
 }
 
+/// The stars of the period and whether their stock keeps up with the pace
+/// they sell at, so the owner knows what to buy next.
+class _TopSellersCard extends StatelessWidget {
+  const _TopSellersCard({required this.sellers});
+
+  final List<TopSeller> sellers;
+
+  /// `alcanza ~12 días`; under a day reads as "se acaba hoy".
+  static String _lasts(TopSeller s) {
+    if (s.product.stockUnits <= 0) return 'sin stock';
+    final days = s.daysOfStock;
+    if (days < 1) return 'se acaba hoy';
+    if (days > 99) return 'alcanza +99 días';
+    final n = days.floor();
+    return n == 1 ? 'alcanza ~1 día' : 'alcanza ~$n días';
+  }
+
+  /// `3.5 u/día`, without the decimal when it is whole.
+  static String _pace(double perDay) {
+    final rounded = (perDay * 10).round() / 10;
+    final text = rounded == rounded.roundToDouble()
+        ? rounded.toStringAsFixed(0)
+        : rounded.toStringAsFixed(1);
+    return '$text u/día';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Column(
+        children: [
+          for (var i = 0; i < sellers.length; i++) ...[
+            if (i > 0) const Divider(height: 1),
+            ListTile(
+              leading: CircleAvatar(
+                radius: 14,
+                backgroundColor: i == 0
+                    ? scheme.primaryContainer
+                    : scheme.surfaceContainerHighest,
+                child: Text('${i + 1}', style: theme.textTheme.labelLarge),
+              ),
+              title: Text(
+                sellers[i].product.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${sellers[i].unitsSold} u vendidas · '
+                '${_pace(sellers[i].unitsPerDay)}',
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    formatStock(
+                      sellers[i].product.stockUnits,
+                      sellers[i].product.unitsPerBox,
+                    ),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  Text(
+                    sellers[i].needsRestock
+                        ? 'Reponer · ${_lasts(sellers[i])}'
+                        : _lasts(sellers[i]),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: sellers[i].needsRestock
+                          ? scheme.tertiary
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 /// Best products first; the rest behind "Ver todos" so the screen stays short.
 class _ResultsCard extends StatefulWidget {
   const _ResultsCard({required this.results, required this.extraCharges});
@@ -299,7 +396,9 @@ class _ResultsCardState extends State<_ResultsCard> {
           if (all.length > _collapsed)
             TextButton(
               onPressed: () => setState(() => _expanded = !_expanded),
-              child: Text(_expanded ? 'Ver menos' : 'Ver todos (${all.length})'),
+              child: Text(
+                _expanded ? 'Ver menos' : 'Ver todos (${all.length})',
+              ),
             ),
           if (widget.extraCharges.cents > 0) ...[
             const Divider(height: 1),
