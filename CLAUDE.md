@@ -9,7 +9,9 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
 - SQLite con Drift (migraciones versionadas)
 - Patrón repositorio: la UI nunca accede directo a la base de datos
 - Comentario de funcionalidad en codigo NO generico.
-- Pensado para añadir sincronización (Supabase) más adelante, NO implementarla aún
+- Varios usuarios (4-6, todos con acceso total por ahora) con Supabase, offline-first:
+  cada teléfono trabaja sobre su SQLite y sincroniza cuando hay internet (también se
+  usa fuera de la tienda, p. ej. al comprar). Roles/permisos: más adelante.
 
 ## Reglas de dominio (no romper)
 - Moneda: Bolivianos (Bs). Todo el dinero se guarda como entero con decimales, 2 decimales a lo más (Ej: 1352.99)
@@ -29,6 +31,11 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   total y a la ganancia del pedido, no descuentan stock ni son un costo de la tienda.
 - Regalo = venta a Bs 0 (su costo queda como pérdida en la ganancia).
 - Ganancia del período = ganancia de ventas - pérdida por bajas (vencido, dañado...).
+- Stock y costo promedio de un producto son DERIVADOS: se recalculan reproduciendo
+  compras, ventas y bajas de todos los teléfonos en orden de fecha (`InventoryRebuilder`).
+  El costo congelado en cada venta/baja nunca se modifica. Dos ventas offline de la
+  última unidad dejan stock negativo (se muestra, no se bloquea al sincronizar).
+- Documentos (compras, ventas, bajas) no se borran físicamente nunca: solo `deleted_at`.
 
 ## Flujo de trabajo
 - Planificar antes de codificar en cambios grandes.
@@ -56,8 +63,20 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   PATH: `$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe`). Sin el dart-define la app
   queda solo local (sin login ni sync). Si Gradle falla con PKIX, desactivar el escaneo
   HTTPS de AVG.
-- Sync con Supabase (offline-first) en `lib/data/sync/`. El esquema de la nube está en
-  `supabase/migrations/` y se ejecuta a mano en el SQL Editor; una tabla nueva va ahí, en
-  `synced_tables.dart` y con sus triggers en `lib/data/database/sync.drift`. Stock y costo
-  promedio NO se sincronizan: `InventoryRebuilder` los recalcula desde los documentos.
-  `env/dev.json` (URL + publishable key) no se sube a git; formato en `env/example.json`.
+- APK para compartir con el equipo: `flutter build apk --release --dart-define-from-file=env/dev.json`
+  (~60 MB; se firma con la clave debug de esta PC, así las versiones nuevas se instalan
+  encima sin perder datos ni sesión).
+- Sync con Supabase en `lib/data/sync/` (`SyncService`, `InventoryRebuilder`,
+  `RemoteStore`) y `lib/app/sync_providers.dart` (sesión, `SyncController`):
+  - Triggers de `lib/data/database/sync.drift` anotan cada cambio local en `sync_outbox`;
+    push sube la cola en orden de FK, pull baja por `server_updated_at` (hora del
+    servidor) y no reencola lo descargado. Un cambio local pendiente gana al descargado.
+  - Products solo se encola por columnas de catálogo; stock/costo nunca suben.
+  - Tabla nueva sincronizada: SQL en `supabase/migrations/` (se ejecuta a mano en el SQL
+    Editor de Supabase), nombre en `synced_tables.dart` y triggers en `sync.drift`.
+  - Sincroniza al abrir, 3 s tras cada cambio, cada minuto (solo con la app en pantalla),
+    deslizando hacia abajo en cualquier lista y con el icono de nube de cada pestaña.
+  - Proyecto dev: `ttcyvyltxoddoxfcozzp`. `env/dev.json` (URL + publishable key) no se
+    sube a git; formato en `env/example.json`. Usuarios: se crean en Supabase
+    (Authentication → Users, "Auto Confirm"); la app no tiene registro propio.
+  - Tests: `test/data/sync_service_test.dart` simula dos teléfonos con una nube falsa.
