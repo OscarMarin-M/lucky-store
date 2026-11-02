@@ -123,3 +123,7 @@ app.*.symbols
 
 # Apps commit their lockfile
 !pubspec.lock
+
+# Supabase keys per environment (env/example.json shows the format)
+env/*.json
+!env/example.json

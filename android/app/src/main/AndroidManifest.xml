@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Sync with Supabase (debug builds add it on their own, release does not). -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="lucky_store"
         android:name="${applicationName}"

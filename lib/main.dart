@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'data/sync/supabase_config.dart';
 import 'presentation/shell/home_shell.dart';
 import 'presentation/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Offline-first: the local database is always the one the app uses; the
+  // cloud is only connected when this build carries its keys.
+  await SupabaseConfig.initialize();
   runApp(const ProviderScope(child: LuckyStoreApp()));
 }
 
