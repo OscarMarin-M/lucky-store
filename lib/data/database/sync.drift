@@ -1,0 +1,84 @@
+-- Sync bookkeeping (schema v6). Internal tables: they are not part of the
+-- shop's data, so they do not follow the id/created_at/deleted_at rule.
+
+import 'tables/products_table.dart';
+import 'tables/purchase_tables.dart';
+import 'tables/sale_tables.dart';
+import 'tables/stock_adjustments_table.dart';
+
+-- Rows written on this phone that the cloud does not have yet. Filled by the
+-- triggers below, emptied by the push once the cloud accepted them.
+CREATE TABLE sync_outbox (
+  seq INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  table_name TEXT NOT NULL,
+  row_id TEXT NOT NULL
+);
+
+-- Key/value: pull cursors per table and the 'applying_remote' marker, which
+-- exists only while rows from the cloud are being written so the triggers
+-- do not send them back.
+CREATE TABLE sync_state (
+  "key" TEXT NOT NULL PRIMARY KEY,
+  value TEXT
+);
+
+-- Products: only catalog columns. Stock and average cost are derived on each
+-- phone, so a sale (which only moves those) is not a change to upload.
+CREATE TRIGGER products_outbox_insert AFTER INSERT ON products
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('products', new.id); END;
+
+CREATE TRIGGER products_outbox_update AFTER UPDATE OF
+  name, sku, units_per_box, suggested_price_unit_cents,
+  suggested_price_box_cents, is_active, min_stock_units, deleted_at
+ON products
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('products', new.id); END;
+
+CREATE TRIGGER purchases_outbox_insert AFTER INSERT ON purchases
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('purchases', new.id); END;
+
+CREATE TRIGGER purchases_outbox_update AFTER UPDATE ON purchases
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('purchases', new.id); END;
+
+CREATE TRIGGER purchase_lines_outbox_insert AFTER INSERT ON purchase_lines
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('purchase_lines', new.id); END;
+
+CREATE TRIGGER purchase_lines_outbox_update AFTER UPDATE ON purchase_lines
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('purchase_lines', new.id); END;
+
+CREATE TRIGGER sales_outbox_insert AFTER INSERT ON sales
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('sales', new.id); END;
+
+CREATE TRIGGER sales_outbox_update AFTER UPDATE ON sales
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('sales', new.id); END;
+
+CREATE TRIGGER sale_lines_outbox_insert AFTER INSERT ON sale_lines
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('sale_lines', new.id); END;
+
+CREATE TRIGGER sale_lines_outbox_update AFTER UPDATE ON sale_lines
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('sale_lines', new.id); END;
+
+CREATE TRIGGER sale_extra_charges_outbox_insert AFTER INSERT ON sale_extra_charges
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('sale_extra_charges', new.id); END;
+
+CREATE TRIGGER sale_extra_charges_outbox_update AFTER UPDATE ON sale_extra_charges
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('sale_extra_charges', new.id); END;
+
+CREATE TRIGGER stock_adjustments_outbox_insert AFTER INSERT ON stock_adjustments
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('stock_adjustments', new.id); END;
+
+CREATE TRIGGER stock_adjustments_outbox_update AFTER UPDATE ON stock_adjustments
+WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
+BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('stock_adjustments', new.id); END;

@@ -54,6 +54,15 @@ class DriftProductRepository
         isActive: Value(p.isActive),
       );
 
+  /// Editing the catalog never writes stock or cost: they may have moved
+  /// (a sale, a sync) since the form loaded the product.
+  @override
+  Insertable<ProductRow> toUpdatable(Product p) =>
+      (toInsertable(p) as ProductsCompanion).copyWith(
+        stockUnits: const Value.absent(),
+        avgCostRaw: const Value.absent(),
+      );
+
   @override
   Product touch(Product entity, DateTime now) =>
       entity.copyWith(updatedAt: now);

@@ -15,10 +15,10 @@ void main() {
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
   test('every old version migrates to exactly the current schema', () async {
-    for (final from in [1, 2, 3, 4]) {
+    for (final from in [1, 2, 3, 4, 5]) {
       final connection = await verifier.startAt(from);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 5);
+      await verifier.migrateAndValidate(db, 6);
       await db.close();
     }
   });
@@ -46,7 +46,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 5);
+    await verifier.migrateAndValidate(db, 6);
 
     final purchase =
         (await DriftPurchaseRepository(db).getById('c1'))!;
@@ -84,7 +84,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 5);
+    await verifier.migrateAndValidate(db, 6);
 
     final repo = DriftSaleRepository(db);
     final s1 = (await repo.getById('s1'))!;
@@ -94,6 +94,30 @@ void main() {
     final s2 = (await repo.getById('s2'))!;
     expect(s2.total.cents, 600, reason: 'sales without extras untouched');
     expect(s2.profit.cents, 200);
+    await db.close();
+  });
+
+  test('v6 queues everything registered before sync for its first upload',
+      () async {
+    final schema = await verifier.schemaAt(5);
+    const ts = "'2026-01-01T00:00:00.000'";
+    schema.rawDatabase
+      ..execute(
+        "INSERT INTO products (id, created_at, updated_at, name) "
+        "VALUES ('p1', $ts, $ts, 'Snickers')",
+      )
+      ..execute(
+        "INSERT INTO sales (id, created_at, updated_at, date, total_cents, "
+        "profit_cents) VALUES ('s1', $ts, $ts, $ts, 500, 100)",
+      );
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, 6);
+    final queued = await db.select(db.syncOutbox).get();
+    expect(
+      queued.map((e) => '${e.tableName$}/${e.rowId}'),
+      unorderedEquals(['products/p1', 'sales/s1']),
+    );
     await db.close();
   });
 }

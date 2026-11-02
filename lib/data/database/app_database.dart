@@ -7,6 +7,7 @@ import 'tables/products_table.dart';
 import 'tables/purchase_tables.dart';
 import 'tables/sale_tables.dart';
 import 'tables/stock_adjustments_table.dart';
+import '../sync/synced_tables.dart';
 
 part 'app_database.g.dart';
 
@@ -20,6 +21,7 @@ part 'app_database.g.dart';
     SaleExtraCharges,
     StockAdjustments,
   ],
+  include: {'sync.drift'},
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
@@ -30,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -72,6 +74,22 @@ class AppDatabase extends _$AppDatabase {
               'UPDATE sales SET total_cents = total_cents + $charges, '
               'profit_cents = profit_cents + 2 * $charges',
             );
+          }
+          if (from < 6) {
+            // Sync with the cloud: outbox, cursors and the triggers that
+            // fill the outbox.
+            await m.createTable(syncOutbox);
+            await m.createTable(syncState);
+            for (final trigger in allSchemaEntities.whereType<Trigger>()) {
+              await m.create(trigger);
+            }
+            // Everything registered before sync existed must be uploaded once.
+            for (final table in syncedTableNames) {
+              await customStatement(
+                "INSERT INTO sync_outbox (table_name, row_id) "
+                "SELECT '$table', id FROM $table ORDER BY created_at",
+              );
+            }
           }
         },
         beforeOpen: (details) async {

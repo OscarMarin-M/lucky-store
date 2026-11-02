@@ -3,6 +3,478 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
+class SyncOutbox extends Table with TableInfo<SyncOutbox, SyncOutboxData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  SyncOutbox(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _seqMeta = const VerificationMeta('seq');
+  late final GeneratedColumn<int> seq = GeneratedColumn<int>(
+    'seq',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
+  );
+  static const VerificationMeta _tableName$Meta = const VerificationMeta(
+    'tableName\$',
+  );
+  late final GeneratedColumn<String> tableName$ = GeneratedColumn<String>(
+    'table_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  static const VerificationMeta _rowIdMeta = const VerificationMeta('rowId');
+  late final GeneratedColumn<String> rowId = GeneratedColumn<String>(
+    'row_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [seq, tableName$, rowId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_outbox';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncOutboxData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('seq')) {
+      context.handle(
+        _seqMeta,
+        seq.isAcceptableOrUnknown(data['seq']!, _seqMeta),
+      );
+    }
+    if (data.containsKey('table_name')) {
+      context.handle(
+        _tableName$Meta,
+        tableName$.isAcceptableOrUnknown(data['table_name']!, _tableName$Meta),
+      );
+    } else if (isInserting) {
+      context.missing(_tableName$Meta);
+    }
+    if (data.containsKey('row_id')) {
+      context.handle(
+        _rowIdMeta,
+        rowId.isAcceptableOrUnknown(data['row_id']!, _rowIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rowIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {seq};
+  @override
+  SyncOutboxData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncOutboxData(
+      seq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seq'],
+      )!,
+      tableName$: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}table_name'],
+      )!,
+      rowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}row_id'],
+      )!,
+    );
+  }
+
+  @override
+  SyncOutbox createAlias(String alias) {
+    return SyncOutbox(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class SyncOutboxData extends DataClass implements Insertable<SyncOutboxData> {
+  final int seq;
+  final String tableName$;
+  final String rowId;
+  const SyncOutboxData({
+    required this.seq,
+    required this.tableName$,
+    required this.rowId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['seq'] = Variable<int>(seq);
+    map['table_name'] = Variable<String>(tableName$);
+    map['row_id'] = Variable<String>(rowId);
+    return map;
+  }
+
+  SyncOutboxCompanion toCompanion(bool nullToAbsent) {
+    return SyncOutboxCompanion(
+      seq: Value(seq),
+      tableName$: Value(tableName$),
+      rowId: Value(rowId),
+    );
+  }
+
+  factory SyncOutboxData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncOutboxData(
+      seq: serializer.fromJson<int>(json['seq']),
+      tableName$: serializer.fromJson<String>(json['table_name']),
+      rowId: serializer.fromJson<String>(json['row_id']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'seq': serializer.toJson<int>(seq),
+      'table_name': serializer.toJson<String>(tableName$),
+      'row_id': serializer.toJson<String>(rowId),
+    };
+  }
+
+  SyncOutboxData copyWith({int? seq, String? tableName$, String? rowId}) =>
+      SyncOutboxData(
+        seq: seq ?? this.seq,
+        tableName$: tableName$ ?? this.tableName$,
+        rowId: rowId ?? this.rowId,
+      );
+  SyncOutboxData copyWithCompanion(SyncOutboxCompanion data) {
+    return SyncOutboxData(
+      seq: data.seq.present ? data.seq.value : this.seq,
+      tableName$: data.tableName$.present
+          ? data.tableName$.value
+          : this.tableName$,
+      rowId: data.rowId.present ? data.rowId.value : this.rowId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncOutboxData(')
+          ..write('seq: $seq, ')
+          ..write('tableName\$: ${tableName$}, ')
+          ..write('rowId: $rowId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(seq, tableName$, rowId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncOutboxData &&
+          other.seq == this.seq &&
+          other.tableName$ == this.tableName$ &&
+          other.rowId == this.rowId);
+}
+
+class SyncOutboxCompanion extends UpdateCompanion<SyncOutboxData> {
+  final Value<int> seq;
+  final Value<String> tableName$;
+  final Value<String> rowId;
+  const SyncOutboxCompanion({
+    this.seq = const Value.absent(),
+    this.tableName$ = const Value.absent(),
+    this.rowId = const Value.absent(),
+  });
+  SyncOutboxCompanion.insert({
+    this.seq = const Value.absent(),
+    required String tableName$,
+    required String rowId,
+  }) : tableName$ = Value(tableName$),
+       rowId = Value(rowId);
+  static Insertable<SyncOutboxData> custom({
+    Expression<int>? seq,
+    Expression<String>? tableName$,
+    Expression<String>? rowId,
+  }) {
+    return RawValuesInsertable({
+      if (seq != null) 'seq': seq,
+      if (tableName$ != null) 'table_name': tableName$,
+      if (rowId != null) 'row_id': rowId,
+    });
+  }
+
+  SyncOutboxCompanion copyWith({
+    Value<int>? seq,
+    Value<String>? tableName$,
+    Value<String>? rowId,
+  }) {
+    return SyncOutboxCompanion(
+      seq: seq ?? this.seq,
+      tableName$: tableName$ ?? this.tableName$,
+      rowId: rowId ?? this.rowId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (seq.present) {
+      map['seq'] = Variable<int>(seq.value);
+    }
+    if (tableName$.present) {
+      map['table_name'] = Variable<String>(tableName$.value);
+    }
+    if (rowId.present) {
+      map['row_id'] = Variable<String>(rowId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncOutboxCompanion(')
+          ..write('seq: $seq, ')
+          ..write('tableName\$: ${tableName$}, ')
+          ..write('rowId: $rowId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class SyncState extends Table with TableInfo<SyncState, SyncStateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  SyncState(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL PRIMARY KEY',
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: '',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncStateData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  SyncStateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncStateData(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      ),
+    );
+  }
+
+  @override
+  SyncState createAlias(String alias) {
+    return SyncState(attachedDatabase, alias);
+  }
+
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class SyncStateData extends DataClass implements Insertable<SyncStateData> {
+  final String key;
+  final String? value;
+  const SyncStateData({required this.key, this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    if (!nullToAbsent || value != null) {
+      map['value'] = Variable<String>(value);
+    }
+    return map;
+  }
+
+  SyncStateCompanion toCompanion(bool nullToAbsent) {
+    return SyncStateCompanion(
+      key: Value(key),
+      value: value == null && nullToAbsent
+          ? const Value.absent()
+          : Value(value),
+    );
+  }
+
+  factory SyncStateData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncStateData(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String?>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String?>(value),
+    };
+  }
+
+  SyncStateData copyWith({
+    String? key,
+    Value<String?> value = const Value.absent(),
+  }) => SyncStateData(
+    key: key ?? this.key,
+    value: value.present ? value.value : this.value,
+  );
+  SyncStateData copyWithCompanion(SyncStateCompanion data) {
+    return SyncStateData(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateData(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncStateData &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class SyncStateCompanion extends UpdateCompanion<SyncStateData> {
+  final Value<String> key;
+  final Value<String?> value;
+  final Value<int> rowid;
+  const SyncStateCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncStateCompanion.insert({
+    required String key,
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : key = Value(key);
+  static Insertable<SyncStateData> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncStateCompanion copyWith({
+    Value<String>? key,
+    Value<String?>? value,
+    Value<int>? rowid,
+  }) {
+    return SyncStateCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncStateCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ProductsTable extends Products
     with TableInfo<$ProductsTable, ProductRow> {
   @override
@@ -4888,36 +5360,82 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final SyncOutbox syncOutbox = SyncOutbox(this);
+  late final SyncState syncState = SyncState(this);
   late final $ProductsTable products = $ProductsTable(this);
+  late final Trigger productsOutboxInsert = Trigger(
+    'CREATE TRIGGER products_outbox_insert AFTER INSERT ON products WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'products\', new.id);END',
+    'products_outbox_insert',
+  );
+  late final Trigger productsOutboxUpdate = Trigger(
+    'CREATE TRIGGER products_outbox_update AFTER UPDATE OF name, sku, units_per_box, suggested_price_unit_cents, suggested_price_box_cents, is_active, min_stock_units, deleted_at ON products WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'products\', new.id);END',
+    'products_outbox_update',
+  );
   late final $PurchasesTable purchases = $PurchasesTable(this);
+  late final Trigger purchasesOutboxInsert = Trigger(
+    'CREATE TRIGGER purchases_outbox_insert AFTER INSERT ON purchases WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'purchases\', new.id);END',
+    'purchases_outbox_insert',
+  );
+  late final Trigger purchasesOutboxUpdate = Trigger(
+    'CREATE TRIGGER purchases_outbox_update AFTER UPDATE ON purchases WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'purchases\', new.id);END',
+    'purchases_outbox_update',
+  );
   late final $PurchaseLinesTable purchaseLines = $PurchaseLinesTable(this);
+  late final Trigger purchaseLinesOutboxInsert = Trigger(
+    'CREATE TRIGGER purchase_lines_outbox_insert AFTER INSERT ON purchase_lines WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'purchase_lines\', new.id);END',
+    'purchase_lines_outbox_insert',
+  );
+  late final Trigger purchaseLinesOutboxUpdate = Trigger(
+    'CREATE TRIGGER purchase_lines_outbox_update AFTER UPDATE ON purchase_lines WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'purchase_lines\', new.id);END',
+    'purchase_lines_outbox_update',
+  );
   late final $SalesTable sales = $SalesTable(this);
+  late final Trigger salesOutboxInsert = Trigger(
+    'CREATE TRIGGER sales_outbox_insert AFTER INSERT ON sales WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'sales\', new.id);END',
+    'sales_outbox_insert',
+  );
+  late final Trigger salesOutboxUpdate = Trigger(
+    'CREATE TRIGGER sales_outbox_update AFTER UPDATE ON sales WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'sales\', new.id);END',
+    'sales_outbox_update',
+  );
   late final $SaleLinesTable saleLines = $SaleLinesTable(this);
+  late final Trigger saleLinesOutboxInsert = Trigger(
+    'CREATE TRIGGER sale_lines_outbox_insert AFTER INSERT ON sale_lines WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'sale_lines\', new.id);END',
+    'sale_lines_outbox_insert',
+  );
+  late final Trigger saleLinesOutboxUpdate = Trigger(
+    'CREATE TRIGGER sale_lines_outbox_update AFTER UPDATE ON sale_lines WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'sale_lines\', new.id);END',
+    'sale_lines_outbox_update',
+  );
   late final $SaleExtraChargesTable saleExtraCharges = $SaleExtraChargesTable(
     this,
+  );
+  late final Trigger saleExtraChargesOutboxInsert = Trigger(
+    'CREATE TRIGGER sale_extra_charges_outbox_insert AFTER INSERT ON sale_extra_charges WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'sale_extra_charges\', new.id);END',
+    'sale_extra_charges_outbox_insert',
+  );
+  late final Trigger saleExtraChargesOutboxUpdate = Trigger(
+    'CREATE TRIGGER sale_extra_charges_outbox_update AFTER UPDATE ON sale_extra_charges WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'sale_extra_charges\', new.id);END',
+    'sale_extra_charges_outbox_update',
   );
   late final $StockAdjustmentsTable stockAdjustments = $StockAdjustmentsTable(
     this,
   );
-  late final Index productsNameIdx = Index(
-    'products_name_idx',
-    'CREATE INDEX products_name_idx ON products (name)',
+  late final Trigger stockAdjustmentsOutboxInsert = Trigger(
+    'CREATE TRIGGER stock_adjustments_outbox_insert AFTER INSERT ON stock_adjustments WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'stock_adjustments\', new.id);END',
+    'stock_adjustments_outbox_insert',
   );
-  late final Index productsSkuIdx = Index(
-    'products_sku_idx',
-    'CREATE INDEX products_sku_idx ON products (sku)',
+  late final Trigger stockAdjustmentsOutboxUpdate = Trigger(
+    'CREATE TRIGGER stock_adjustments_outbox_update AFTER UPDATE ON stock_adjustments WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'stock_adjustments\', new.id);END',
+    'stock_adjustments_outbox_update',
   );
-  late final Index purchasesDateIdx = Index(
-    'purchases_date_idx',
-    'CREATE INDEX purchases_date_idx ON purchases (date)',
+  late final Index stockAdjustmentsProductIdx = Index(
+    'stock_adjustments_product_idx',
+    'CREATE INDEX stock_adjustments_product_idx ON stock_adjustments (product_id)',
   );
-  late final Index purchaseLinesPurchaseIdx = Index(
-    'purchase_lines_purchase_idx',
-    'CREATE INDEX purchase_lines_purchase_idx ON purchase_lines (purchase_id)',
-  );
-  late final Index purchaseLinesProductIdx = Index(
-    'purchase_lines_product_idx',
-    'CREATE INDEX purchase_lines_product_idx ON purchase_lines (product_id)',
+  late final Index stockAdjustmentsDateIdx = Index(
+    'stock_adjustments_date_idx',
+    'CREATE INDEX stock_adjustments_date_idx ON stock_adjustments (date)',
   );
   late final Index salesDateIdx = Index(
     'sales_date_idx',
@@ -4935,43 +5453,469 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'sale_extra_charges_sale_idx',
     'CREATE INDEX sale_extra_charges_sale_idx ON sale_extra_charges (sale_id)',
   );
-  late final Index stockAdjustmentsProductIdx = Index(
-    'stock_adjustments_product_idx',
-    'CREATE INDEX stock_adjustments_product_idx ON stock_adjustments (product_id)',
+  late final Index purchasesDateIdx = Index(
+    'purchases_date_idx',
+    'CREATE INDEX purchases_date_idx ON purchases (date)',
   );
-  late final Index stockAdjustmentsDateIdx = Index(
-    'stock_adjustments_date_idx',
-    'CREATE INDEX stock_adjustments_date_idx ON stock_adjustments (date)',
+  late final Index purchaseLinesPurchaseIdx = Index(
+    'purchase_lines_purchase_idx',
+    'CREATE INDEX purchase_lines_purchase_idx ON purchase_lines (purchase_id)',
+  );
+  late final Index purchaseLinesProductIdx = Index(
+    'purchase_lines_product_idx',
+    'CREATE INDEX purchase_lines_product_idx ON purchase_lines (product_id)',
+  );
+  late final Index productsNameIdx = Index(
+    'products_name_idx',
+    'CREATE INDEX products_name_idx ON products (name)',
+  );
+  late final Index productsSkuIdx = Index(
+    'products_sku_idx',
+    'CREATE INDEX products_sku_idx ON products (sku)',
   );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    syncOutbox,
+    syncState,
     products,
+    productsOutboxInsert,
+    productsOutboxUpdate,
     purchases,
+    purchasesOutboxInsert,
+    purchasesOutboxUpdate,
     purchaseLines,
+    purchaseLinesOutboxInsert,
+    purchaseLinesOutboxUpdate,
     sales,
+    salesOutboxInsert,
+    salesOutboxUpdate,
     saleLines,
+    saleLinesOutboxInsert,
+    saleLinesOutboxUpdate,
     saleExtraCharges,
+    saleExtraChargesOutboxInsert,
+    saleExtraChargesOutboxUpdate,
     stockAdjustments,
-    productsNameIdx,
-    productsSkuIdx,
-    purchasesDateIdx,
-    purchaseLinesPurchaseIdx,
-    purchaseLinesProductIdx,
+    stockAdjustmentsOutboxInsert,
+    stockAdjustmentsOutboxUpdate,
+    stockAdjustmentsProductIdx,
+    stockAdjustmentsDateIdx,
     salesDateIdx,
     saleLinesSaleIdx,
     saleLinesProductIdx,
     saleExtraChargesSaleIdx,
-    stockAdjustmentsProductIdx,
-    stockAdjustmentsDateIdx,
+    purchasesDateIdx,
+    purchaseLinesPurchaseIdx,
+    purchaseLinesProductIdx,
+    productsNameIdx,
+    productsSkuIdx,
   ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'products',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'products',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchases',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchases',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchase_lines',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'purchase_lines',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'sales',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'sales',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'sale_lines',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'sale_lines',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'sale_extra_charges',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'sale_extra_charges',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stock_adjustments',
+        limitUpdateKind: UpdateKind.insert,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'stock_adjustments',
+        limitUpdateKind: UpdateKind.update,
+      ),
+      result: [TableUpdate('sync_outbox', kind: UpdateKind.insert)],
+    ),
+  ]);
   @override
   DriftDatabaseOptions get options =>
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
+typedef $SyncOutboxCreateCompanionBuilder = SyncOutboxCompanion Function({
+  Value<int> seq,
+  required String tableName$,
+  required String rowId,
+});
+typedef $SyncOutboxUpdateCompanionBuilder = SyncOutboxCompanion Function({
+  Value<int> seq,
+  Value<String> tableName$,
+  Value<String> rowId,
+});
+
+class $SyncOutboxFilterComposer extends Composer<_$AppDatabase, SyncOutbox> {
+  $SyncOutboxFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get seq => $composableBuilder(
+    column: $table.seq,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tableName$ => $composableBuilder(
+    column: $table.tableName$,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $SyncOutboxOrderingComposer extends Composer<_$AppDatabase, SyncOutbox> {
+  $SyncOutboxOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get seq => $composableBuilder(
+    column: $table.seq,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tableName$ => $composableBuilder(
+    column: $table.tableName$,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $SyncOutboxAnnotationComposer
+    extends Composer<_$AppDatabase, SyncOutbox> {
+  $SyncOutboxAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get seq =>
+      $composableBuilder(column: $table.seq, builder: (column) => column);
+
+  GeneratedColumn<String> get tableName$ => $composableBuilder(
+    column: $table.tableName$,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rowId =>
+      $composableBuilder(column: $table.rowId, builder: (column) => column);
+}
+
+class $SyncOutboxTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          SyncOutbox,
+          SyncOutboxData,
+          $SyncOutboxFilterComposer,
+          $SyncOutboxOrderingComposer,
+          $SyncOutboxAnnotationComposer,
+          $SyncOutboxCreateCompanionBuilder,
+          $SyncOutboxUpdateCompanionBuilder,
+          (
+            SyncOutboxData,
+            BaseReferences<_$AppDatabase, SyncOutbox, SyncOutboxData>,
+          ),
+          SyncOutboxData,
+          PrefetchHooks Function()
+        > {
+  $SyncOutboxTableManager(_$AppDatabase db, SyncOutbox table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $SyncOutboxFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $SyncOutboxOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $SyncOutboxAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> seq = const Value.absent(),
+                Value<String> tableName$ = const Value.absent(),
+                Value<String> rowId = const Value.absent(),
+              }) => SyncOutboxCompanion(
+                seq: seq,
+                tableName$: tableName$,
+                rowId: rowId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> seq = const Value.absent(),
+                required String tableName$,
+                required String rowId,
+              }) => SyncOutboxCompanion.insert(
+                seq: seq,
+                tableName$: tableName$,
+                rowId: rowId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<SyncOutbox, SyncOutboxData>(table),
+                  BaseReferences<_$AppDatabase, SyncOutbox, SyncOutboxData>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $SyncOutboxProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      SyncOutbox,
+      SyncOutboxData,
+      $SyncOutboxFilterComposer,
+      $SyncOutboxOrderingComposer,
+      $SyncOutboxAnnotationComposer,
+      $SyncOutboxCreateCompanionBuilder,
+      $SyncOutboxUpdateCompanionBuilder,
+      (
+        SyncOutboxData,
+        BaseReferences<_$AppDatabase, SyncOutbox, SyncOutboxData>,
+      ),
+      SyncOutboxData,
+      PrefetchHooks Function()
+    >;
+typedef $SyncStateCreateCompanionBuilder = SyncStateCompanion Function({
+  required String key,
+  Value<String?> value,
+  Value<int> rowid,
+});
+typedef $SyncStateUpdateCompanionBuilder = SyncStateCompanion Function({
+  Value<String> key,
+  Value<String?> value,
+  Value<int> rowid,
+});
+
+class $SyncStateFilterComposer extends Composer<_$AppDatabase, SyncState> {
+  $SyncStateFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $SyncStateOrderingComposer extends Composer<_$AppDatabase, SyncState> {
+  $SyncStateOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $SyncStateAnnotationComposer extends Composer<_$AppDatabase, SyncState> {
+  $SyncStateAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $SyncStateTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          SyncState,
+          SyncStateData,
+          $SyncStateFilterComposer,
+          $SyncStateOrderingComposer,
+          $SyncStateAnnotationComposer,
+          $SyncStateCreateCompanionBuilder,
+          $SyncStateUpdateCompanionBuilder,
+          (
+            SyncStateData,
+            BaseReferences<_$AppDatabase, SyncState, SyncStateData>,
+          ),
+          SyncStateData,
+          PrefetchHooks Function()
+        > {
+  $SyncStateTableManager(_$AppDatabase db, SyncState table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $SyncStateFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $SyncStateOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $SyncStateAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String?> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => SyncStateCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback: ({
+            required String key,
+            Value<String?> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => SyncStateCompanion.insert(key: key, value: value, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<SyncState, SyncStateData>(table),
+                  BaseReferences<_$AppDatabase, SyncState, SyncStateData>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $SyncStateProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      SyncState,
+      SyncStateData,
+      $SyncStateFilterComposer,
+      $SyncStateOrderingComposer,
+      $SyncStateAnnotationComposer,
+      $SyncStateCreateCompanionBuilder,
+      $SyncStateUpdateCompanionBuilder,
+      (SyncStateData, BaseReferences<_$AppDatabase, SyncState, SyncStateData>),
+      SyncStateData,
+      PrefetchHooks Function()
+    >;
 typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   required String id,
   required DateTime createdAt,
@@ -8519,6 +9463,10 @@ typedef $$StockAdjustmentsTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $SyncOutboxTableManager get syncOutbox =>
+      $SyncOutboxTableManager(_db, _db.syncOutbox);
+  $SyncStateTableManager get syncState =>
+      $SyncStateTableManager(_db, _db.syncState);
   $$ProductsTableTableManager get products =>
       $$ProductsTableTableManager(_db, _db.products);
   $$PurchasesTableTableManager get purchases =>

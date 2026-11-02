@@ -26,6 +26,10 @@ abstract class DriftCrudRepository<T extends BaseColumns, D, E extends BaseEntit
   /// Full row for [entity] (all columns, including id and timestamps).
   Insertable<D> toInsertable(E entity);
 
+  /// Columns an edit writes; defaults to the full row. Override to protect
+  /// columns that only other flows may move.
+  Insertable<D> toUpdatable(E entity) => toInsertable(entity);
+
   /// Copy of [entity] with `updatedAt` set to [now].
   E touch(E entity, DateTime now);
 
@@ -50,7 +54,7 @@ abstract class DriftCrudRepository<T extends BaseColumns, D, E extends BaseEntit
     final touched = touch(entity, _clock());
     final updated = await (db.update(table)
           ..where((t) => t.id.equals(entity.id)))
-        .write(toInsertable(touched));
+        .write(toUpdatable(touched));
     if (updated == 0) throw EntityNotFoundException('$E', entity.id);
     return touched;
   }
