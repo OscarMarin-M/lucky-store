@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../sync/sync_indicator.dart';
 import '../../app/providers.dart';
 import '../../core/money/money.dart';
 import '../../core/quantity/presentation.dart';
@@ -72,7 +73,10 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Productos')),
+      appBar: AppBar(
+        title: const Text('Productos'),
+        actions: const [SyncIndicator()],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openForm,
         icon: const Icon(Icons.add),

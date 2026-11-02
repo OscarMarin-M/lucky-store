@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../sync/sync_indicator.dart';
 import '../../app/providers.dart';
 import '../../domain/entities/product.dart';
 import '../format/date_format.dart';
@@ -34,7 +35,10 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final byId = ref.watch(productsByIdProvider).value ?? const {};
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Historial')),
+      appBar: AppBar(
+        title: const Text('Historial'),
+        actions: const [SyncIndicator()],
+      ),
       body: Column(
         children: [
           SingleChildScrollView(

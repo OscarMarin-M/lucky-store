@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../sync/sync_indicator.dart';
 import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
@@ -95,6 +96,7 @@ class _SalePageState extends ConsumerState<SalePage> {
         actions: [
           if (draft.lines.isNotEmpty)
             TextButton(onPressed: notifier.clear, child: const Text('Vaciar')),
+          const SyncIndicator(),
         ],
       ),
       body: ListView(
