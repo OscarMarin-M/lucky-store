@@ -18,9 +18,9 @@ class SyncCursor {
   /// From a downloaded row; the time is normalized to UTC so cursors compare
   /// the same way whatever offset the server used.
   factory SyncCursor.ofRow(Map<String, Object?> row) => SyncCursor(
-    serverUpdatedAt: DateTime.parse(
-      row['server_updated_at']! as String,
-    ).toUtc().toIso8601String(),
+    serverUpdatedAt: DateTime.parse(row['server_updated_at']! as String)
+        .toUtc()
+        .toIso8601String(),
     id: row['id']! as String,
   );
 

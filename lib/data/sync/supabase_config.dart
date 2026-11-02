@@ -11,8 +11,9 @@ class SupabaseConfig {
 
   /// Publishable key: meant to ship inside the app. Data is protected by the
   /// row level security of each table and by signing in, not by this key.
-  static const publishableKey =
-      String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+  static const publishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+  );
 
   static bool get isConfigured => url.isNotEmpty && publishableKey.isNotEmpty;
 

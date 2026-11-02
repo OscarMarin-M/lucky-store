@@ -19,48 +19,51 @@ class InventoryRebuilder {
 
   /// Returns how many products changed.
   Future<int> rebuild() async {
-    final events = await _db.customSelect(
-      // Ties on the date are broken by when the document was created and
-      // then by id, so the order is the same on every phone.
-      'SELECT pl.product_id, p.date, p.created_at, pl.id, 1 AS inflow, '
-      '  pl.units_base, pl.line_total_cents AS total_cents '
-      'FROM purchase_lines pl JOIN purchases p ON p.id = pl.purchase_id '
-      'WHERE pl.deleted_at IS NULL AND p.deleted_at IS NULL '
-      'UNION ALL '
-      'SELECT sl.product_id, s.date, s.created_at, sl.id, 0, sl.units_base, 0 '
-      'FROM sale_lines sl JOIN sales s ON s.id = sl.sale_id '
-      'WHERE sl.deleted_at IS NULL AND s.deleted_at IS NULL '
-      'UNION ALL '
-      'SELECT product_id, date, created_at, id, 0, units_base, 0 '
-      'FROM stock_adjustments WHERE deleted_at IS NULL',
-      readsFrom: {
-        _db.purchases,
-        _db.purchaseLines,
-        _db.sales,
-        _db.saleLines,
-        _db.stockAdjustments,
-      },
-    ).get();
+    final events = await _db
+        .customSelect(
+          // Ties on the date are broken by when the document was created and
+          // then by id, so the order is the same on every phone.
+          'SELECT pl.product_id, p.date, p.created_at, pl.id, 1 AS inflow, '
+          '  pl.units_base, pl.line_total_cents AS total_cents '
+          'FROM purchase_lines pl JOIN purchases p ON p.id = pl.purchase_id '
+          'WHERE pl.deleted_at IS NULL AND p.deleted_at IS NULL '
+          'UNION ALL '
+          'SELECT sl.product_id, s.date, s.created_at, sl.id, 0, sl.units_base, 0 '
+          'FROM sale_lines sl JOIN sales s ON s.id = sl.sale_id '
+          'WHERE sl.deleted_at IS NULL AND s.deleted_at IS NULL '
+          'UNION ALL '
+          'SELECT product_id, date, created_at, id, 0, units_base, 0 '
+          'FROM stock_adjustments WHERE deleted_at IS NULL',
+          readsFrom: {
+            _db.purchases,
+            _db.purchaseLines,
+            _db.sales,
+            _db.saleLines,
+            _db.stockAdjustments,
+          },
+        )
+        .get();
 
     // Dates are compared as instants, not as text: rows downloaded from the
     // cloud and rows written here may carry different offsets.
-    final sorted = [
-      for (final r in events)
-        (
-          productId: r.read<String>('product_id'),
-          date: DateTime.parse(r.read<String>('date')),
-          createdAt: DateTime.parse(r.read<String>('created_at')),
-          id: r.read<String>('id'),
-          inflow: r.read<int>('inflow') == 1,
-          units: r.read<int>('units_base'),
-          total: Money(r.read<int>('total_cents')),
-        ),
-    ]..sort((a, b) {
-        final byDate = a.date.compareTo(b.date);
-        if (byDate != 0) return byDate;
-        final byCreated = a.createdAt.compareTo(b.createdAt);
-        return byCreated != 0 ? byCreated : a.id.compareTo(b.id);
-      });
+    final sorted =
+        [
+          for (final r in events)
+            (
+              productId: r.read<String>('product_id'),
+              date: DateTime.parse(r.read<String>('date')),
+              createdAt: DateTime.parse(r.read<String>('created_at')),
+              id: r.read<String>('id'),
+              inflow: r.read<int>('inflow') == 1,
+              units: r.read<int>('units_base'),
+              total: Money(r.read<int>('total_cents')),
+            ),
+        ]..sort((a, b) {
+          final byDate = a.date.compareTo(b.date);
+          if (byDate != 0) return byDate;
+          final byCreated = a.createdAt.compareTo(b.createdAt);
+          return byCreated != 0 ? byCreated : a.id.compareTo(b.id);
+        });
 
     final states = <String, StockState>{};
     for (final e in sorted) {
@@ -71,8 +74,8 @@ class InventoryRebuilder {
           // What already happened is replayed as it was, even if two phones
           // sold the last unit at the same time (stock goes negative).
           : _strategy
-              .applyOutflow(state, units: e.units, allowNegativeStock: true)
-              .newState;
+                .applyOutflow(state, units: e.units, allowNegativeStock: true)
+                .newState;
     }
 
     var changed = 0;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/sync/supabase_config.dart';
+import 'presentation/auth/login_page.dart';
 import 'presentation/shell/home_shell.dart';
 import 'presentation/theme/app_theme.dart';
 
@@ -25,7 +26,7 @@ class LuckyStoreApp extends StatelessWidget {
       theme: theme,
       darkTheme: theme,
       themeMode: ThemeMode.dark,
-      home: const HomeShell(),
+      home: const AuthGate(child: HomeShell()),
     );
   }
 }

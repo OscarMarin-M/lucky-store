@@ -40,9 +40,9 @@ class SyncService {
   /// Rows waiting in the outbox.
   Stream<int> watchPending() {
     final count = _db.syncOutbox.seq.count();
-    return (_db.selectOnly(_db.syncOutbox)..addColumns([count]))
-        .map((r) => r.read(count) ?? 0)
-        .watchSingle();
+    return (_db.selectOnly(
+      _db.syncOutbox,
+    )..addColumns([count])).map((r) => r.read(count) ?? 0).watchSingle();
   }
 
   /// Uploads the outbox, parents first. Entries are removed only after the
@@ -63,11 +63,13 @@ class SyncService {
       final ids = idsByTable[table]?.toList() ?? const <String>[];
       for (var i = 0; i < ids.length; i += pageSize) {
         final chunk = ids.sublist(i, (i + pageSize).clamp(0, ids.length));
-        final rows = await _db.customSelect(
-          'SELECT * FROM $table WHERE id IN '
-          '(${List.filled(chunk.length, '?').join(', ')})',
-          variables: [for (final id in chunk) Variable<String>(id)],
-        ).get();
+        final rows = await _db
+            .customSelect(
+              'SELECT * FROM $table WHERE id IN '
+              '(${List.filled(chunk.length, '?').join(', ')})',
+              variables: [for (final id in chunk) Variable<String>(id)],
+            )
+            .get();
         await _remote.upsert(table, [
           for (final r in rows) _toRemote(table, r.data),
         ]);
@@ -168,8 +170,9 @@ class SyncService {
     for (final c in _syncedColumns(table))
       c.name: switch ((c.type, data[c.name])) {
         (_, null) => null,
-        (DriftSqlType.dateTime, final String v) =>
-          DateTime.parse(v).toUtc().toIso8601String(),
+        (DriftSqlType.dateTime, final String v) => DateTime.parse(
+          v,
+        ).toUtc().toIso8601String(),
         (DriftSqlType.bool, final int v) => v == 1,
         (_, final v) => v,
       },

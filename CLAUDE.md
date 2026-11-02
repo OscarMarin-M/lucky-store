@@ -51,5 +51,13 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   `tester.runAsync`); al final desmontar, `container.dispose()` y cerrar la base con
   `tester.runAsync(db.close)`. No usar `pumpAndSettle` con un campo de texto enfocado.
   Ver `test/presentation/*_page_test.dart`.
-- Probar en el teléfono: `flutter build apk --debug` y luego
-  `adb install -r build\app\outputs\flutter-apk\app-debug.apk`.
+- Probar en el teléfono: `flutter build apk --debug --dart-define-from-file=env/dev.json`
+  y luego `adb install -r build\app\outputs\flutter-apk\app-debug.apk` (adb no está en el
+  PATH: `$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe`). Sin el dart-define la app
+  queda solo local (sin login ni sync). Si Gradle falla con PKIX, desactivar el escaneo
+  HTTPS de AVG.
+- Sync con Supabase (offline-first) en `lib/data/sync/`. El esquema de la nube está en
+  `supabase/migrations/` y se ejecuta a mano en el SQL Editor; una tabla nueva va ahí, en
+  `synced_tables.dart` y con sus triggers en `lib/data/database/sync.drift`. Stock y costo
+  promedio NO se sincronizan: `InventoryRebuilder` los recalcula desde los documentos.
+  `env/dev.json` (URL + publishable key) no se sube a git; formato en `env/example.json`.

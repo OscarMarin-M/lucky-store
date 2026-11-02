@@ -6,6 +6,7 @@ import '../../domain/reports/dashboard_reports.dart';
 import '../common/section_title.dart';
 import '../format/date_format.dart';
 import '../format/stock_format.dart';
+import '../sync/sync_indicator.dart';
 import '../theme/app_theme.dart';
 import 'dashboard.dart';
 
@@ -34,7 +35,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     final dashboard = ref.watch(dashboardProvider(_period));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Inicio')),
+      appBar: AppBar(
+        title: const Text('Inicio'),
+        actions: const [SyncIndicator()],
+      ),
       body: Column(
         children: [
           Padding(
