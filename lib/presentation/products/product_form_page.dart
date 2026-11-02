@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
+import '../../core/util/int_math.dart';
 import '../../domain/entities/product.dart';
 import '../common/validators.dart';
 import '../format/stock_format.dart';
@@ -30,6 +31,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   late final TextEditingController _priceBox;
   late final TextEditingController _minStock;
   late bool _isActive;
+  late bool _hasBoxes;
   bool _saving = false;
 
   bool get _isEdit => widget.product != null;
@@ -40,7 +42,10 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     final p = widget.product;
     _name = TextEditingController(text: p?.name);
     _sku = TextEditingController(text: p?.sku);
-    _unitsPerBox = TextEditingController(text: '${p?.unitsPerBox ?? 1}');
+    _hasBoxes = (p?.unitsPerBox ?? 1) > 1;
+    _unitsPerBox = TextEditingController(
+      text: _hasBoxes ? '${p!.unitsPerBox}' : '',
+    );
     _priceUnit = TextEditingController(
       text: p == null ? '' : p.suggestedPriceUnit.format(symbol: false),
     );
@@ -64,7 +69,30 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     super.dispose();
   }
 
-  int get _unitsPerBoxValue => int.tryParse(_unitsPerBox.text.trim()) ?? 1;
+  /// Off = the product is only handled loose, so it has 1 unit "per box".
+  int get _unitsPerBoxValue =>
+      _hasBoxes ? (int.tryParse(_unitsPerBox.text.trim()) ?? 1) : 1;
+
+  /// What the box price means per unit, compared with the loose price:
+  /// `Sale a Bs 3,33 c/u · Bs 4,00 menos que por unidad`. Empty box price =
+  /// the sale uses units × unit price.
+  String _boxPriceHint() {
+    final units = _unitsPerBoxValue;
+    final box = tryParseMoney(_priceBox.text.trim());
+    final unit = tryParseMoney(_priceUnit.text.trim());
+    if (box == null || units < 2) {
+      return unit == null || units < 2
+          ? 'Vacío = unidades × precio por unidad'
+          : 'Vacío = ${unit.times(units).format()} (unidades × precio por unidad)';
+    }
+    final each = Money(divRound(box.cents, units)).format();
+    if (unit == null) return 'Sale a $each c/u';
+    final diff = unit.times(units) - box;
+    if (diff.cents == 0) return 'Sale a $each c/u · igual que por unidad';
+    return diff.isNegative
+        ? 'Sale a $each c/u · ${(Money.zero - diff).format()} más que por unidad'
+        : 'Sale a $each c/u · ${diff.format()} menos que por unidad';
+  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -132,7 +160,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                   ?.where((x) => x.id == original.id)
                   .firstOrNull ??
               original);
-    final hasBoxes = _unitsPerBoxValue > 1;
+    final hasBoxes = _hasBoxes;
 
     return Scaffold(
       appBar: AppBar(
@@ -157,66 +185,78 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(labelText: 'Código (opcional)'),
             ),
-            const SizedBox(height: 14),
-            TextFormField(
-              controller: _unitsPerBox,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              textInputAction: TextInputAction.next,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                labelText: 'Unidades por caja',
-                helperText: '1 si se vende solo por unidad',
-              ),
-              validator: (v) {
-                final n = int.tryParse(v?.trim() ?? '');
-                return (n == null || n < 1) ? 'Debe ser 1 o más' : null;
-              },
-            ),
-            const SizedBox(height: 20),
-            Text('Precio de venta sugerido', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 16),
+            _SectionCard(
+              icon: Icons.looks_one_outlined,
+              title: 'Venta por unidad',
               children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _priceUnit,
+                TextFormField(
+                  controller: _priceUnit,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Precio por unidad',
+                    prefixText: 'Bs ',
+                  ),
+                  validator: (v) => validateMoney(v, required: true),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _SectionCard(
+              icon: Icons.inventory_2_outlined,
+              title: 'Venta por caja',
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Se maneja por cajas'),
+                  subtitle: const Text('Para comprar y vender la caja cerrada'),
+                  value: _hasBoxes,
+                  onChanged: (v) => setState(() => _hasBoxes = v),
+                ),
+                if (hasBoxes) ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _unitsPerBox,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    textInputAction: TextInputAction.next,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Unidades por caja',
+                      helperText:
+                          'Por defecto; cada compra puede traer otra cantidad',
+                    ),
+                    validator: (v) {
+                      final n = int.tryParse(v?.trim() ?? '');
+                      return (n == null || n < 2) ? 'Debe ser 2 o más' : null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _priceBox,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Por unidad',
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: 'Precio por caja',
                       prefixText: 'Bs ',
+                      helperText: _boxPriceHint(),
+                      helperMaxLines: 2,
                     ),
-                    validator: (v) => validateMoney(v, required: true),
-                  ),
-                ),
-                if (hasBoxes) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _priceBox,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Por caja',
-                        prefixText: 'Bs ',
-                      ),
-                      validator: (v) => validateMoney(v, required: false),
-                    ),
+                    validator: (v) => validateMoney(v, required: false),
                   ),
                 ],
               ],
             ),
             const SizedBox(height: 6),
             Text(
-              hasBoxes
-                  ? 'Puedes cambiarlo al vender. Sin precio por caja se usa unidad × cantidad. '
-                        'El costo sale de las compras.'
-                  : 'Puedes cambiarlo al vender. El costo sale de las compras.',
+              'Son precios sugeridos: puedes cambiarlos al vender. '
+              'El costo sale de las compras.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -287,6 +327,50 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             onPressed: _saving ? null : _save,
             child: Text(_isEdit ? 'Guardar cambios' : 'Crear producto'),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One way of selling the product (loose or by box) as its own block, so the
+/// two prices are never confused.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.icon,
+    required this.title,
+    required this.children,
+  });
+
+  final IconData icon;
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: theme.colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ...children,
+          ],
         ),
       ),
     );

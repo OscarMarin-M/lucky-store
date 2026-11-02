@@ -159,7 +159,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Gomitas');
-    await tester.enterText(find.widgetWithText(TextFormField, 'Por unidad'), '1');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por unidad'), '1');
     await tester.tap(find.text('Crear producto'));
     await tester.pumpAndSettle();
 
