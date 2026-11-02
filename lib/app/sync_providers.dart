@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -77,12 +78,21 @@ class SyncStatus {
 /// change made here (so a sale reaches the others quickly), every minute to
 /// pick up what others did, and on demand. Without connection a round just
 /// fails quietly and the next one retries; nothing is lost.
+///
+/// The minute check only runs while the app is on screen (each one is a few
+/// requests to the cloud); coming back to the app syncs right away.
 class SyncController extends Notifier<SyncStatus> {
   static const _afterChange = Duration(seconds: 3);
   static const _every = Duration(minutes: 1);
 
   Timer? _debounce;
+  Timer? _periodic;
   Future<void>? _running;
+
+  void _startPeriodic() {
+    _periodic?.cancel();
+    _periodic = Timer.periodic(_every, (_) => syncNow());
+  }
 
   @override
   SyncStatus build() {
@@ -97,11 +107,19 @@ class SyncController extends Notifier<SyncStatus> {
         _debounce = Timer(_afterChange, syncNow);
       }
     });
-    final periodic = Timer.periodic(_every, (_) => syncNow());
+    _startPeriodic();
+    final lifecycle = AppLifecycleListener(
+      onResume: () {
+        _startPeriodic();
+        syncNow();
+      },
+      onHide: () => _periodic?.cancel(),
+    );
     Timer.run(syncNow);
     ref.onDispose(() {
       pendingSub.cancel();
-      periodic.cancel();
+      lifecycle.dispose();
+      _periodic?.cancel();
       _debounce?.cancel();
     });
     return const SyncStatus(enabled: true);
