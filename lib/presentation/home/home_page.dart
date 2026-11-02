@@ -67,13 +67,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ),
                     _AlertsCard(dashboard: d),
                   ],
-                  if (d.topSellers.isNotEmpty) ...[
-                    const SectionTitle(
-                      'Más vendidos',
-                      icon: Icons.star_outline_rounded,
-                    ),
-                    _TopSellersCard(sellers: d.topSellers),
-                  ],
+                  const SectionTitle(
+                    'Más vendidos',
+                    icon: Icons.star_outline_rounded,
+                  ),
+                  _TopSellersCard(sellers: d.topSellers),
                   const SectionTitle(
                     'Ganancia por producto',
                     icon: Icons.leaderboard_outlined,
@@ -295,6 +293,19 @@ class _TopSellersCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    // Shown even when empty so the section is not missed on a quiet day.
+    if (sellers.isEmpty) {
+      return Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Sin ventas en este período. Prueba con "7 días" o "Este mes".',
+            style: TextStyle(color: scheme.onSurfaceVariant),
+          ),
+        ),
+      );
+    }
     return Card(
       margin: EdgeInsets.zero,
       child: Column(
