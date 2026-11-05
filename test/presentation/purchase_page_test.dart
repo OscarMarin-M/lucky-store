@@ -72,7 +72,12 @@ void main() {
     expect(find.text('Bs 96,00'), findsNWidgets(2)); // line total + footer
     expect(find.text('Sale a'), findsOneWidget);
     expect(find.text('Bs 2,0000 c/u'), findsOneWidget);
-    expect(find.text('Costo promedio: Bs 2,0000'), findsOneWidget);
+    expect(find.text('Total: 2 cajas × Bs 48,00 = Bs 96,00'), findsOneWidget);
+    expect(find.text('Costo c/u: Bs 96,00 ÷ 48 u = Bs 2,0000'), findsOneWidget);
+    expect(
+      find.textContaining('Sin stock antes: el costo promedio queda en el de este lote, Bs 2,0000'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Registrar compra'));
     await tester.pumpAndSettle();
@@ -106,7 +111,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // 12 u @ 2,00 + 12 u @ 3,00 => 2,50
-    expect(find.text('Costo promedio pasa de Bs 2,0000 a Bs 2,5000'), findsOneWidget);
+    expect(find.text('Bs 2,0000 → Bs 2,5000'), findsOneWidget);
+    expect(find.text('= (12 u × Bs 2,0000 + Bs 36,00) ÷ (12 + 12) u'), findsOneWidget);
+    expect(find.text('= Bs 60,00 ÷ 24 u = Bs 2,5000 c/u'), findsOneWidget);
     await teardown(tester);
   });
 
