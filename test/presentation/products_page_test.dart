@@ -216,4 +216,46 @@ void main() {
     expect(find.text('1 de 2 productos'), findsOneWidget);
     await teardown(tester);
   });
+
+  testWidgets('the product explains its cost and profit at phone width',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpPage(tester, seed: (repo) async {
+      final p = await repo.create(Product.create(
+        name: 'Snickers',
+        unitsPerBox: 24,
+        suggestedPriceUnit: const Money(300),
+        suggestedPriceBox: const Money(6500),
+      ));
+      await repo.updateInventory(
+        p.id,
+        stockUnits: 60,
+        avgCost: const UnitCost(20400),
+      );
+    });
+    expect(tester.takeException(), isNull, reason: 'list fits');
+
+    await tester.tap(find.text('Snickers'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Por caja (24 u) · precio Bs 65,00'),
+      200,
+      scrollable: find
+          .descendant(of: find.byType(Form), matching: find.byType(Scrollable))
+          .first,
+    );
+
+    expect(find.text('Cómo se calcula'), findsOneWidget);
+    expect(find.text('Valor en stock'), findsOneWidget);
+    expect(find.text('Bs 122,40'), findsWidgets);
+    expect(find.text('Por unidad · precio Bs 3,00'), findsOneWidget);
+    expect(find.text('Bs 0,96'), findsOneWidget);
+    expect(find.text('Costo (24 u × Bs 2,0400)'), findsOneWidget);
+    expect(find.text('Bs 16,04'), findsOneWidget);
+    expect(find.text('Ganancia · 25% del precio'), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: 'formula fits');
+    await teardown(tester);
+  });
 }

@@ -128,17 +128,26 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
                 child: Row(
                   children: [
-                    Text(
-                      '${visible.length} de ${shown.length} productos',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    // Both shrink on a narrow phone instead of overflowing.
+                    Flexible(
+                      child: Text(
+                        '${visible.length} de ${shown.length} productos',
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 12),
                     const Spacer(),
-                    Text(
-                      'En stock: ${value.format()}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    Flexible(
+                      child: Text(
+                        'En stock: ${value.format()}',
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ],

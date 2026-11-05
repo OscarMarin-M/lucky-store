@@ -300,7 +300,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                       const SizedBox(height: 8),
                       // Figures of the saved product, not of the prices
                       // being edited above.
-                      FormulaBox(lines: productCostFormulaLines(p)),
+                      FormulaBox(steps: productCostSteps(p)),
                       const SizedBox(height: 10),
                       OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).push(

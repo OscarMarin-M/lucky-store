@@ -69,13 +69,17 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Total (48 u)'), findsOneWidget);
-    expect(find.text('Bs 96,00'), findsNWidgets(2)); // line total + footer
+    // Line total, footer, and twice in the formula (result of the total,
+    // then divided by the units).
+    expect(find.text('Bs 96,00'), findsNWidgets(4));
     expect(find.text('Sale a'), findsOneWidget);
     expect(find.text('Bs 2,0000 c/u'), findsOneWidget);
-    expect(find.text('Total: 2 cajas × Bs 48,00 = Bs 96,00'), findsOneWidget);
-    expect(find.text('Costo c/u: Bs 96,00 ÷ 48 u = Bs 2,0000'), findsOneWidget);
+    expect(find.text('Cómo se calcula'), findsOneWidget);
+    expect(find.text('2 cajas'), findsOneWidget);
+    expect(find.text('Costo por unidad'), findsOneWidget);
+    expect(find.text('48 u'), findsOneWidget);
     expect(
-      find.textContaining('Sin stock antes: el costo promedio queda en el de este lote, Bs 2,0000'),
+      find.textContaining('No había stock: el costo promedio queda en el de este lote, Bs 2,0000'),
       findsOneWidget,
     );
 
@@ -94,6 +98,9 @@ void main() {
   });
 
   testWidgets('shows how the average cost moves on a second purchase', (tester) async {
+    tester.view.physicalSize = const Size(360, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await pumpPage(tester, seed: (repo) async {
       final p = await repo.create(Product.create(name: 'Twix', unitsPerBox: 12));
       await repo.updateInventory(
@@ -111,9 +118,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // 12 u @ 2,00 + 12 u @ 3,00 => 2,50
-    expect(find.text('Bs 2,0000 → Bs 2,5000'), findsOneWidget);
-    expect(find.text('= (12 u × Bs 2,0000 + Bs 36,00) ÷ (12 + 12) u'), findsOneWidget);
-    expect(find.text('= Bs 60,00 ÷ 24 u = Bs 2,5000 c/u'), findsOneWidget);
+    expect(find.text('Mezcla con lo que ya tenías'), findsOneWidget);
+    expect(find.text('En stock: 12 u × Bs 2,0000'), findsOneWidget);
+    expect(find.text('Este lote: 12 u × Bs 3,0000'), findsOneWidget);
+    expect(find.text('Bs 60,00'), findsOneWidget, reason: 'pooled value');
+    expect(find.text('24 u'), findsOneWidget, reason: 'pooled units');
+    expect(find.text('Bs 2,5000'), findsOneWidget, reason: 'new average');
+    expect(tester.takeException(), isNull, reason: 'fits a 360 dp phone');
     await teardown(tester);
   });
 

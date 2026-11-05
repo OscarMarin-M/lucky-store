@@ -547,7 +547,7 @@ class _LotSummary extends ConsumerWidget {
           units: lot.unitsBase,
           total: lot.lineTotal,
         );
-    final formula = costFormulaLines(
+    final formula = purchaseCostSteps(
       lot,
       before: product.stockState,
       after: next,
@@ -575,14 +575,8 @@ class _LotSummary extends ConsumerWidget {
               value: '$units',
             ),
           },
-          if (product.stockUnits > 0)
-            _InfoRow(
-              label: 'Costo promedio',
-              value:
-                  '${product.avgCost.format()} → ${next.avgCost.format()}',
-            ),
           const SizedBox(height: 8),
-          FormulaBox(lines: formula),
+          FormulaBox(steps: formula),
         ],
       ),
     );
@@ -612,7 +606,11 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: style),
+          // On a narrow phone the label gives way; the figure always shows.
+          Flexible(
+            child: Text(label, style: style, overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
           Text(value, style: style),
         ],
       ),
