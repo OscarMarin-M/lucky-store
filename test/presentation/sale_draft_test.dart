@@ -144,14 +144,23 @@ void main() {
   group('extra charges (promo box / pedido)', () {
     String chargeId([int i = 0]) => state().extraCharges[i].id;
 
-    test('add to the total charged and to the estimated profit', () {
+    test('charged to the customer: add to the total and to the profit', () {
       draft()
         ..addProduct(snickers)
         ..setQuantity(firstId(), 10) // 10 x 3,00 = 30; cost 20
         ..addExtraCharge('Mano de obra');
-      draft().updateExtraCharge(chargeId(), amountText: '5');
+      draft().updateExtraCharge(
+        chargeId(),
+        amountText: '5',
+        paidByCustomer: true,
+      );
       draft().addExtraCharge();
-      draft().updateExtraCharge(chargeId(1), concept: 'Cinta', amountText: '1,50');
+      draft().updateExtraCharge(
+        chargeId(1),
+        concept: 'Cinta',
+        amountText: '1,50',
+        paidByCustomer: true,
+      );
 
       expect(state().productsTotal, const Money(3000));
       expect(state().total, const Money(3650));
@@ -166,14 +175,17 @@ void main() {
         ..setQuantity(firstId(), 10) // 10 x 3,00 = 30; cost 20
         ..addExtraCharge('Empaque');
       draft().updateExtraCharge(chargeId(), amountText: '4');
-      expect(state().extraCharges.single.paidByCustomer, isTrue,
-          reason: 'charged to the customer unless changed');
+      expect(state().extraCharges.single.paidByCustomer, isFalse,
+          reason: 'paid by the shop unless changed');
 
-      draft().updateExtraCharge(chargeId(), paidByCustomer: false);
       expect(state().total, const Money(3000));
       expect(state().customerChargesTotal, Money.zero);
       expect(state().shopCostsTotal, const Money(400));
       expect(state().estimatedProfit, const Money(600)); // 10 - 4
+
+      draft().updateExtraCharge(chargeId(), paidByCustomer: true);
+      expect(state().total, const Money(3400));
+      expect(state().estimatedProfit, const Money(1400)); // 10 + 4
       expect(state().extraCharges.single.amountText, '4', reason: 'kept');
     });
 
@@ -207,8 +219,9 @@ void main() {
 
       expect(sale.notes, 'Caja San Valentín');
       expect(sale.extraCharges.single.concept, 'Impresión');
-      expect(sale.total, const Money(700)); // 3 + 4
-      expect(sale.profit, const Money(500)); // 3 - 2 + 4
+      expect(sale.extraCharges.single.paidByCustomer, isFalse);
+      expect(sale.total, const Money(300)); // the shop pays the 4
+      expect(sale.profit, const Money(-300)); // 3 - 2 - 4
       expect(state().extraCharges, isEmpty);
       expect(state().notes, isEmpty);
     });

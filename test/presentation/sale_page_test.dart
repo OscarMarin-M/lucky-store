@@ -135,6 +135,9 @@ void main() {
     await tester.pump();
     await tester.enterText(find.widgetWithText(TextField, 'Monto'), '1,50');
     await tester.pump();
+    await tester.ensureVisible(find.text('Lo paga el cliente'));
+    await tester.tap(find.text('Lo paga el cliente'));
+    await tester.pump();
 
     expect(find.text('Cargos y costos adicionales'), findsOneWidget);
     expect(find.text('Incluye cargos al cliente'), findsOneWidget);
@@ -156,7 +159,8 @@ void main() {
     await teardown(tester);
   });
 
-  testWidgets('an extra cost paid by the shop', (tester) async {
+  testWidgets('an extra cost is paid by the shop unless changed',
+      (tester) async {
     await pumpPage(tester);
     await addGum(tester);
     await tester.tap(find.byTooltip('Más')); // 2 u: Bs 6,00, profit Bs 2,00
@@ -165,9 +169,6 @@ void main() {
     await tester.tap(find.text('Empaque'));
     await tester.pump();
     await tester.enterText(find.widgetWithText(TextField, 'Monto'), '0,50');
-    await tester.pump();
-    await tester.ensureVisible(find.text('Lo paga la tienda'));
-    await tester.tap(find.text('Lo paga la tienda'));
     await tester.pump();
 
     expect(find.text('Costos que paga la tienda'), findsOneWidget);

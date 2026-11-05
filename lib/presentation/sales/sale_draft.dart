@@ -88,13 +88,14 @@ class DraftSaleLine {
 
 /// An amount of the order that is not a product (assembly, packaging...), as
 /// typed. Charged to the customer it adds to the total and to the profit;
-/// paid by the shop it only lowers the profit.
+/// paid by the shop it only lowers the profit. A new row starts as paid by
+/// the shop (the usual case for the owner); the customer option is a tap.
 class DraftExtraCharge {
   const DraftExtraCharge({
     required this.id,
     this.concept = '',
     this.amountText = '',
-    this.paidByCustomer = true,
+    this.paidByCustomer = false,
   });
 
   final String id;
