@@ -25,13 +25,18 @@ class SaleLineInput {
   final Money? unitPrice;
 }
 
-/// Something charged on the order that is not a product (see
-/// `SaleExtraCharge`).
+/// An amount of the order that is not a product, paid by the customer or by
+/// the shop (see `SaleExtraCharge`).
 class ExtraChargeInput {
-  const ExtraChargeInput({required this.concept, required this.amount});
+  const ExtraChargeInput({
+    required this.concept,
+    required this.amount,
+    this.paidByCustomer = true,
+  });
 
   final String concept;
   final Money amount;
+  final bool paidByCustomer;
 
   void validate() {
     if (concept.trim().isEmpty) {
@@ -130,6 +135,7 @@ class RegisterSale {
             saleId: saleId,
             concept: c.concept.trim(),
             amount: c.amount,
+            paidByCustomer: c.paidByCustomer,
           ),
       ];
       final sale = await _sales.save(Sale(
@@ -138,11 +144,13 @@ class RegisterSale {
         updatedAt: now,
         date: date ?? now,
         notes: notes,
-        // Extra charges are paid by the customer and cost no stock.
+        // A charge to the customer raises what is collected and the profit;
+        // a cost the shop absorbs only lowers the profit. Neither touches
+        // stock.
         total: built.map((l) => l.lineTotal).sum +
-            extras.map((c) => c.amount).sum,
+            extras.map((c) => c.totalEffect).sum,
         profit: built.map((l) => l.profit).sum +
-            extras.map((c) => c.amount).sum,
+            extras.map((c) => c.profitEffect).sum,
         lines: built,
         extraCharges: extras,
       ));

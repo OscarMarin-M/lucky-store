@@ -26,9 +26,11 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
     1 fecha de vencimiento opcional y 1 código.
   - Por unidades: precio por unidad, cantidad O monto pagado, rango de vencimiento opcional.
   - `unidades_por_caja` del producto es solo el valor por defecto; una compra nunca lo cambia.
-- Venta = "pedido" (caja promocional = pedido con varios productos). Los cargos
-  adicionales (mano de obra, empaque, impresión...) los PAGA EL CLIENTE: suman al
-  total y a la ganancia del pedido, no descuentan stock ni son un costo de la tienda.
+- Venta = "pedido" (caja promocional = pedido con varios productos). Cada cargo
+  adicional (mano de obra, empaque, impresión...) dice quién lo paga
+  (`paid_by_customer`, v7): si lo paga el CLIENTE suma al total y a la ganancia; si lo
+  paga la TIENDA no cambia el total y se resta de la ganancia del pedido. Nunca
+  descuentan stock.
 - Regalo = venta a Bs 0 (su costo queda como pérdida en la ganancia).
 - Ganancia del período = ganancia de ventas - pérdida por bajas (vencido, dañado...).
 - Stock y costo promedio de un producto son DERIVADOS: se recalculan reproduciendo

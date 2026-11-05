@@ -136,8 +136,8 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, 'Monto'), '1,50');
     await tester.pump();
 
-    expect(find.text('Cargos adicionales'), findsOneWidget);
-    expect(find.text('Incluye cargos adicionales'), findsOneWidget);
+    expect(find.text('Cargos y costos adicionales'), findsOneWidget);
+    expect(find.text('Incluye cargos al cliente'), findsOneWidget);
     expect(find.text('+Bs 1,50'), findsOneWidget);
     expect(find.text('Bs 7,50'), findsOneWidget, reason: 'total with the charge');
     expect(find.text('Bs 3,50'), findsOneWidget, reason: 'estimated profit');
@@ -153,6 +153,38 @@ void main() {
     expect(sale.notes, 'Caja para Ana');
     expect(sale.extraCharges.single.concept, 'Mano de obra');
     expect(sale.extraCharges.single.amount, const Money(150));
+    await teardown(tester);
+  });
+
+  testWidgets('an extra cost paid by the shop', (tester) async {
+    await pumpPage(tester);
+    await addGum(tester);
+    await tester.tap(find.byTooltip('Más')); // 2 u: Bs 6,00, profit Bs 2,00
+    await tester.pump();
+
+    await tester.tap(find.text('Empaque'));
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextField, 'Monto'), '0,50');
+    await tester.pump();
+    await tester.ensureVisible(find.text('Lo paga la tienda'));
+    await tester.tap(find.text('Lo paga la tienda'));
+    await tester.pump();
+
+    expect(find.text('Costos que paga la tienda'), findsOneWidget);
+    expect(find.text('-Bs 0,50'), findsOneWidget);
+    expect(find.text('Bs 6,00'), findsNWidgets(2),
+        reason: 'total unchanged: same as the line');
+    expect(find.text('Bs 1,50'), findsOneWidget, reason: 'estimated profit');
+
+    await tester.tap(charge);
+    await tester.pumpAndSettle();
+    expect(find.text('Venta registrada · Bs 6,00 · ganancia Bs 1,50'), findsOneWidget);
+
+    final sale = (await tester.runAsync(
+      () => container.read(saleRepositoryProvider).getAll(),
+    ))!
+        .single;
+    expect(sale.extraCharges.single.paidByCustomer, isFalse);
     await teardown(tester);
   });
 }

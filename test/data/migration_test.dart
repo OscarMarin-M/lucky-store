@@ -15,10 +15,10 @@ void main() {
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
   test('every old version migrates to exactly the current schema', () async {
-    for (final from in [1, 2, 3, 4, 5]) {
+    for (final from in [1, 2, 3, 4, 5, 6]) {
       final connection = await verifier.startAt(from);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 6);
+      await verifier.migrateAndValidate(db, 7);
       await db.close();
     }
   });
@@ -46,7 +46,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 6);
+    await verifier.migrateAndValidate(db, 7);
 
     final purchase =
         (await DriftPurchaseRepository(db).getById('c1'))!;
@@ -84,7 +84,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 6);
+    await verifier.migrateAndValidate(db, 7);
 
     final repo = DriftSaleRepository(db);
     final s1 = (await repo.getById('s1'))!;
@@ -112,12 +112,37 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 6);
+    await verifier.migrateAndValidate(db, 7);
     final queued = await db.select(db.syncOutbox).get();
     expect(
       queued.map((e) => '${e.tableName$}/${e.rowId}'),
       unorderedEquals(['products/p1', 'sales/s1']),
     );
+    await db.close();
+  });
+
+  test('v7 keeps existing extra charges as paid by the customer', () async {
+    final schema = await verifier.schemaAt(6);
+    const ts = "'2026-11-01T10:00:00.000'";
+    schema.rawDatabase
+      ..execute(
+        "INSERT INTO sales (id, created_at, updated_at, date, total_cents, "
+        "profit_cents) VALUES ('s1', $ts, $ts, $ts, 3500, 1500)",
+      )
+      ..execute(
+        "INSERT INTO sale_extra_charges (id, created_at, updated_at, sale_id, "
+        "concept, amount_cents) VALUES ('e1', $ts, $ts, 's1', 'Empaque', 500)",
+      )
+      // Only the inserts above: the migration itself must queue nothing.
+      ..execute('DELETE FROM sync_outbox');
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, 7);
+    final sale = (await DriftSaleRepository(db).getById('s1'))!;
+    expect(sale.extraCharges.single.paidByCustomer, isTrue);
+    expect(sale.total.cents, 3500, reason: 'sales untouched');
+    expect(sale.profit.cents, 1500);
+    expect(await db.select(db.syncOutbox).get(), isEmpty);
     await db.close();
   });
 }

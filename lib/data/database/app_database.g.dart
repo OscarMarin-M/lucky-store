@@ -4186,6 +4186,21 @@ class $SaleExtraChargesTable extends SaleExtraCharges
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _paidByCustomerMeta = const VerificationMeta(
+    'paidByCustomer',
+  );
+  @override
+  late final GeneratedColumn<bool> paidByCustomer = GeneratedColumn<bool>(
+    'paid_by_customer',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("paid_by_customer" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4195,6 +4210,7 @@ class $SaleExtraChargesTable extends SaleExtraCharges
     saleId,
     concept,
     amountCents,
+    paidByCustomer,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4262,6 +4278,15 @@ class $SaleExtraChargesTable extends SaleExtraCharges
     } else if (isInserting) {
       context.missing(_amountCentsMeta);
     }
+    if (data.containsKey('paid_by_customer')) {
+      context.handle(
+        _paidByCustomerMeta,
+        paidByCustomer.isAcceptableOrUnknown(
+          data['paid_by_customer']!,
+          _paidByCustomerMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4299,6 +4324,10 @@ class $SaleExtraChargesTable extends SaleExtraCharges
         DriftSqlType.int,
         data['${effectivePrefix}amount_cents'],
       )!,
+      paidByCustomer: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}paid_by_customer'],
+      )!,
     );
   }
 
@@ -4317,6 +4346,11 @@ class SaleExtraChargeRow extends DataClass
   final String saleId;
   final String concept;
   final int amountCents;
+
+  /// v7. True: the customer pays it on top of the products (adds to total
+  /// and profit). False: the shop pays it (total unchanged, profit lowered).
+  /// Every row from before v7 was charged to the customer.
+  final bool paidByCustomer;
   const SaleExtraChargeRow({
     required this.id,
     required this.createdAt,
@@ -4325,6 +4359,7 @@ class SaleExtraChargeRow extends DataClass
     required this.saleId,
     required this.concept,
     required this.amountCents,
+    required this.paidByCustomer,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4338,6 +4373,7 @@ class SaleExtraChargeRow extends DataClass
     map['sale_id'] = Variable<String>(saleId);
     map['concept'] = Variable<String>(concept);
     map['amount_cents'] = Variable<int>(amountCents);
+    map['paid_by_customer'] = Variable<bool>(paidByCustomer);
     return map;
   }
 
@@ -4352,6 +4388,7 @@ class SaleExtraChargeRow extends DataClass
       saleId: Value(saleId),
       concept: Value(concept),
       amountCents: Value(amountCents),
+      paidByCustomer: Value(paidByCustomer),
     );
   }
 
@@ -4368,6 +4405,7 @@ class SaleExtraChargeRow extends DataClass
       saleId: serializer.fromJson<String>(json['saleId']),
       concept: serializer.fromJson<String>(json['concept']),
       amountCents: serializer.fromJson<int>(json['amountCents']),
+      paidByCustomer: serializer.fromJson<bool>(json['paidByCustomer']),
     );
   }
   @override
@@ -4381,6 +4419,7 @@ class SaleExtraChargeRow extends DataClass
       'saleId': serializer.toJson<String>(saleId),
       'concept': serializer.toJson<String>(concept),
       'amountCents': serializer.toJson<int>(amountCents),
+      'paidByCustomer': serializer.toJson<bool>(paidByCustomer),
     };
   }
 
@@ -4392,6 +4431,7 @@ class SaleExtraChargeRow extends DataClass
     String? saleId,
     String? concept,
     int? amountCents,
+    bool? paidByCustomer,
   }) => SaleExtraChargeRow(
     id: id ?? this.id,
     createdAt: createdAt ?? this.createdAt,
@@ -4400,6 +4440,7 @@ class SaleExtraChargeRow extends DataClass
     saleId: saleId ?? this.saleId,
     concept: concept ?? this.concept,
     amountCents: amountCents ?? this.amountCents,
+    paidByCustomer: paidByCustomer ?? this.paidByCustomer,
   );
   SaleExtraChargeRow copyWithCompanion(SaleExtraChargesCompanion data) {
     return SaleExtraChargeRow(
@@ -4412,6 +4453,9 @@ class SaleExtraChargeRow extends DataClass
       amountCents: data.amountCents.present
           ? data.amountCents.value
           : this.amountCents,
+      paidByCustomer: data.paidByCustomer.present
+          ? data.paidByCustomer.value
+          : this.paidByCustomer,
     );
   }
 
@@ -4424,7 +4468,8 @@ class SaleExtraChargeRow extends DataClass
           ..write('deletedAt: $deletedAt, ')
           ..write('saleId: $saleId, ')
           ..write('concept: $concept, ')
-          ..write('amountCents: $amountCents')
+          ..write('amountCents: $amountCents, ')
+          ..write('paidByCustomer: $paidByCustomer')
           ..write(')'))
         .toString();
   }
@@ -4438,6 +4483,7 @@ class SaleExtraChargeRow extends DataClass
     saleId,
     concept,
     amountCents,
+    paidByCustomer,
   );
   @override
   bool operator ==(Object other) =>
@@ -4449,7 +4495,8 @@ class SaleExtraChargeRow extends DataClass
           other.deletedAt == this.deletedAt &&
           other.saleId == this.saleId &&
           other.concept == this.concept &&
-          other.amountCents == this.amountCents);
+          other.amountCents == this.amountCents &&
+          other.paidByCustomer == this.paidByCustomer);
 }
 
 class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
@@ -4460,6 +4507,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
   final Value<String> saleId;
   final Value<String> concept;
   final Value<int> amountCents;
+  final Value<bool> paidByCustomer;
   final Value<int> rowid;
   const SaleExtraChargesCompanion({
     this.id = const Value.absent(),
@@ -4469,6 +4517,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
     this.saleId = const Value.absent(),
     this.concept = const Value.absent(),
     this.amountCents = const Value.absent(),
+    this.paidByCustomer = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SaleExtraChargesCompanion.insert({
@@ -4479,6 +4528,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
     required String saleId,
     required String concept,
     required int amountCents,
+    this.paidByCustomer = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        createdAt = Value(createdAt),
@@ -4494,6 +4544,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
     Expression<String>? saleId,
     Expression<String>? concept,
     Expression<int>? amountCents,
+    Expression<bool>? paidByCustomer,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4504,6 +4555,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
       if (saleId != null) 'sale_id': saleId,
       if (concept != null) 'concept': concept,
       if (amountCents != null) 'amount_cents': amountCents,
+      if (paidByCustomer != null) 'paid_by_customer': paidByCustomer,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4516,6 +4568,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
     Value<String>? saleId,
     Value<String>? concept,
     Value<int>? amountCents,
+    Value<bool>? paidByCustomer,
     Value<int>? rowid,
   }) {
     return SaleExtraChargesCompanion(
@@ -4526,6 +4579,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
       saleId: saleId ?? this.saleId,
       concept: concept ?? this.concept,
       amountCents: amountCents ?? this.amountCents,
+      paidByCustomer: paidByCustomer ?? this.paidByCustomer,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4554,6 +4608,9 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
     if (amountCents.present) {
       map['amount_cents'] = Variable<int>(amountCents.value);
     }
+    if (paidByCustomer.present) {
+      map['paid_by_customer'] = Variable<bool>(paidByCustomer.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4570,6 +4627,7 @@ class SaleExtraChargesCompanion extends UpdateCompanion<SaleExtraChargeRow> {
           ..write('saleId: $saleId, ')
           ..write('concept: $concept, ')
           ..write('amountCents: $amountCents, ')
+          ..write('paidByCustomer: $paidByCustomer, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8611,6 +8669,7 @@ typedef $$SaleExtraChargesTableCreateCompanionBuilder =
       required String saleId,
       required String concept,
       required int amountCents,
+      Value<bool> paidByCustomer,
       Value<int> rowid,
     });
 typedef $$SaleExtraChargesTableUpdateCompanionBuilder =
@@ -8622,6 +8681,7 @@ typedef $$SaleExtraChargesTableUpdateCompanionBuilder =
       Value<String> saleId,
       Value<String> concept,
       Value<int> amountCents,
+      Value<bool> paidByCustomer,
       Value<int> rowid,
     });
 
@@ -8695,6 +8755,11 @@ class $$SaleExtraChargesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get paidByCustomer => $composableBuilder(
+    column: $table.paidByCustomer,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$SalesTableFilterComposer get saleId {
     final $$SalesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -8758,6 +8823,11 @@ class $$SaleExtraChargesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get paidByCustomer => $composableBuilder(
+    column: $table.paidByCustomer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$SalesTableOrderingComposer get saleId {
     final $$SalesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -8808,6 +8878,11 @@ class $$SaleExtraChargesTableAnnotationComposer
 
   GeneratedColumn<int> get amountCents => $composableBuilder(
     column: $table.amountCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get paidByCustomer => $composableBuilder(
+    column: $table.paidByCustomer,
     builder: (column) => column,
   );
 
@@ -8872,6 +8947,7 @@ class $$SaleExtraChargesTableTableManager
                 Value<String> saleId = const Value.absent(),
                 Value<String> concept = const Value.absent(),
                 Value<int> amountCents = const Value.absent(),
+                Value<bool> paidByCustomer = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SaleExtraChargesCompanion(
                 id: id,
@@ -8881,6 +8957,7 @@ class $$SaleExtraChargesTableTableManager
                 saleId: saleId,
                 concept: concept,
                 amountCents: amountCents,
+                paidByCustomer: paidByCustomer,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8892,6 +8969,7 @@ class $$SaleExtraChargesTableTableManager
                 required String saleId,
                 required String concept,
                 required int amountCents,
+                Value<bool> paidByCustomer = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SaleExtraChargesCompanion.insert(
                 id: id,
@@ -8901,6 +8979,7 @@ class $$SaleExtraChargesTableTableManager
                 saleId: saleId,
                 concept: concept,
                 amountCents: amountCents,
+                paidByCustomer: paidByCustomer,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

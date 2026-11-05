@@ -74,22 +74,27 @@ class SaleDetailPage extends ConsumerWidget {
               _SaleLineTile(line: l, name: productName(byId, l.productId)),
           ]),
           if (hasCharges) ...[
-            SectionTitle(
-              'Cargos adicionales',
+            const SectionTitle(
+              'Cargos y costos adicionales',
               icon: Icons.add_card_outlined,
-              color: scheme.gain,
             ),
             _LinesCard(children: [
               for (final c in sale.extraCharges)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                ListTile(
+                  title: Text(c.concept),
+                  subtitle: Text(
+                    c.paidByCustomer
+                        ? 'Lo pagó el cliente'
+                        : 'Lo pagó la tienda',
                   ),
-                  child: DetailRow(
-                    label: c.concept,
-                    value: '+${c.amount.format()}',
-                    color: scheme.gain,
+                  trailing: Text(
+                    // Sign = effect on the profit of this order.
+                    c.paidByCustomer
+                        ? '+${c.amount.format()}'
+                        : '-${c.amount.format()}',
+                    style: TextStyle(
+                      color: c.paidByCustomer ? scheme.gain : scheme.loss,
+                    ),
                   ),
                 ),
             ]),
@@ -97,14 +102,20 @@ class SaleDetailPage extends ConsumerWidget {
           const SectionTitle('Resumen', icon: Icons.receipt_long_outlined),
           _SummaryCard(groups: [
             [
-              if (hasCharges) ...[
+              if (sale.customerChargesTotal.cents > 0) ...[
                 ('Productos', sale.linesTotal.format(), null),
-                ('Cargos adicionales', sale.extraChargesTotal.format(), null),
+                (
+                  'Cargos al cliente',
+                  sale.customerChargesTotal.format(),
+                  null,
+                ),
               ],
               ('Total cobrado', sale.total.format(), null),
             ],
             [
               ('Costo de productos', cost.format(), null),
+              if (sale.shopCostsTotal.cents > 0)
+                ('Costos del pedido', sale.shopCostsTotal.format(), null),
               if (discount.cents > 0) ('Descuentos', discount.format(), null),
             ],
             [

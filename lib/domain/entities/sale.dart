@@ -55,9 +55,10 @@ class SaleLine extends BaseEntity {
   Money get discount => (suggestedUnitPrice - unitPrice).times(quantity);
 }
 
-/// Something charged on an order that is not a product: assembling a promo
-/// box, its packaging, printing... The customer pays it on top of the
-/// products, and since it takes nothing from stock it is all profit.
+/// An amount of an order that is not a product: assembling a promo box, its
+/// packaging, printing... Either the customer pays it on top of the products
+/// (all profit: it takes nothing from stock) or the shop absorbs it as a
+/// cost of that order (lowers the order's profit, not what was charged).
 class SaleExtraCharge extends BaseEntity {
   const SaleExtraCharge({
     required super.id,
@@ -67,6 +68,7 @@ class SaleExtraCharge extends BaseEntity {
     required this.saleId,
     required this.concept,
     required this.amount,
+    this.paidByCustomer = true,
   });
 
   final String saleId;
@@ -74,6 +76,13 @@ class SaleExtraCharge extends BaseEntity {
   /// What it was, as the owner typed it ("Mano de obra").
   final String concept;
   final Money amount;
+  final bool paidByCustomer;
+
+  /// What it adds to the total the customer pays.
+  Money get totalEffect => paidByCustomer ? amount : Money.zero;
+
+  /// What it adds to (or, paid by the shop, takes from) the order's profit.
+  Money get profitEffect => paidByCustomer ? amount : -amount;
 }
 
 /// A sale or "pedido": several product lines plus optional extra charges.
@@ -96,15 +105,24 @@ class Sale extends BaseEntity {
   /// Free text; also names the order ("Caja San Valentín para Ana").
   final String? notes;
 
-  /// What the customer paid: the lines plus the [extraCharges].
+  /// What the customer paid: the lines plus the [extraCharges] they pay.
   final Money total;
 
-  /// Lines profit plus [extraCharges] (they have no cost).
+  /// Lines profit plus the charges the customer pays, minus the costs the
+  /// shop absorbs.
   final Money profit;
   final List<SaleLine> lines;
   final List<SaleExtraCharge> extraCharges;
 
-  Money get extraChargesTotal => extraCharges.map((c) => c.amount).sum;
+  /// Charges the customer paid on top of the products.
+  Money get customerChargesTotal =>
+      extraCharges.map((c) => c.totalEffect).sum;
+
+  /// Costs of this order paid by the shop, as a positive amount.
+  Money get shopCostsTotal => extraCharges
+      .where((c) => !c.paidByCustomer)
+      .map((c) => c.amount)
+      .sum;
 
   /// What the products alone were charged.
   Money get linesTotal => lines.map((l) => l.lineTotal).sum;

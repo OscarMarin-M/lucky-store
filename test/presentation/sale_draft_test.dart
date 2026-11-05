@@ -155,9 +155,26 @@ void main() {
 
       expect(state().productsTotal, const Money(3000));
       expect(state().total, const Money(3650));
-      expect(state().extraChargesTotal, const Money(650));
+      expect(state().customerChargesTotal, const Money(650));
       expect(state().estimatedProfit, const Money(1650)); // 10 + 6,50
       expect(canSubmit(), isTrue);
+    });
+
+    test('paid by the shop: total unchanged, profit lowered', () {
+      draft()
+        ..addProduct(snickers)
+        ..setQuantity(firstId(), 10) // 10 x 3,00 = 30; cost 20
+        ..addExtraCharge('Empaque');
+      draft().updateExtraCharge(chargeId(), amountText: '4');
+      expect(state().extraCharges.single.paidByCustomer, isTrue,
+          reason: 'charged to the customer unless changed');
+
+      draft().updateExtraCharge(chargeId(), paidByCustomer: false);
+      expect(state().total, const Money(3000));
+      expect(state().customerChargesTotal, Money.zero);
+      expect(state().shopCostsTotal, const Money(400));
+      expect(state().estimatedProfit, const Money(600)); // 10 - 4
+      expect(state().extraCharges.single.amountText, '4', reason: 'kept');
     });
 
     test('a blank row is ignored; a half-filled one blocks charging', () {

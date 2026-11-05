@@ -83,7 +83,8 @@ class _SalePageState extends ConsumerState<SalePage> {
     final allowNegative = ref.watch(inventoryPolicyProvider).allowNegativeStock;
     final theme = Theme.of(context);
     final profit = draft.estimatedProfit;
-    final extras = draft.extraChargesTotal;
+    final charges = draft.customerChargesTotal;
+    final costs = draft.shopCostsTotal;
 
     // Keep the note field in step when the cart is emptied after charging.
     ref.listen(saleDraftProvider, (_, next) {
@@ -164,11 +165,15 @@ class _SalePageState extends ConsumerState<SalePage> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Cargos adicionales', style: theme.textTheme.titleSmall),
+            Text(
+              'Cargos y costos adicionales',
+              style: theme.textTheme.titleSmall,
+            ),
             const SizedBox(height: 2),
             Text(
-              'Lo que cobras en este pedido además de los productos '
-              '(armado, empaque, impresión…). Se suma al total y a la ganancia.',
+              'Armado, empaque, impresión… Si lo paga el cliente se suma al '
+              'total y a la ganancia; si lo paga la tienda se resta de la '
+              'ganancia.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -211,19 +216,35 @@ class _SalePageState extends ConsumerState<SalePage> {
                   Text(draft.total.format(), style: theme.textTheme.titleLarge),
                 ],
               ),
-              if (draft.lines.isNotEmpty && extras.cents > 0)
+              if (draft.lines.isNotEmpty && charges.cents > 0)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Incluye cargos adicionales',
+                      'Incluye cargos al cliente',
                       style: TextStyle(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
-                      '+${extras.format()}',
+                      '+${charges.format()}',
                       style: TextStyle(color: theme.colorScheme.gain),
+                    ),
+                  ],
+                ),
+              if (draft.lines.isNotEmpty && costs.cents > 0)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Costos que paga la tienda',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      '-${costs.format()}',
+                      style: TextStyle(color: theme.colorScheme.loss),
                     ),
                   ],
                 ),
@@ -470,7 +491,8 @@ class _Note extends StatelessWidget {
   );
 }
 
-/// `[ concept ] [ Bs amount ] (x)`: one extra charge of the order.
+/// `[ concept ] [ Bs amount ] (x)` and below who pays it: one extra amount
+/// of the order.
 class _ExtraChargeRow extends ConsumerStatefulWidget {
   const _ExtraChargeRow({super.key, required this.charge});
 
@@ -499,7 +521,7 @@ class _ExtraChargeRowState extends ConsumerState<_ExtraChargeRow> {
         ? null
         : (validateMoney(c.amountText, required: true) ??
               (c.amount!.cents == 0 ? 'Mayor a 0' : null));
-    return Row(
+    final fields = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
@@ -534,6 +556,31 @@ class _ExtraChargeRowState extends ConsumerState<_ExtraChargeRow> {
           tooltip: 'Quitar cargo',
           icon: const Icon(Icons.close),
           onPressed: () => notifier.removeExtraCharge(c.id),
+        ),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        fields,
+        const SizedBox(height: 6),
+        SegmentedButton<bool>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(
+              value: true,
+              icon: Icon(Icons.person_outline),
+              label: Text('Lo paga el cliente'),
+            ),
+            ButtonSegment(
+              value: false,
+              icon: Icon(Icons.storefront_outlined),
+              label: Text('Lo paga la tienda'),
+            ),
+          ],
+          selected: {c.paidByCustomer},
+          onSelectionChanged: (s) =>
+              notifier.updateExtraCharge(c.id, paidByCustomer: s.single),
         ),
       ],
     );

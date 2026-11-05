@@ -44,7 +44,8 @@ class PeriodSummary {
     required this.salesProfit,
     required this.purchasesTotal,
     required this.writeOffLoss,
-    this.extraCharges = Money.zero,
+    this.customerCharges = Money.zero,
+    this.orderCosts = Money.zero,
   });
 
   factory PeriodSummary.of({
@@ -57,20 +58,25 @@ class PeriodSummary {
     salesProfit: sales.map((s) => s.profit).sum,
     purchasesTotal: purchases.map((p) => p.total).sum,
     writeOffLoss: writeOffs.map((a) => a.costTotal).sum,
-    extraCharges: sales.map((s) => s.extraChargesTotal).sum,
+    customerCharges: sales.map((s) => s.customerChargesTotal).sum,
+    orderCosts: sales.map((s) => s.shopCostsTotal).sum,
   );
 
   final Money salesTotal;
   final int salesCount;
 
-  /// Includes each order's extra charges.
+  /// Includes each order's extra charges and costs.
   final Money salesProfit;
   final Money purchasesTotal;
   final Money writeOffLoss;
 
-  /// Extra charges of the orders (assembly, packaging...), shown apart
-  /// because they belong to no product.
-  final Money extraCharges;
+  /// Charges the customers paid on top of the products (assembly,
+  /// packaging...), shown apart because they belong to no product.
+  final Money customerCharges;
+
+  /// Costs of the orders the shop paid itself, as a positive amount; also
+  /// shown apart, already subtracted from [salesProfit].
+  final Money orderCosts;
 
   /// What the shop really earned: sales profit minus what was lost.
   Money get netProfit => salesProfit - writeOffLoss;

@@ -86,20 +86,26 @@ class DraftSaleLine {
   );
 }
 
-/// Something charged on the order that is not a product (assembly,
-/// packaging...), as typed. It adds to the total and to the profit.
+/// An amount of the order that is not a product (assembly, packaging...), as
+/// typed. Charged to the customer it adds to the total and to the profit;
+/// paid by the shop it only lowers the profit.
 class DraftExtraCharge {
   const DraftExtraCharge({
     required this.id,
     this.concept = '',
     this.amountText = '',
+    this.paidByCustomer = true,
   });
 
   final String id;
   final String concept;
   final String amountText;
+  final bool paidByCustomer;
 
   Money? get amount => tryParseMoney(amountText);
+
+  /// The amount if the row is valid, zero while it is being typed.
+  Money get validAmount => isValid ? amount! : Money.zero;
 
   /// A row the owner added but left untouched: ignored, not an error.
   bool get isBlank => concept.trim().isEmpty && amountText.trim().isEmpty;
@@ -109,12 +115,16 @@ class DraftExtraCharge {
     return concept.trim().isNotEmpty && a != null && a.cents > 0;
   }
 
-  DraftExtraCharge copyWith({String? concept, String? amountText}) =>
-      DraftExtraCharge(
-        id: id,
-        concept: concept ?? this.concept,
-        amountText: amountText ?? this.amountText,
-      );
+  DraftExtraCharge copyWith({
+    String? concept,
+    String? amountText,
+    bool? paidByCustomer,
+  }) => DraftExtraCharge(
+    id: id,
+    concept: concept ?? this.concept,
+    amountText: amountText ?? this.amountText,
+    paidByCustomer: paidByCustomer ?? this.paidByCustomer,
+  );
 }
 
 class SaleDraftState {
@@ -139,8 +149,16 @@ class SaleDraftState {
   Iterable<DraftExtraCharge> get filledExtraCharges =>
       extraCharges.where((c) => !c.isBlank);
 
-  Money get extraChargesTotal => filledExtraCharges
-      .map((c) => c.isValid ? c.amount! : Money.zero)
+  /// Charged to the customer on top of the products.
+  Money get customerChargesTotal => filledExtraCharges
+      .where((c) => c.paidByCustomer)
+      .map((c) => c.validAmount)
+      .sum;
+
+  /// Costs of the order the shop absorbs.
+  Money get shopCostsTotal => filledExtraCharges
+      .where((c) => !c.paidByCustomer)
+      .map((c) => c.validAmount)
       .sum;
 
   /// Base units requested per product across all lines.
@@ -173,11 +191,13 @@ class SaleDraftState {
   Money get productsTotal =>
       lines.map((l) => l.lineTotal ?? Money.zero).sum;
 
-  /// What the customer pays: products plus extra charges.
-  Money get total => productsTotal + extraChargesTotal;
+  /// What the customer pays: products plus the charges they pay.
+  Money get total => productsTotal + customerChargesTotal;
 
   Money get estimatedProfit =>
-      lines.map((l) => l.estimatedProfit ?? Money.zero).sum + extraChargesTotal;
+      lines.map((l) => l.estimatedProfit ?? Money.zero).sum +
+      customerChargesTotal -
+      shopCostsTotal;
 
   SaleDraftState copyWith({
     List<DraftSaleLine>? lines,
@@ -250,15 +270,23 @@ class SaleDraft extends Notifier<SaleDraftState> {
     ],
   );
 
-  void updateExtraCharge(String id, {String? concept, String? amountText}) =>
-      state = state.copyWith(
-        extraCharges: [
-          for (final c in state.extraCharges)
-            c.id == id
-                ? c.copyWith(concept: concept, amountText: amountText)
-                : c,
-        ],
-      );
+  void updateExtraCharge(
+    String id, {
+    String? concept,
+    String? amountText,
+    bool? paidByCustomer,
+  }) => state = state.copyWith(
+    extraCharges: [
+      for (final c in state.extraCharges)
+        c.id == id
+            ? c.copyWith(
+                concept: concept,
+                amountText: amountText,
+                paidByCustomer: paidByCustomer,
+              )
+            : c,
+    ],
+  );
 
   void removeExtraCharge(String id) => state = state.copyWith(
     extraCharges: state.extraCharges.where((c) => c.id != id).toList(),
@@ -275,7 +303,11 @@ class SaleDraft extends Notifier<SaleDraftState> {
       notes: draft.notes.trim().isEmpty ? null : draft.notes.trim(),
       extraCharges: [
         for (final c in draft.filledExtraCharges)
-          ExtraChargeInput(concept: c.concept, amount: c.amount ?? Money.zero),
+          ExtraChargeInput(
+            concept: c.concept,
+            amount: c.amount ?? Money.zero,
+            paidByCustomer: c.paidByCustomer,
+          ),
       ],
       lines: [
         for (final l in draft.lines)

@@ -112,7 +112,8 @@ void main() {
     expect(s.purchasesTotal, const Money(4800));
     expect(s.writeOffLoss, const Money(200));
     expect(s.netProfit, const Money(700));
-    expect(s.extraCharges, Money.zero);
+    expect(s.customerCharges, Money.zero);
+    expect(s.orderCosts, Money.zero);
   });
 
   test('summary: extra charges are already inside sales total and profit', () {
@@ -123,7 +124,7 @@ void main() {
       updatedAt: now,
       date: now,
       total: const Money(6650), // products 6000 + charges 650
-      profit: const Money(3650), // products 3000 + charges 650
+      profit: const Money(3450), // products 3000 + charges 650 - cost 200
       lines: const [],
       extraCharges: [
         SaleExtraCharge(
@@ -142,12 +143,22 @@ void main() {
           concept: 'Cinta',
           amount: const Money(150),
         ),
+        SaleExtraCharge(
+          id: 'e3',
+          createdAt: now,
+          updatedAt: now,
+          saleId: 'o',
+          concept: 'Bolsa',
+          amount: const Money(200),
+          paidByCustomer: false,
+        ),
       ],
     );
     final s = PeriodSummary.of(sales: [order], purchases: [], writeOffs: []);
-    expect(s.extraCharges, const Money(650));
+    expect(s.customerCharges, const Money(650));
+    expect(s.orderCosts, const Money(200));
     expect(s.salesTotal, const Money(6650));
-    expect(s.netProfit, const Money(3650), reason: 'not added twice');
+    expect(s.netProfit, const Money(3450), reason: 'not counted twice');
   });
 
   test(

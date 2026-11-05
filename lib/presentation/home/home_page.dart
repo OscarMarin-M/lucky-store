@@ -82,7 +82,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   _ResultsCard(
                     results: d.results,
-                    extraCharges: d.summary.extraCharges,
+                    customerCharges: d.summary.customerCharges,
+                    orderCosts: d.summary.orderCosts,
                   ),
                   const SectionTitle(
                     'Inventario',
@@ -131,11 +132,11 @@ class _SummaryGrid extends StatelessWidget {
                 valueColor: _profitColor(scheme, s.netProfit),
                 detail: switch ((
                   s.writeOffLoss.cents > 0,
-                  s.extraCharges.cents > 0,
+                  s.customerCharges.cents > 0 || s.orderCosts.cents > 0,
                 )) {
-                  (true, true) => 'con cargos extra, menos bajas',
+                  (true, true) => 'con cargos y costos, menos bajas',
                   (true, false) => 'ya restadas las bajas',
-                  (false, true) => 'incluye cargos adicionales',
+                  (false, true) => 'con cargos y costos de pedidos',
                   (false, false) => 'de lo vendido',
                 },
               ),
@@ -366,13 +367,18 @@ class _TopSellersCard extends StatelessWidget {
 
 /// Best products first; the rest behind "Ver todos" so the screen stays short.
 class _ResultsCard extends StatefulWidget {
-  const _ResultsCard({required this.results, required this.extraCharges});
+  const _ResultsCard({
+    required this.results,
+    required this.customerCharges,
+    required this.orderCosts,
+  });
 
   final List<ProductResult> results;
 
-  /// Charges of the orders that belong to no product: a last row so the
-  /// list adds up to the profit card.
-  final Money extraCharges;
+  /// Amounts of the orders that belong to no product: last rows so the list
+  /// adds up to the profit card.
+  final Money customerCharges;
+  final Money orderCosts;
 
   @override
   State<_ResultsCard> createState() => _ResultsCardState();
@@ -415,15 +421,27 @@ class _ResultsCardState extends State<_ResultsCard> {
                 _expanded ? 'Ver menos' : 'Ver todos (${all.length})',
               ),
             ),
-          if (widget.extraCharges.cents > 0) ...[
+          if (widget.customerCharges.cents > 0) ...[
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.receipt_long_outlined),
-              title: const Text('Cargos adicionales de pedidos'),
+              title: const Text('Cargos cobrados en pedidos'),
               subtitle: const Text('armado, empaque, impresión…'),
               trailing: Text(
-                '+${widget.extraCharges.format()}',
+                '+${widget.customerCharges.format()}',
                 style: theme.textTheme.titleSmall?.copyWith(color: scheme.gain),
+              ),
+            ),
+          ],
+          if (widget.orderCosts.cents > 0) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('Costos de pedidos'),
+              subtitle: const Text('pagados por la tienda'),
+              trailing: Text(
+                '-${widget.orderCosts.format()}',
+                style: theme.textTheme.titleSmall?.copyWith(color: scheme.loss),
               ),
             ),
           ],

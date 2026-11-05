@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -90,6 +90,15 @@ class AppDatabase extends _$AppDatabase {
                 "SELECT '$table', id FROM $table ORDER BY created_at",
               );
             }
+          }
+          if (from >= 4 && from < 7) {
+            // Each extra amount of an order says who pays it. Existing ones
+            // were charged to the customer (default true), so no sale
+            // changes. Below v4 the table was just created with the column.
+            await m.addColumn(
+              saleExtraCharges,
+              saleExtraCharges.paidByCustomer,
+            );
           }
         },
         beforeOpen: (details) async {

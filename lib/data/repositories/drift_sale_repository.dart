@@ -51,6 +51,7 @@ class DriftSaleRepository implements SaleRepository {
                 saleId: Value(c.saleId),
                 concept: Value(c.concept),
                 amountCents: Value(c.amount.cents),
+                paidByCustomer: Value(c.paidByCustomer),
               ));
         }
         return s;
@@ -176,6 +177,7 @@ class DriftSaleRepository implements SaleRepository {
             saleId: r.saleId,
             concept: r.concept,
             amount: Money(r.amountCents),
+            paidByCustomer: r.paidByCustomer,
           ));
     }
     return [

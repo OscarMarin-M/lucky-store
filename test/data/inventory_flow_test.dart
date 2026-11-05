@@ -216,7 +216,8 @@ void main() {
 
       // 30 x 5,00 = 150; cost 30 x 2,3333 = 70,00; lines profit 80,00
       expect(sale.linesTotal, const Money(15000));
-      expect(sale.extraChargesTotal, const Money(1450));
+      expect(sale.customerChargesTotal, const Money(1450));
+      expect(sale.shopCostsTotal, Money.zero);
       expect(sale.total, const Money(16450));
       expect(sale.linesProfit, const Money(8000));
       expect(sale.profit, const Money(9450));
@@ -228,6 +229,42 @@ void main() {
       expect(stored.extraCharges.map((c) => c.concept), ['Mano de obra', 'Impresión']);
       expect(stored.extraCharges.map((c) => c.amount.cents), [1000, 450]);
       expect((await reload(p)).stockUnits, 42, reason: 'extras are not stock');
+    });
+
+    test('a cost paid by the shop lowers the profit, not the total',
+        () async {
+      // Same box, but the shop pays the packaging itself while the customer
+      // still pays the assembly.
+      final sale = await env.registerSale(
+        lines: [
+          SaleLineInput(
+            productId: p.id,
+            quantity: 30,
+            presentation: Presentation.unit,
+            unitPrice: const Money(500),
+          ),
+        ],
+        extraCharges: [
+          ExtraChargeInput(concept: 'Mano de obra', amount: Money.parse('10')),
+          ExtraChargeInput(
+            concept: 'Empaque',
+            amount: Money.parse('6,25'),
+            paidByCustomer: false,
+          ),
+        ],
+      );
+
+      // Lines: total 150,00, profit 80,00 (as above).
+      expect(sale.total, const Money(16000)); // 150 + 10
+      expect(sale.profit, const Money(8375)); // 80 + 10 - 6,25
+      expect(sale.customerChargesTotal, const Money(1000));
+      expect(sale.shopCostsTotal, const Money(625));
+
+      final stored = (await env.sales.getById(sale.id))!;
+      expect(stored.total, const Money(16000));
+      expect(stored.profit, const Money(8375));
+      expect(stored.extraCharges.map((c) => c.paidByCustomer), [true, false]);
+      expect((await reload(p)).stockUnits, 42, reason: 'costs are not stock');
     });
 
     test('extra charges need a concept and an amount above 0', () async {

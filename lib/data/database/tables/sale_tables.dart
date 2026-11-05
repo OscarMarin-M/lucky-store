@@ -36,8 +36,8 @@ class SaleLines extends Table with BaseColumns {
   IntColumn get profitCents => integer()();
 }
 
-/// v5 (was `sale_extra_costs` in v4): charges of an order that are not
-/// products (assembly, packaging...). Their sum is already included in
+/// v5 (was `sale_extra_costs` in v4): amounts of an order that are not
+/// products (assembly, packaging...). Their effect is already included in
 /// `sales.total_cents` and `sales.profit_cents`.
 @DataClassName('SaleExtraChargeRow')
 @TableIndex(name: 'sale_extra_charges_sale_idx', columns: {#saleId})
@@ -45,4 +45,10 @@ class SaleExtraCharges extends Table with BaseColumns {
   TextColumn get saleId => text().references(Sales, #id)();
   TextColumn get concept => text()();
   IntColumn get amountCents => integer()();
+
+  /// v7. True: the customer pays it on top of the products (adds to total
+  /// and profit). False: the shop pays it (total unchanged, profit lowered).
+  /// Every row from before v7 was charged to the customer.
+  BoolColumn get paidByCustomer =>
+      boolean().withDefault(const Constant(true))();
 }
