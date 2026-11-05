@@ -10,6 +10,9 @@ class Purchases extends Table with BaseColumns {
   DateTimeColumn get date => dateTime()();
   TextColumn get supplier => text().nullable()();
   TextColumn get notes => text().nullable()();
+
+  /// v8. Email of the account that registered it (see the entity).
+  TextColumn get registeredBy => text().nullable()();
   IntColumn get totalCents => integer()();
 }
 

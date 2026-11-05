@@ -59,6 +59,7 @@ class Purchase extends BaseEntity {
     required this.date,
     this.supplier,
     this.notes,
+    this.registeredBy,
     required this.total,
     required this.lines,
   });
@@ -66,6 +67,11 @@ class Purchase extends BaseEntity {
   final DateTime date;
   final String? supplier;
   final String? notes;
+
+  /// Email of the account signed in on the phone that registered it. Null
+  /// when registered without an account (before sign-in existed, or in a
+  /// build without cloud).
+  final String? registeredBy;
   final Money total;
   final List<PurchaseLine> lines;
 }

@@ -65,6 +65,7 @@ class SaleDetailPage extends ConsumerWidget {
             kind: 'Venta',
             amount: sale.total,
             when: sale.date,
+            registeredBy: sale.registeredBy,
             pill: 'Ganancia ${sale.profit.format()}',
             pillColor: _profitColor(scheme, sale.profit),
           ),
@@ -230,6 +231,7 @@ class PurchaseDetailPage extends ConsumerWidget {
             kind: 'Compra',
             amount: p.total,
             when: p.date,
+            registeredBy: p.registeredBy,
             pill: p.supplier,
             pillIcon: Icons.storefront_outlined,
             pillColor: scheme.purchase,
@@ -365,6 +367,7 @@ Future<void> showWriteOffDetail(
                 amount: a.costTotal,
                 amountPrefix: '-',
                 when: a.date,
+                registeredBy: a.registeredBy,
                 pill: reasonLabel(a.reason),
                 pillColor: scheme.loss,
               ),
@@ -411,6 +414,7 @@ class _HeroCard extends StatelessWidget {
     this.pill,
     this.pillIcon,
     this.pillColor,
+    this.registeredBy,
   });
 
   final Color color;
@@ -422,6 +426,9 @@ class _HeroCard extends StatelessWidget {
   final String? pill;
   final IconData? pillIcon;
   final Color? pillColor;
+
+  /// Email of who registered the document; nothing shown when unknown.
+  final String? registeredBy;
 
   @override
   Widget build(BuildContext context) {
@@ -472,6 +479,27 @@ class _HeroCard extends StatelessWidget {
               '${formatDayLabel(when, DateTime.now())} · ${formatTime(when)}',
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
+            if (registeredBy != null) ...[
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(
+                    Icons.person_outline,
+                    size: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Registrado por $registeredBy',
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (pill != null) ...[
               const SizedBox(height: 12),
               _Chip(

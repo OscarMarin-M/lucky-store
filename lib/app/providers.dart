@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/util/current_user.dart';
 import '../data/database/app_database.dart';
 import '../data/repositories/drift_product_repository.dart';
 import '../data/repositories/drift_purchase_repository.dart';
 import '../data/repositories/drift_sale_repository.dart';
 import '../data/repositories/drift_stock_adjustment_repository.dart';
+import '../data/sync/supabase_config.dart';
 import '../domain/costing/cost_strategy.dart';
 import '../domain/costing/weighted_average_cost_strategy.dart';
 import '../domain/entities/product.dart';
@@ -63,6 +66,14 @@ final inventoryPolicyProvider = Provider<InventoryPolicy>(
   (ref) => const InventoryPolicy(),
 );
 
+/// Email of the signed-in account, read each time a document is registered
+/// (the session survives without internet). Null in a build without cloud.
+final currentUserProvider = Provider<CurrentUser>(
+  (ref) => () => SupabaseConfig.isConfigured
+      ? Supabase.instance.client.auth.currentUser?.email
+      : null,
+);
+
 // --- Use cases ------------------------------------------------------------
 
 final registerPurchaseProvider = Provider<RegisterPurchase>(
@@ -72,6 +83,7 @@ final registerPurchaseProvider = Provider<RegisterPurchase>(
     transactions: ref.watch(transactionRunnerProvider),
     costStrategy: ref.watch(costStrategyProvider),
     policy: ref.watch(inventoryPolicyProvider),
+    currentUser: ref.watch(currentUserProvider),
   ),
 );
 
@@ -82,6 +94,7 @@ final registerSaleProvider = Provider<RegisterSale>(
     transactions: ref.watch(transactionRunnerProvider),
     costStrategy: ref.watch(costStrategyProvider),
     policy: ref.watch(inventoryPolicyProvider),
+    currentUser: ref.watch(currentUserProvider),
   ),
 );
 
@@ -92,6 +105,7 @@ final registerStockAdjustmentProvider = Provider<RegisterStockAdjustment>(
     transactions: ref.watch(transactionRunnerProvider),
     costStrategy: ref.watch(costStrategyProvider),
     policy: ref.watch(inventoryPolicyProvider),
+    currentUser: ref.watch(currentUserProvider),
   ),
 );
 

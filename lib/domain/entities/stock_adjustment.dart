@@ -37,6 +37,7 @@ class StockAdjustment extends BaseEntity {
     required this.unitsBase,
     required this.reason,
     this.notes,
+    this.registeredBy,
     required this.unitCost,
     required this.costTotal,
   });
@@ -48,6 +49,11 @@ class StockAdjustment extends BaseEntity {
   final int unitsBase;
   final AdjustmentReason reason;
   final String? notes;
+
+  /// Email of the account signed in on the phone that registered it. Null
+  /// when registered without an account (before sign-in existed, or in a
+  /// build without cloud).
+  final String? registeredBy;
 
   /// Average cost per base unit when the units were written off.
   final UnitCost unitCost;

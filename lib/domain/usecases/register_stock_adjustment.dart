@@ -1,5 +1,6 @@
 import '../../core/quantity/presentation.dart';
 import '../../core/util/clock.dart';
+import '../../core/util/current_user.dart';
 import '../costing/cost_strategy.dart';
 import '../entities/stock_adjustment.dart';
 import '../repositories/document_repositories.dart';
@@ -17,12 +18,14 @@ class RegisterStockAdjustment {
     required CostStrategy costStrategy,
     InventoryPolicy policy = const InventoryPolicy(),
     Clock clock = DateTime.now,
+    CurrentUser currentUser = noUser,
   })  : _products = products,
         _adjustments = adjustments,
         _transactions = transactions,
         _strategy = costStrategy,
         _policy = policy,
-        _clock = clock;
+        _clock = clock,
+        _currentUser = currentUser;
 
   final ProductRepository _products;
   final StockAdjustmentRepository _adjustments;
@@ -30,6 +33,7 @@ class RegisterStockAdjustment {
   final CostStrategy _strategy;
   final InventoryPolicy _policy;
   final Clock _clock;
+  final CurrentUser _currentUser;
 
   Future<StockAdjustment> call({
     required String productId,
@@ -59,6 +63,7 @@ class RegisterStockAdjustment {
         unitsBase: effect.unitsBase,
         reason: reason,
         notes: notes,
+        registeredBy: _currentUser(),
         unitCost: effect.unitCost,
         costTotal: effect.totalCost,
       ));

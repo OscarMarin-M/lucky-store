@@ -9,6 +9,9 @@ import 'products_table.dart';
 class Sales extends Table with BaseColumns {
   DateTimeColumn get date => dateTime()();
   TextColumn get notes => text().nullable()();
+
+  /// v8. Email of the account that registered it (see the entity).
+  TextColumn get registeredBy => text().nullable()();
   IntColumn get totalCents => integer()();
   IntColumn get profitCents => integer()();
 }

@@ -76,6 +76,10 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   - Products solo se encola por columnas de catálogo; stock/costo nunca suben.
   - Tabla nueva sincronizada: SQL en `supabase/migrations/` (se ejecuta a mano en el SQL
     Editor de Supabase), nombre en `synced_tables.dart` y triggers en `sync.drift`.
+    Columna nueva en una tabla sincronizada: también su SQL, que debe ejecutarse ANTES
+    de instalar el APK nuevo (si no, el push/pull falla por columna desconocida).
+  - Compras, ventas y bajas guardan `registered_by` (correo de la sesión al
+    registrar, v8) vía `currentUserProvider`; el Historial lo muestra.
   - Sincroniza al abrir, 3 s tras cada cambio, cada minuto (solo con la app en pantalla),
     deslizando hacia abajo en cualquier lista y con el icono de nube de cada pestaña.
   - Proyecto dev: `ttcyvyltxoddoxfcozzp`. `env/dev.json` (URL + publishable key) no se

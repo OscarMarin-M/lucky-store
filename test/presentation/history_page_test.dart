@@ -18,13 +18,18 @@ void main() {
   late AppDatabase db;
   late ProviderContainer container;
 
-  Future<void> pumpPage(WidgetTester tester, {bool seed = true}) async {
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    bool seed = true,
+    String? user,
+  }) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     container = ProviderContainer(overrides: [
       appDatabaseProvider.overrideWithValue(db),
+      currentUserProvider.overrideWithValue(() => user),
     ]);
     // Seeded before the page listens to the database (see products_page_test).
     if (seed) {
@@ -141,6 +146,23 @@ void main() {
     expect(find.text('10 u × Bs 3,00'), findsOneWidget);
     expect(find.text('1 u · Regalo'), findsOneWidget);
     expect(find.text('Bs 8,00'), findsOneWidget); // profit of the sale
+    await teardown(tester);
+  });
+
+  testWidgets('shows who registered each document', (tester) async {
+    await pumpPage(tester, user: 'ana.perez@gmail.com');
+
+    // The list only has room for the name before the @.
+    expect(find.text('10:00 · Venta · ana.perez'), findsOneWidget);
+    expect(find.text('09:00 · Baja · Vencido · 1 u · ana.perez'), findsOneWidget);
+    expect(
+      find.textContaining('08:00 · Compra · ana.perez · Distribuidora Sur'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('10:00 · Venta · ana.perez'));
+    await tester.pumpAndSettle();
+    expect(find.text('Registrado por ana.perez@gmail.com'), findsOneWidget);
     await teardown(tester);
   });
 }

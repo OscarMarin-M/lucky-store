@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:lucky_store/core/util/current_user.dart';
 import 'package:lucky_store/data/database/app_database.dart';
 import 'package:lucky_store/data/repositories/drift_product_repository.dart';
 import 'package:lucky_store/data/repositories/drift_purchase_repository.dart';
@@ -12,7 +13,10 @@ import 'package:lucky_store/domain/usecases/register_stock_adjustment.dart';
 
 /// In-memory database wired with real repositories and use cases.
 class TestEnv {
-  TestEnv({InventoryPolicy policy = const InventoryPolicy()})
+  TestEnv({
+    InventoryPolicy policy = const InventoryPolicy(),
+    CurrentUser currentUser = noUser,
+  })
       : db = AppDatabase(NativeDatabase.memory()) {
     products = DriftProductRepository(db);
     purchases = DriftPurchaseRepository(db);
@@ -26,6 +30,7 @@ class TestEnv {
       transactions: tx,
       costStrategy: strategy,
       policy: policy,
+      currentUser: currentUser,
     );
     registerSale = RegisterSale(
       products: products,
@@ -33,6 +38,7 @@ class TestEnv {
       transactions: tx,
       costStrategy: strategy,
       policy: policy,
+      currentUser: currentUser,
     );
     registerAdjustment = RegisterStockAdjustment(
       products: products,
@@ -40,6 +46,7 @@ class TestEnv {
       transactions: tx,
       costStrategy: strategy,
       policy: policy,
+      currentUser: currentUser,
     );
   }
 

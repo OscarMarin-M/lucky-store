@@ -2,6 +2,7 @@ import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
 import '../../core/quantity/presentation.dart';
 import '../../core/util/clock.dart';
+import '../../core/util/current_user.dart';
 import '../costing/cost_strategy.dart';
 import '../entities/sale.dart';
 import '../repositories/document_repositories.dart';
@@ -63,12 +64,14 @@ class RegisterSale {
     required CostStrategy costStrategy,
     InventoryPolicy policy = const InventoryPolicy(),
     Clock clock = DateTime.now,
+    CurrentUser currentUser = noUser,
   })  : _products = products,
         _sales = sales,
         _transactions = transactions,
         _strategy = costStrategy,
         _policy = policy,
-        _clock = clock;
+        _clock = clock,
+        _currentUser = currentUser;
 
   final ProductRepository _products;
   final SaleRepository _sales;
@@ -76,6 +79,7 @@ class RegisterSale {
   final CostStrategy _strategy;
   final InventoryPolicy _policy;
   final Clock _clock;
+  final CurrentUser _currentUser;
 
   Future<Sale> call({
     DateTime? date,
@@ -144,6 +148,7 @@ class RegisterSale {
         updatedAt: now,
         date: date ?? now,
         notes: notes,
+        registeredBy: _currentUser(),
         // A charge to the customer raises what is collected and the profit;
         // a cost the shop absorbs only lowers the profit. Neither touches
         // stock.

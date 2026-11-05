@@ -529,4 +529,54 @@ void main() {
       expect(january[1].profit, const Money(400));
     });
   });
+
+  group('who registered', () {
+    test('each document keeps the account signed in when it was made',
+        () async {
+      var user = 'ana@gmail.com';
+      final env = TestEnv(currentUser: () => user);
+      addTearDown(env.dispose);
+      final p = await env.products.create(
+        Product.create(name: 'Twix', suggestedPriceUnit: const Money(300)),
+      );
+
+      final purchase = await env.registerPurchase(lines: [
+        PurchaseLineInput(
+          productId: p.id,
+          lot: LooseUnitsLot(units: 10, unitPrice: const Money(200)),
+        ),
+      ]);
+      // Someone else signs in on the same phone.
+      user = 'luis@gmail.com';
+      final sale = await env.registerSale(lines: [
+        SaleLineInput(
+          productId: p.id,
+          quantity: 1,
+          presentation: Presentation.unit,
+        ),
+      ]);
+      await env.registerAdjustment(
+        productId: p.id,
+        quantity: 1,
+        presentation: Presentation.unit,
+        reason: AdjustmentReason.shrinkage,
+      );
+
+      expect(
+        (await env.purchases.getById(purchase.id))!.registeredBy,
+        'ana@gmail.com',
+      );
+      expect((await env.sales.getById(sale.id))!.registeredBy, 'luis@gmail.com');
+      expect(
+        (await env.adjustments.getAll()).single.registeredBy,
+        'luis@gmail.com',
+      );
+    });
+
+    test('without an account it stays empty', () async {
+      final p = await newCandy();
+      await buy(p, 1, Presentation.box, '48');
+      expect((await env.purchases.getAll()).single.registeredBy, isNull);
+    });
+  });
 }

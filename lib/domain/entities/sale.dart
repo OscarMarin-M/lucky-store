@@ -94,6 +94,7 @@ class Sale extends BaseEntity {
     super.deletedAt,
     required this.date,
     this.notes,
+    this.registeredBy,
     required this.total,
     required this.profit,
     required this.lines,
@@ -104,6 +105,11 @@ class Sale extends BaseEntity {
 
   /// Free text; also names the order ("Caja San Valentín para Ana").
   final String? notes;
+
+  /// Email of the account signed in on the phone that registered it. Null
+  /// when registered without an account (before sign-in existed, or in a
+  /// build without cloud).
+  final String? registeredBy;
 
   /// What the customer paid: the lines plus the [extraCharges] they pay.
   final Money total;

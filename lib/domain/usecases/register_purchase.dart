@@ -1,6 +1,7 @@
 import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
 import '../../core/util/clock.dart';
+import '../../core/util/current_user.dart';
 import '../costing/cost_strategy.dart';
 import '../entities/purchase.dart';
 import '../purchasing/purchase_lot.dart';
@@ -27,12 +28,14 @@ class RegisterPurchase {
     required CostStrategy costStrategy,
     InventoryPolicy policy = const InventoryPolicy(),
     Clock clock = DateTime.now,
+    CurrentUser currentUser = noUser,
   })  : _products = products,
         _purchases = purchases,
         _transactions = transactions,
         _strategy = costStrategy,
         _policy = policy,
-        _clock = clock;
+        _clock = clock,
+        _currentUser = currentUser;
 
   final ProductRepository _products;
   final PurchaseRepository _purchases;
@@ -40,6 +43,7 @@ class RegisterPurchase {
   final CostStrategy _strategy;
   final InventoryPolicy _policy;
   final Clock _clock;
+  final CurrentUser _currentUser;
 
   Future<Purchase> call({
     DateTime? date,
@@ -87,6 +91,7 @@ class RegisterPurchase {
         date: date ?? now,
         supplier: supplier,
         notes: notes,
+        registeredBy: _currentUser(),
         total: built.map((l) => l.lineTotal).sum,
         lines: built,
       ));

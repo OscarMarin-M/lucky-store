@@ -30,6 +30,7 @@ class DriftPurchaseRepository implements PurchaseRepository {
               date: Value(p.date),
               supplier: Value(p.supplier),
               notes: Value(p.notes),
+              registeredBy: Value(p.registeredBy),
               totalCents: Value(p.total.cents),
             ));
         for (final l in p.lines) {
@@ -127,6 +128,7 @@ class DriftPurchaseRepository implements PurchaseRepository {
           date: h.date,
           supplier: h.supplier,
           notes: h.notes,
+          registeredBy: h.registeredBy,
           total: Money(h.totalCents),
           lines: byPurchase[h.id] ?? const [],
         ),

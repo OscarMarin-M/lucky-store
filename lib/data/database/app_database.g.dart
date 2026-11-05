@@ -1350,6 +1350,17 @@ class $PurchasesTable extends Purchases
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _registeredByMeta = const VerificationMeta(
+    'registeredBy',
+  );
+  @override
+  late final GeneratedColumn<String> registeredBy = GeneratedColumn<String>(
+    'registered_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _totalCentsMeta = const VerificationMeta(
     'totalCents',
   );
@@ -1370,6 +1381,7 @@ class $PurchasesTable extends Purchases
     date,
     supplier,
     notes,
+    registeredBy,
     totalCents,
   ];
   @override
@@ -1431,6 +1443,15 @@ class $PurchasesTable extends Purchases
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('registered_by')) {
+      context.handle(
+        _registeredByMeta,
+        registeredBy.isAcceptableOrUnknown(
+          data['registered_by']!,
+          _registeredByMeta,
+        ),
+      );
+    }
     if (data.containsKey('total_cents')) {
       context.handle(
         _totalCentsMeta,
@@ -1476,6 +1497,10 @@ class $PurchasesTable extends Purchases
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      registeredBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}registered_by'],
+      ),
       totalCents: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_cents'],
@@ -1497,6 +1522,9 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
   final DateTime date;
   final String? supplier;
   final String? notes;
+
+  /// v8. Email of the account that registered it (see the entity).
+  final String? registeredBy;
   final int totalCents;
   const PurchaseRow({
     required this.id,
@@ -1506,6 +1534,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     required this.date,
     this.supplier,
     this.notes,
+    this.registeredBy,
     required this.totalCents,
   });
   @override
@@ -1523,6 +1552,9 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || registeredBy != null) {
+      map['registered_by'] = Variable<String>(registeredBy);
     }
     map['total_cents'] = Variable<int>(totalCents);
     return map;
@@ -1543,6 +1575,9 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      registeredBy: registeredBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(registeredBy),
       totalCents: Value(totalCents),
     );
   }
@@ -1560,6 +1595,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       date: serializer.fromJson<DateTime>(json['date']),
       supplier: serializer.fromJson<String?>(json['supplier']),
       notes: serializer.fromJson<String?>(json['notes']),
+      registeredBy: serializer.fromJson<String?>(json['registeredBy']),
       totalCents: serializer.fromJson<int>(json['totalCents']),
     );
   }
@@ -1574,6 +1610,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       'date': serializer.toJson<DateTime>(date),
       'supplier': serializer.toJson<String?>(supplier),
       'notes': serializer.toJson<String?>(notes),
+      'registeredBy': serializer.toJson<String?>(registeredBy),
       'totalCents': serializer.toJson<int>(totalCents),
     };
   }
@@ -1586,6 +1623,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     DateTime? date,
     Value<String?> supplier = const Value.absent(),
     Value<String?> notes = const Value.absent(),
+    Value<String?> registeredBy = const Value.absent(),
     int? totalCents,
   }) => PurchaseRow(
     id: id ?? this.id,
@@ -1595,6 +1633,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     date: date ?? this.date,
     supplier: supplier.present ? supplier.value : this.supplier,
     notes: notes.present ? notes.value : this.notes,
+    registeredBy: registeredBy.present ? registeredBy.value : this.registeredBy,
     totalCents: totalCents ?? this.totalCents,
   );
   PurchaseRow copyWithCompanion(PurchasesCompanion data) {
@@ -1606,6 +1645,9 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       date: data.date.present ? data.date.value : this.date,
       supplier: data.supplier.present ? data.supplier.value : this.supplier,
       notes: data.notes.present ? data.notes.value : this.notes,
+      registeredBy: data.registeredBy.present
+          ? data.registeredBy.value
+          : this.registeredBy,
       totalCents: data.totalCents.present
           ? data.totalCents.value
           : this.totalCents,
@@ -1622,6 +1664,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
           ..write('date: $date, ')
           ..write('supplier: $supplier, ')
           ..write('notes: $notes, ')
+          ..write('registeredBy: $registeredBy, ')
           ..write('totalCents: $totalCents')
           ..write(')'))
         .toString();
@@ -1636,6 +1679,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     date,
     supplier,
     notes,
+    registeredBy,
     totalCents,
   );
   @override
@@ -1649,6 +1693,7 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
           other.date == this.date &&
           other.supplier == this.supplier &&
           other.notes == this.notes &&
+          other.registeredBy == this.registeredBy &&
           other.totalCents == this.totalCents);
 }
 
@@ -1660,6 +1705,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
   final Value<DateTime> date;
   final Value<String?> supplier;
   final Value<String?> notes;
+  final Value<String?> registeredBy;
   final Value<int> totalCents;
   final Value<int> rowid;
   const PurchasesCompanion({
@@ -1670,6 +1716,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     this.date = const Value.absent(),
     this.supplier = const Value.absent(),
     this.notes = const Value.absent(),
+    this.registeredBy = const Value.absent(),
     this.totalCents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1681,6 +1728,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     required DateTime date,
     this.supplier = const Value.absent(),
     this.notes = const Value.absent(),
+    this.registeredBy = const Value.absent(),
     required int totalCents,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1696,6 +1744,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     Expression<DateTime>? date,
     Expression<String>? supplier,
     Expression<String>? notes,
+    Expression<String>? registeredBy,
     Expression<int>? totalCents,
     Expression<int>? rowid,
   }) {
@@ -1707,6 +1756,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
       if (date != null) 'date': date,
       if (supplier != null) 'supplier': supplier,
       if (notes != null) 'notes': notes,
+      if (registeredBy != null) 'registered_by': registeredBy,
       if (totalCents != null) 'total_cents': totalCents,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1720,6 +1770,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     Value<DateTime>? date,
     Value<String?>? supplier,
     Value<String?>? notes,
+    Value<String?>? registeredBy,
     Value<int>? totalCents,
     Value<int>? rowid,
   }) {
@@ -1731,6 +1782,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
       date: date ?? this.date,
       supplier: supplier ?? this.supplier,
       notes: notes ?? this.notes,
+      registeredBy: registeredBy ?? this.registeredBy,
       totalCents: totalCents ?? this.totalCents,
       rowid: rowid ?? this.rowid,
     );
@@ -1760,6 +1812,9 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (registeredBy.present) {
+      map['registered_by'] = Variable<String>(registeredBy.value);
+    }
     if (totalCents.present) {
       map['total_cents'] = Variable<int>(totalCents.value);
     }
@@ -1779,6 +1834,7 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
           ..write('date: $date, ')
           ..write('supplier: $supplier, ')
           ..write('notes: $notes, ')
+          ..write('registeredBy: $registeredBy, ')
           ..write('totalCents: $totalCents, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2746,6 +2802,17 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _registeredByMeta = const VerificationMeta(
+    'registeredBy',
+  );
+  @override
+  late final GeneratedColumn<String> registeredBy = GeneratedColumn<String>(
+    'registered_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _totalCentsMeta = const VerificationMeta(
     'totalCents',
   );
@@ -2776,6 +2843,7 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
     deletedAt,
     date,
     notes,
+    registeredBy,
     totalCents,
     profitCents,
   ];
@@ -2832,6 +2900,15 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('registered_by')) {
+      context.handle(
+        _registeredByMeta,
+        registeredBy.isAcceptableOrUnknown(
+          data['registered_by']!,
+          _registeredByMeta,
+        ),
+      );
+    }
     if (data.containsKey('total_cents')) {
       context.handle(
         _totalCentsMeta,
@@ -2884,6 +2961,10 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      registeredBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}registered_by'],
+      ),
       totalCents: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_cents'],
@@ -2908,6 +2989,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
   final DateTime? deletedAt;
   final DateTime date;
   final String? notes;
+
+  /// v8. Email of the account that registered it (see the entity).
+  final String? registeredBy;
   final int totalCents;
   final int profitCents;
   const SaleRow({
@@ -2917,6 +3001,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     this.deletedAt,
     required this.date,
     this.notes,
+    this.registeredBy,
     required this.totalCents,
     required this.profitCents,
   });
@@ -2932,6 +3017,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     map['date'] = Variable<DateTime>(date);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || registeredBy != null) {
+      map['registered_by'] = Variable<String>(registeredBy);
     }
     map['total_cents'] = Variable<int>(totalCents);
     map['profit_cents'] = Variable<int>(profitCents);
@@ -2950,6 +3038,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      registeredBy: registeredBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(registeredBy),
       totalCents: Value(totalCents),
       profitCents: Value(profitCents),
     );
@@ -2967,6 +3058,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       date: serializer.fromJson<DateTime>(json['date']),
       notes: serializer.fromJson<String?>(json['notes']),
+      registeredBy: serializer.fromJson<String?>(json['registeredBy']),
       totalCents: serializer.fromJson<int>(json['totalCents']),
       profitCents: serializer.fromJson<int>(json['profitCents']),
     );
@@ -2981,6 +3073,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'date': serializer.toJson<DateTime>(date),
       'notes': serializer.toJson<String?>(notes),
+      'registeredBy': serializer.toJson<String?>(registeredBy),
       'totalCents': serializer.toJson<int>(totalCents),
       'profitCents': serializer.toJson<int>(profitCents),
     };
@@ -2993,6 +3086,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     Value<DateTime?> deletedAt = const Value.absent(),
     DateTime? date,
     Value<String?> notes = const Value.absent(),
+    Value<String?> registeredBy = const Value.absent(),
     int? totalCents,
     int? profitCents,
   }) => SaleRow(
@@ -3002,6 +3096,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     date: date ?? this.date,
     notes: notes.present ? notes.value : this.notes,
+    registeredBy: registeredBy.present ? registeredBy.value : this.registeredBy,
     totalCents: totalCents ?? this.totalCents,
     profitCents: profitCents ?? this.profitCents,
   );
@@ -3013,6 +3108,9 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
       date: data.date.present ? data.date.value : this.date,
       notes: data.notes.present ? data.notes.value : this.notes,
+      registeredBy: data.registeredBy.present
+          ? data.registeredBy.value
+          : this.registeredBy,
       totalCents: data.totalCents.present
           ? data.totalCents.value
           : this.totalCents,
@@ -3031,6 +3129,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           ..write('deletedAt: $deletedAt, ')
           ..write('date: $date, ')
           ..write('notes: $notes, ')
+          ..write('registeredBy: $registeredBy, ')
           ..write('totalCents: $totalCents, ')
           ..write('profitCents: $profitCents')
           ..write(')'))
@@ -3045,6 +3144,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     deletedAt,
     date,
     notes,
+    registeredBy,
     totalCents,
     profitCents,
   );
@@ -3058,6 +3158,7 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           other.deletedAt == this.deletedAt &&
           other.date == this.date &&
           other.notes == this.notes &&
+          other.registeredBy == this.registeredBy &&
           other.totalCents == this.totalCents &&
           other.profitCents == this.profitCents);
 }
@@ -3069,6 +3170,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
   final Value<DateTime?> deletedAt;
   final Value<DateTime> date;
   final Value<String?> notes;
+  final Value<String?> registeredBy;
   final Value<int> totalCents;
   final Value<int> profitCents;
   final Value<int> rowid;
@@ -3079,6 +3181,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     this.deletedAt = const Value.absent(),
     this.date = const Value.absent(),
     this.notes = const Value.absent(),
+    this.registeredBy = const Value.absent(),
     this.totalCents = const Value.absent(),
     this.profitCents = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3090,6 +3193,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     this.deletedAt = const Value.absent(),
     required DateTime date,
     this.notes = const Value.absent(),
+    this.registeredBy = const Value.absent(),
     required int totalCents,
     required int profitCents,
     this.rowid = const Value.absent(),
@@ -3106,6 +3210,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     Expression<DateTime>? deletedAt,
     Expression<DateTime>? date,
     Expression<String>? notes,
+    Expression<String>? registeredBy,
     Expression<int>? totalCents,
     Expression<int>? profitCents,
     Expression<int>? rowid,
@@ -3117,6 +3222,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (date != null) 'date': date,
       if (notes != null) 'notes': notes,
+      if (registeredBy != null) 'registered_by': registeredBy,
       if (totalCents != null) 'total_cents': totalCents,
       if (profitCents != null) 'profit_cents': profitCents,
       if (rowid != null) 'rowid': rowid,
@@ -3130,6 +3236,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     Value<DateTime?>? deletedAt,
     Value<DateTime>? date,
     Value<String?>? notes,
+    Value<String?>? registeredBy,
     Value<int>? totalCents,
     Value<int>? profitCents,
     Value<int>? rowid,
@@ -3141,6 +3248,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
       deletedAt: deletedAt ?? this.deletedAt,
       date: date ?? this.date,
       notes: notes ?? this.notes,
+      registeredBy: registeredBy ?? this.registeredBy,
       totalCents: totalCents ?? this.totalCents,
       profitCents: profitCents ?? this.profitCents,
       rowid: rowid ?? this.rowid,
@@ -3168,6 +3276,9 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (registeredBy.present) {
+      map['registered_by'] = Variable<String>(registeredBy.value);
+    }
     if (totalCents.present) {
       map['total_cents'] = Variable<int>(totalCents.value);
     }
@@ -3189,6 +3300,7 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
           ..write('deletedAt: $deletedAt, ')
           ..write('date: $date, ')
           ..write('notes: $notes, ')
+          ..write('registeredBy: $registeredBy, ')
           ..write('totalCents: $totalCents, ')
           ..write('profitCents: $profitCents, ')
           ..write('rowid: $rowid')
@@ -4756,6 +4868,17 @@ class $StockAdjustmentsTable extends StockAdjustments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _registeredByMeta = const VerificationMeta(
+    'registeredBy',
+  );
+  @override
+  late final GeneratedColumn<String> registeredBy = GeneratedColumn<String>(
+    'registered_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _unitCostRawMeta = const VerificationMeta(
     'unitCostRaw',
   );
@@ -4791,6 +4914,7 @@ class $StockAdjustmentsTable extends StockAdjustments
     unitsBase,
     reason,
     notes,
+    registeredBy,
     unitCostRaw,
     costTotalCents,
   ];
@@ -4869,6 +4993,15 @@ class $StockAdjustmentsTable extends StockAdjustments
       context.handle(
         _notesMeta,
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('registered_by')) {
+      context.handle(
+        _registeredByMeta,
+        registeredBy.isAcceptableOrUnknown(
+          data['registered_by']!,
+          _registeredByMeta,
+        ),
       );
     }
     if (data.containsKey('unit_cost_raw')) {
@@ -4950,6 +5083,10 @@ class $StockAdjustmentsTable extends StockAdjustments
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      registeredBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}registered_by'],
+      ),
       unitCostRaw: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}unit_cost_raw'],
@@ -4988,6 +5125,9 @@ class StockAdjustmentRow extends DataClass
   final AdjustmentReason reason;
   final String? notes;
 
+  /// v8. Email of the account that registered it (see the entity).
+  final String? registeredBy;
+
   /// Average cost per base unit when written off, 1/10.000 Bs.
   final int unitCostRaw;
   final int costTotalCents;
@@ -5003,6 +5143,7 @@ class StockAdjustmentRow extends DataClass
     required this.unitsBase,
     required this.reason,
     this.notes,
+    this.registeredBy,
     required this.unitCostRaw,
     required this.costTotalCents,
   });
@@ -5032,6 +5173,9 @@ class StockAdjustmentRow extends DataClass
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    if (!nullToAbsent || registeredBy != null) {
+      map['registered_by'] = Variable<String>(registeredBy);
+    }
     map['unit_cost_raw'] = Variable<int>(unitCostRaw);
     map['cost_total_cents'] = Variable<int>(costTotalCents);
     return map;
@@ -5054,6 +5198,9 @@ class StockAdjustmentRow extends DataClass
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      registeredBy: registeredBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(registeredBy),
       unitCostRaw: Value(unitCostRaw),
       costTotalCents: Value(costTotalCents),
     );
@@ -5080,6 +5227,7 @@ class StockAdjustmentRow extends DataClass
         serializer.fromJson<String>(json['reason']),
       ),
       notes: serializer.fromJson<String?>(json['notes']),
+      registeredBy: serializer.fromJson<String?>(json['registeredBy']),
       unitCostRaw: serializer.fromJson<int>(json['unitCostRaw']),
       costTotalCents: serializer.fromJson<int>(json['costTotalCents']),
     );
@@ -5103,6 +5251,7 @@ class StockAdjustmentRow extends DataClass
         $StockAdjustmentsTable.$converterreason.toJson(reason),
       ),
       'notes': serializer.toJson<String?>(notes),
+      'registeredBy': serializer.toJson<String?>(registeredBy),
       'unitCostRaw': serializer.toJson<int>(unitCostRaw),
       'costTotalCents': serializer.toJson<int>(costTotalCents),
     };
@@ -5120,6 +5269,7 @@ class StockAdjustmentRow extends DataClass
     int? unitsBase,
     AdjustmentReason? reason,
     Value<String?> notes = const Value.absent(),
+    Value<String?> registeredBy = const Value.absent(),
     int? unitCostRaw,
     int? costTotalCents,
   }) => StockAdjustmentRow(
@@ -5134,6 +5284,7 @@ class StockAdjustmentRow extends DataClass
     unitsBase: unitsBase ?? this.unitsBase,
     reason: reason ?? this.reason,
     notes: notes.present ? notes.value : this.notes,
+    registeredBy: registeredBy.present ? registeredBy.value : this.registeredBy,
     unitCostRaw: unitCostRaw ?? this.unitCostRaw,
     costTotalCents: costTotalCents ?? this.costTotalCents,
   );
@@ -5152,6 +5303,9 @@ class StockAdjustmentRow extends DataClass
       unitsBase: data.unitsBase.present ? data.unitsBase.value : this.unitsBase,
       reason: data.reason.present ? data.reason.value : this.reason,
       notes: data.notes.present ? data.notes.value : this.notes,
+      registeredBy: data.registeredBy.present
+          ? data.registeredBy.value
+          : this.registeredBy,
       unitCostRaw: data.unitCostRaw.present
           ? data.unitCostRaw.value
           : this.unitCostRaw,
@@ -5175,6 +5329,7 @@ class StockAdjustmentRow extends DataClass
           ..write('unitsBase: $unitsBase, ')
           ..write('reason: $reason, ')
           ..write('notes: $notes, ')
+          ..write('registeredBy: $registeredBy, ')
           ..write('unitCostRaw: $unitCostRaw, ')
           ..write('costTotalCents: $costTotalCents')
           ..write(')'))
@@ -5194,6 +5349,7 @@ class StockAdjustmentRow extends DataClass
     unitsBase,
     reason,
     notes,
+    registeredBy,
     unitCostRaw,
     costTotalCents,
   );
@@ -5212,6 +5368,7 @@ class StockAdjustmentRow extends DataClass
           other.unitsBase == this.unitsBase &&
           other.reason == this.reason &&
           other.notes == this.notes &&
+          other.registeredBy == this.registeredBy &&
           other.unitCostRaw == this.unitCostRaw &&
           other.costTotalCents == this.costTotalCents);
 }
@@ -5228,6 +5385,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
   final Value<int> unitsBase;
   final Value<AdjustmentReason> reason;
   final Value<String?> notes;
+  final Value<String?> registeredBy;
   final Value<int> unitCostRaw;
   final Value<int> costTotalCents;
   final Value<int> rowid;
@@ -5243,6 +5401,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     this.unitsBase = const Value.absent(),
     this.reason = const Value.absent(),
     this.notes = const Value.absent(),
+    this.registeredBy = const Value.absent(),
     this.unitCostRaw = const Value.absent(),
     this.costTotalCents = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -5259,6 +5418,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     required int unitsBase,
     required AdjustmentReason reason,
     this.notes = const Value.absent(),
+    this.registeredBy = const Value.absent(),
     required int unitCostRaw,
     required int costTotalCents,
     this.rowid = const Value.absent(),
@@ -5285,6 +5445,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     Expression<int>? unitsBase,
     Expression<String>? reason,
     Expression<String>? notes,
+    Expression<String>? registeredBy,
     Expression<int>? unitCostRaw,
     Expression<int>? costTotalCents,
     Expression<int>? rowid,
@@ -5301,6 +5462,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
       if (unitsBase != null) 'units_base': unitsBase,
       if (reason != null) 'reason': reason,
       if (notes != null) 'notes': notes,
+      if (registeredBy != null) 'registered_by': registeredBy,
       if (unitCostRaw != null) 'unit_cost_raw': unitCostRaw,
       if (costTotalCents != null) 'cost_total_cents': costTotalCents,
       if (rowid != null) 'rowid': rowid,
@@ -5319,6 +5481,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     Value<int>? unitsBase,
     Value<AdjustmentReason>? reason,
     Value<String?>? notes,
+    Value<String?>? registeredBy,
     Value<int>? unitCostRaw,
     Value<int>? costTotalCents,
     Value<int>? rowid,
@@ -5335,6 +5498,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
       unitsBase: unitsBase ?? this.unitsBase,
       reason: reason ?? this.reason,
       notes: notes ?? this.notes,
+      registeredBy: registeredBy ?? this.registeredBy,
       unitCostRaw: unitCostRaw ?? this.unitCostRaw,
       costTotalCents: costTotalCents ?? this.costTotalCents,
       rowid: rowid ?? this.rowid,
@@ -5381,6 +5545,9 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (registeredBy.present) {
+      map['registered_by'] = Variable<String>(registeredBy.value);
+    }
     if (unitCostRaw.present) {
       map['unit_cost_raw'] = Variable<int>(unitCostRaw.value);
     }
@@ -5407,6 +5574,7 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
           ..write('unitsBase: $unitsBase, ')
           ..write('reason: $reason, ')
           ..write('notes: $notes, ')
+          ..write('registeredBy: $registeredBy, ')
           ..write('unitCostRaw: $unitCostRaw, ')
           ..write('costTotalCents: $costTotalCents, ')
           ..write('rowid: $rowid')
@@ -6641,6 +6809,7 @@ typedef $$PurchasesTableCreateCompanionBuilder = PurchasesCompanion Function({
   required DateTime date,
   Value<String?> supplier,
   Value<String?> notes,
+  Value<String?> registeredBy,
   required int totalCents,
   Value<int> rowid,
 });
@@ -6652,6 +6821,7 @@ typedef $$PurchasesTableUpdateCompanionBuilder = PurchasesCompanion Function({
   Value<DateTime> date,
   Value<String?> supplier,
   Value<String?> notes,
+  Value<String?> registeredBy,
   Value<int> totalCents,
   Value<int> rowid,
 });
@@ -6720,6 +6890,11 @@ class $$PurchasesTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6798,6 +6973,11 @@ class $$PurchasesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get totalCents => $composableBuilder(
     column: $table.totalCents,
     builder: (column) => ColumnOrderings(column),
@@ -6833,6 +7013,11 @@ class $$PurchasesTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get totalCents => $composableBuilder(
     column: $table.totalCents,
@@ -6900,6 +7085,7 @@ class $$PurchasesTableTableManager
                 Value<DateTime> date = const Value.absent(),
                 Value<String?> supplier = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> registeredBy = const Value.absent(),
                 Value<int> totalCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PurchasesCompanion(
@@ -6910,6 +7096,7 @@ class $$PurchasesTableTableManager
                 date: date,
                 supplier: supplier,
                 notes: notes,
+                registeredBy: registeredBy,
                 totalCents: totalCents,
                 rowid: rowid,
               ),
@@ -6922,6 +7109,7 @@ class $$PurchasesTableTableManager
                 required DateTime date,
                 Value<String?> supplier = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> registeredBy = const Value.absent(),
                 required int totalCents,
                 Value<int> rowid = const Value.absent(),
               }) => PurchasesCompanion.insert(
@@ -6932,6 +7120,7 @@ class $$PurchasesTableTableManager
                 date: date,
                 supplier: supplier,
                 notes: notes,
+                registeredBy: registeredBy,
                 totalCents: totalCents,
                 rowid: rowid,
               ),
@@ -7607,6 +7796,7 @@ typedef $$SalesTableCreateCompanionBuilder = SalesCompanion Function({
   Value<DateTime?> deletedAt,
   required DateTime date,
   Value<String?> notes,
+  Value<String?> registeredBy,
   required int totalCents,
   required int profitCents,
   Value<int> rowid,
@@ -7618,6 +7808,7 @@ typedef $$SalesTableUpdateCompanionBuilder = SalesCompanion Function({
   Value<DateTime?> deletedAt,
   Value<DateTime> date,
   Value<String?> notes,
+  Value<String?> registeredBy,
   Value<int> totalCents,
   Value<int> profitCents,
   Value<int> rowid,
@@ -7701,6 +7892,11 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7804,6 +8000,11 @@ class $$SalesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get totalCents => $composableBuilder(
     column: $table.totalCents,
     builder: (column) => ColumnOrderings(column),
@@ -7841,6 +8042,11 @@ class $$SalesTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get totalCents => $composableBuilder(
     column: $table.totalCents,
@@ -7940,6 +8146,7 @@ class $$SalesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> registeredBy = const Value.absent(),
                 Value<int> totalCents = const Value.absent(),
                 Value<int> profitCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7950,6 +8157,7 @@ class $$SalesTableTableManager
                 deletedAt: deletedAt,
                 date: date,
                 notes: notes,
+                registeredBy: registeredBy,
                 totalCents: totalCents,
                 profitCents: profitCents,
                 rowid: rowid,
@@ -7962,6 +8170,7 @@ class $$SalesTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 required DateTime date,
                 Value<String?> notes = const Value.absent(),
+                Value<String?> registeredBy = const Value.absent(),
                 required int totalCents,
                 required int profitCents,
                 Value<int> rowid = const Value.absent(),
@@ -7972,6 +8181,7 @@ class $$SalesTableTableManager
                 deletedAt: deletedAt,
                 date: date,
                 notes: notes,
+                registeredBy: registeredBy,
                 totalCents: totalCents,
                 profitCents: profitCents,
                 rowid: rowid,
@@ -9062,6 +9272,7 @@ typedef $$StockAdjustmentsTableCreateCompanionBuilder =
       required int unitsBase,
       required AdjustmentReason reason,
       Value<String?> notes,
+      Value<String?> registeredBy,
       required int unitCostRaw,
       required int costTotalCents,
       Value<int> rowid,
@@ -9079,6 +9290,7 @@ typedef $$StockAdjustmentsTableUpdateCompanionBuilder =
       Value<int> unitsBase,
       Value<AdjustmentReason> reason,
       Value<String?> notes,
+      Value<String?> registeredBy,
       Value<int> unitCostRaw,
       Value<int> costTotalCents,
       Value<int> rowid,
@@ -9176,6 +9388,11 @@ class $$StockAdjustmentsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get unitCostRaw => $composableBuilder(
     column: $table.unitCostRaw,
     builder: (column) => ColumnFilters(column),
@@ -9269,6 +9486,11 @@ class $$StockAdjustmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get unitCostRaw => $composableBuilder(
     column: $table.unitCostRaw,
     builder: (column) => ColumnOrderings(column),
@@ -9345,6 +9567,11 @@ class $$StockAdjustmentsTableAnnotationComposer
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
+  GeneratedColumn<String> get registeredBy => $composableBuilder(
+    column: $table.registeredBy,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get unitCostRaw => $composableBuilder(
     column: $table.unitCostRaw,
     builder: (column) => column,
@@ -9420,6 +9647,7 @@ class $$StockAdjustmentsTableTableManager
                 Value<int> unitsBase = const Value.absent(),
                 Value<AdjustmentReason> reason = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> registeredBy = const Value.absent(),
                 Value<int> unitCostRaw = const Value.absent(),
                 Value<int> costTotalCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -9435,6 +9663,7 @@ class $$StockAdjustmentsTableTableManager
                 unitsBase: unitsBase,
                 reason: reason,
                 notes: notes,
+                registeredBy: registeredBy,
                 unitCostRaw: unitCostRaw,
                 costTotalCents: costTotalCents,
                 rowid: rowid,
@@ -9452,6 +9681,7 @@ class $$StockAdjustmentsTableTableManager
                 required int unitsBase,
                 required AdjustmentReason reason,
                 Value<String?> notes = const Value.absent(),
+                Value<String?> registeredBy = const Value.absent(),
                 required int unitCostRaw,
                 required int costTotalCents,
                 Value<int> rowid = const Value.absent(),
@@ -9467,6 +9697,7 @@ class $$StockAdjustmentsTableTableManager
                 unitsBase: unitsBase,
                 reason: reason,
                 notes: notes,
+                registeredBy: registeredBy,
                 unitCostRaw: unitCostRaw,
                 costTotalCents: costTotalCents,
                 rowid: rowid,

@@ -168,6 +168,13 @@ class _EntryTile extends StatelessWidget {
     return '${names.take(2).join(', ')} +${names.length - 2}';
   }
 
+  /// `ana@gmail.com` -> `ana`: enough to tell the 4-6 people apart in a
+  /// narrow row; the detail shows the whole email.
+  String _shortUser(String email) {
+    final at = email.indexOf('@');
+    return at > 0 ? email.substring(0, at) : email;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -181,6 +188,7 @@ class _EntryTile extends StatelessWidget {
           sale.notes ?? _names(sale.lines.map((l) => l.productId)),
           [
             '$time · Venta',
+            if (sale.registeredBy != null) _shortUser(sale.registeredBy!),
             // A named order lists its products under the name.
             if (sale.notes != null) _names(sale.lines.map((l) => l.productId)),
             if (sale.extraCharges.isNotEmpty)
@@ -200,6 +208,8 @@ class _EntryTile extends StatelessWidget {
           _names(purchase.lines.map((l) => l.productId)),
           [
             '$time · Compra',
+            if (purchase.registeredBy != null)
+              _shortUser(purchase.registeredBy!),
             if (purchase.supplier != null) purchase.supplier!,
             if (firstExpiry != null) 'vence ${formatDate(firstExpiry)}',
           ].join(' · '),
@@ -211,8 +221,13 @@ class _EntryTile extends StatelessWidget {
       WriteOffEntry(:final adjustment) => (
           reasonIcon(adjustment.reason),
           productName(byId, adjustment.productId),
-          '$time · Baja · ${reasonLabel(adjustment.reason)} · '
-              '${adjustment.unitsBase} u',
+          [
+            '$time · Baja',
+            reasonLabel(adjustment.reason),
+            '${adjustment.unitsBase} u',
+            if (adjustment.registeredBy != null)
+              _shortUser(adjustment.registeredBy!),
+          ].join(' · '),
           _Amounts(
             top: '-${adjustment.costTotal.format()}',
             topColor: scheme.loss,

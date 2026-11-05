@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -99,6 +99,14 @@ class AppDatabase extends _$AppDatabase {
               saleExtraCharges,
               saleExtraCharges.paidByCustomer,
             );
+          }
+          if (from < 8) {
+            // Who registered each document. Older ones stay null here; the
+            // cloud fills them from its created_by (0003) and they come down
+            // with the next sync.
+            await m.addColumn(purchases, purchases.registeredBy);
+            await m.addColumn(sales, sales.registeredBy);
+            await m.addColumn(stockAdjustments, stockAdjustments.registeredBy);
           }
         },
         beforeOpen: (details) async {

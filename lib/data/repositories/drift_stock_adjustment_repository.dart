@@ -25,6 +25,7 @@ class DriftStockAdjustmentRepository implements StockAdjustmentRepository {
           unitsBase: Value(a.unitsBase),
           reason: Value(a.reason),
           notes: Value(a.notes),
+          registeredBy: Value(a.registeredBy),
           unitCostRaw: Value(a.unitCost.raw),
           costTotalCents: Value(a.costTotal.cents),
         ));
@@ -73,6 +74,7 @@ class DriftStockAdjustmentRepository implements StockAdjustmentRepository {
         unitsBase: r.unitsBase,
         reason: r.reason,
         notes: r.notes,
+        registeredBy: r.registeredBy,
         unitCost: UnitCost(r.unitCostRaw),
         costTotal: Money(r.costTotalCents),
       );

@@ -17,6 +17,9 @@ class StockAdjustments extends Table with BaseColumns {
   TextColumn get reason => textEnum<AdjustmentReason>()();
   TextColumn get notes => text().nullable()();
 
+  /// v8. Email of the account that registered it (see the entity).
+  TextColumn get registeredBy => text().nullable()();
+
   /// Average cost per base unit when written off, 1/10.000 Bs.
   IntColumn get unitCostRaw => integer()();
   IntColumn get costTotalCents => integer()();

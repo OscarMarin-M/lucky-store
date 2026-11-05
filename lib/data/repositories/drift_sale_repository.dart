@@ -20,6 +20,7 @@ class DriftSaleRepository implements SaleRepository {
               deletedAt: Value(s.deletedAt),
               date: Value(s.date),
               notes: Value(s.notes),
+              registeredBy: Value(s.registeredBy),
               totalCents: Value(s.total.cents),
               profitCents: Value(s.profit.cents),
             ));
@@ -189,6 +190,7 @@ class DriftSaleRepository implements SaleRepository {
           deletedAt: h.deletedAt,
           date: h.date,
           notes: h.notes,
+          registeredBy: h.registeredBy,
           total: Money(h.totalCents),
           profit: Money(h.profitCents),
           lines: bySale[h.id] ?? const [],
