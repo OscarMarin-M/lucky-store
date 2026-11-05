@@ -6,10 +6,11 @@ import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/quantity/presentation.dart';
 import '../../domain/purchasing/purchase_lot.dart';
+import '../common/formula_box.dart';
 import '../common/quantity_stepper.dart';
 import '../common/validators.dart';
 import '../format/date_format.dart';
-import 'cost_formula.dart';
+import '../format/cost_formula.dart';
 import 'product_picker_sheet.dart';
 import 'purchase_draft.dart';
 
@@ -551,9 +552,6 @@ class _LotSummary extends ConsumerWidget {
       before: product.stockState,
       after: next,
     );
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
 
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -584,22 +582,7 @@ class _LotSummary extends ConsumerWidget {
                   '${product.avgCost.format()} → ${next.avgCost.format()}',
             ),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Cómo se calcula', style: theme.textTheme.labelMedium),
-                const SizedBox(height: 4),
-                for (final f in formula) Text(f, style: muted),
-              ],
-            ),
-          ),
+          FormulaBox(lines: formula),
         ],
       ),
     );

@@ -3,8 +3,9 @@ import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/money/unit_cost.dart';
 import 'package:lucky_store/domain/costing/cost_strategy.dart';
 import 'package:lucky_store/domain/costing/weighted_average_cost_strategy.dart';
+import 'package:lucky_store/domain/entities/product.dart';
 import 'package:lucky_store/domain/purchasing/purchase_lot.dart';
-import 'package:lucky_store/presentation/purchases/cost_formula.dart';
+import 'package:lucky_store/presentation/format/cost_formula.dart';
 
 void main() {
   const strategy = WeightedAverageCostStrategy();
@@ -50,5 +51,42 @@ void main() {
       'Stock negativo (-2 u): no tiene valor, el costo promedio queda en el '
           'de este lote, Bs 0,5000',
     ]);
+  });
+
+  group('product', () {
+    Product candy({int stock = 60, int cost = 20400}) => Product.create(
+          name: 'Snickers',
+          unitsPerBox: 24,
+          suggestedPriceUnit: const Money(300),
+          suggestedPriceBox: const Money(6500),
+        ).copyWith(stockUnits: stock, avgCost: UnitCost(cost));
+
+    test('stock value, how the average moves, profit per unit and per box',
+        () {
+      expect(productCostFormulaLines(candy()), [
+        'Valor en stock = stock × costo promedio = 60 u × Bs 2,0400 = '
+            'Bs 122,40',
+        'Cada compra recalcula el promedio: (stock × costo actual + total de '
+            'la compra) ÷ (stock + unidades compradas). Ventas y bajas no lo '
+            'cambian: salen a este costo.',
+        'Ganancia por unidad = precio − costo = Bs 3,00 − Bs 2,0400 = '
+            'Bs 0,96 (32%)',
+        'Ganancia por caja = precio − costo = Bs 65,00 − 24 u × Bs 2,0400 = '
+            'Bs 65,00 − Bs 48,96 = Bs 16,04 (25%)',
+      ]);
+    });
+
+    test('sold out keeps the cost but has no stock value line', () {
+      final lines = productCostFormulaLines(candy(stock: 0));
+      expect(lines.first, startsWith('Cada compra recalcula'));
+      expect(lines, hasLength(3));
+    });
+
+    test('never bought', () {
+      expect(productCostFormulaLines(candy(stock: 0, cost: 0)), [
+        'Sin compras todavía: el costo promedio sale de la primera compra '
+            '(total pagado ÷ unidades).',
+      ]);
+    });
   });
 }

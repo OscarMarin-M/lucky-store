@@ -7,7 +7,9 @@ import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
 import '../../core/util/int_math.dart';
 import '../../domain/entities/product.dart';
+import '../common/formula_box.dart';
 import '../common/validators.dart';
+import '../format/cost_formula.dart';
 import '../format/stock_format.dart';
 import '../inventory/stock_write_off_page.dart';
 
@@ -295,13 +297,10 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                       ),
                       Text('Costo promedio: ${p.avgCost.format()} por unidad'),
                       Text('Valor en stock: ${p.stockValue.format()}'),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Se actualiza con compras, ventas y bajas.',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                      const SizedBox(height: 8),
+                      // Figures of the saved product, not of the prices
+                      // being edited above.
+                      FormulaBox(lines: productCostFormulaLines(p)),
                       const SizedBox(height: 10),
                       OutlinedButton.icon(
                         onPressed: () => Navigator.of(context).push(

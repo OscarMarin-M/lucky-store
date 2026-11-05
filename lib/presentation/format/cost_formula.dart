@@ -1,4 +1,7 @@
+import '../../core/money/money.dart';
+import '../../core/quantity/presentation.dart';
 import '../../domain/costing/cost_strategy.dart';
+import '../../domain/entities/product.dart';
 import '../../domain/purchasing/purchase_lot.dart';
 
 /// The arithmetic behind a lot's figures, written out with the real numbers
@@ -53,4 +56,56 @@ List<String> costFormulaLines(
         '${after.avgCost.format()} c/u',
   ]);
   return lines;
+}
+
+/// The product's current figures written out: what its stock is worth, how
+/// the average cost moves, and what one unit / one box leaves at the
+/// suggested prices.
+List<String> productCostFormulaLines(Product p) {
+  final cost = p.avgCost;
+  if (cost.raw == 0) {
+    return [
+      'Sin compras todavía: el costo promedio sale de la primera compra '
+          '(total pagado ÷ unidades).',
+    ];
+  }
+  final units = p.stockUnits;
+  return [
+    if (units > 0)
+      'Valor en stock = stock × costo promedio = $units u × '
+          '${cost.format()} = ${p.stockValue.format()}',
+    'Cada compra recalcula el promedio: (stock × costo actual + total de la '
+        'compra) ÷ (stock + unidades compradas). Ventas y bajas no lo '
+        'cambian: salen a este costo.',
+    _profitLine(
+      'Ganancia por unidad',
+      price: p.suggestedPriceUnit,
+      cost: cost.format(),
+      costTotal: cost.totalFor(1),
+    ),
+    if (p.unitsPerBox > 1)
+      _profitLine(
+        'Ganancia por caja',
+        price: p.suggestedPriceFor(Presentation.box),
+        cost: '${p.unitsPerBox} u × ${cost.format()} = '
+            '${p.suggestedPriceFor(Presentation.box).format()} − '
+            '${cost.totalFor(p.unitsPerBox).format()}',
+        costTotal: cost.totalFor(p.unitsPerBox),
+      ),
+  ];
+}
+
+/// `Ganancia por unidad = precio − costo = Bs 3,00 − Bs 2,0400 = Bs 0,96 (32%)`
+String _profitLine(
+  String label, {
+  required Money price,
+  required String cost,
+  required Money costTotal,
+}) {
+  final profit = price - costTotal;
+  final margin = price.cents == 0
+      ? ''
+      : ' (${(profit.cents * 100 / price.cents).toStringAsFixed(0)}%)';
+  return '$label = precio − costo = ${price.format()} − $cost = '
+      '${profit.format()}$margin';
 }
