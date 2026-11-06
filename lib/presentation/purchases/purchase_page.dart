@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/quantity/presentation.dart';
 import '../../domain/purchasing/purchase_lot.dart';
+import '../common/document_line_card.dart';
 import '../common/formula_box.dart';
 import '../common/quantity_stepper.dart';
 import '../common/validators.dart';
@@ -116,9 +117,9 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
             ),
           ),
           const SizedBox(height: 16),
-          for (final line in draft.lines) ...[
-            _LineCard(key: ValueKey(line.id), line: line),
-            const SizedBox(height: 10),
+          for (final (i, line) in draft.lines.indexed) ...[
+            _LineCard(key: ValueKey(line.id), line: line, index: i),
+            const SizedBox(height: 16),
           ],
           if (draft.lines.isEmpty)
             Padding(
@@ -138,14 +139,7 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
                 ],
               ),
             ),
-          OutlinedButton.icon(
-            onPressed: _addProduct,
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar producto'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-            ),
-          ),
+          AddProductButton(onPressed: _addProduct),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -177,85 +171,63 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
 /// One lot: the owner first says HOW it was bought (box, bag or loose units)
 /// and the form below changes, because each way asks for different data.
 class _LineCard extends ConsumerWidget {
-  const _LineCard({super.key, required this.line});
+  const _LineCard({super.key, required this.line, required this.index});
 
   final DraftPurchaseLine line;
+
+  /// Position in the draft (0-based): earlier lines of the same product
+  /// change the stock this one is mixed with.
+  final int index;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(purchaseDraftProvider.notifier);
-    final theme = Theme.of(context);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    line.product.name,
-                    style: theme.textTheme.titleMedium,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Quitar',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => notifier.removeLine(line.id),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 4),
-                  SegmentedButton<Presentation>(
-                    showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(
-                        value: Presentation.box,
-                        icon: Icon(Icons.inventory_2_outlined),
-                        label: Text('Caja'),
-                      ),
-                      ButtonSegment(
-                        value: Presentation.bag,
-                        icon: Icon(Icons.shopping_bag_outlined),
-                        label: Text('Bolsa'),
-                      ),
-                      ButtonSegment(
-                        value: Presentation.unit,
-                        icon: Icon(Icons.scatter_plot_outlined),
-                        label: Text('Por unidad'),
-                      ),
-                    ],
-                    selected: {line.mode},
-                    onSelectionChanged: (s) =>
-                        notifier.setMode(line.id, s.first),
-                  ),
-                  const SizedBox(height: 12),
-                  // Keyed by mode: switching builds fresh fields/controllers.
-                  switch (line.form) {
-                    PackLotForm f => _PackLotFields(
-                      key: ValueKey('${line.id}-${f.pack.name}'),
-                      form: f,
-                      onChanged: (next) => notifier.updateForm(line.id, next),
-                    ),
-                    LooseLotForm f => _LooseLotFields(
-                      key: ValueKey('${line.id}-loose'),
-                      form: f,
-                      onChanged: (next) => notifier.updateForm(line.id, next),
-                    ),
-                  },
-                  _LotSummary(line: line),
-                ],
+    return DocumentLineCard(
+      number: index + 1,
+      title: line.product.name,
+      onRemove: () => notifier.removeLine(line.id),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SegmentedButton<Presentation>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(
+                value: Presentation.box,
+                icon: Icon(Icons.inventory_2_outlined),
+                label: Text('Caja'),
               ),
+              ButtonSegment(
+                value: Presentation.bag,
+                icon: Icon(Icons.shopping_bag_outlined),
+                label: Text('Bolsa'),
+              ),
+              ButtonSegment(
+                value: Presentation.unit,
+                icon: Icon(Icons.scatter_plot_outlined),
+                label: Text('Por unidad'),
+              ),
+            ],
+            selected: {line.mode},
+            onSelectionChanged: (s) => notifier.setMode(line.id, s.first),
+          ),
+          const SizedBox(height: 12),
+          // Keyed by mode: switching builds fresh fields/controllers.
+          switch (line.form) {
+            PackLotForm f => _PackLotFields(
+              key: ValueKey('${line.id}-${f.pack.name}'),
+              form: f,
+              onChanged: (next) => notifier.updateForm(line.id, next),
             ),
-          ],
-        ),
+            LooseLotForm f => _LooseLotFields(
+              key: ValueKey('${line.id}-loose'),
+              form: f,
+              onChanged: (next) => notifier.updateForm(line.id, next),
+            ),
+          },
+          _LotSummary(line: line, index: index),
+        ],
       ),
     );
   }
@@ -265,7 +237,11 @@ class _LineCard extends ConsumerWidget {
 /// changes between suppliers; for an informal bag it is asked to the seller),
 /// its code and its single expiry date.
 class _PackLotFields extends StatefulWidget {
-  const _PackLotFields({super.key, required this.form, required this.onChanged});
+  const _PackLotFields({
+    super.key,
+    required this.form,
+    required this.onChanged,
+  });
 
   final PackLotForm form;
   final ValueChanged<PackLotForm> onChanged;
@@ -326,7 +302,8 @@ class _PackLotFieldsState extends State<_PackLotFields> {
                     widget.onChanged(form.copyWith(unitsPerPackText: v)),
                 decoration: InputDecoration(
                   labelText: 'Unidades por $one',
-                  errorText: form.unitsPerPackText.isEmpty ||
+                  errorText:
+                      form.unitsPerPackText.isEmpty ||
                           (size != null && size >= 1)
                       ? null
                       : 'Mínimo 1',
@@ -352,7 +329,8 @@ class _PackLotFieldsState extends State<_PackLotFields> {
             _ExpiryChip(
               label: 'Vence',
               value: form.expiry,
-              onChanged: (d) => widget.onChanged(form.copyWith(expiry: () => d)),
+              onChanged: (d) =>
+                  widget.onChanged(form.copyWith(expiry: () => d)),
             ),
           ],
         ),
@@ -407,7 +385,10 @@ class _LooseLotFieldsState extends State<_LooseLotFields> {
           showSelectedIcon: false,
           segments: const [
             ButtonSegment(value: LooseEntry.quantity, label: Text('Cantidad')),
-            ButtonSegment(value: LooseEntry.amount, label: Text('Monto pagado')),
+            ButtonSegment(
+              value: LooseEntry.amount,
+              label: Text('Monto pagado'),
+            ),
           ],
           selected: {form.entry},
           onSelectionChanged: (s) =>
@@ -526,9 +507,10 @@ class _ExpiryChip extends StatelessWidget {
 
 /// What the typed lot amounts to, and how it moves the average cost.
 class _LotSummary extends ConsumerWidget {
-  const _LotSummary({required this.line});
+  const _LotSummary({required this.line, required this.index});
 
   final DraftPurchaseLine line;
+  final int index;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -549,15 +531,22 @@ class _LotSummary extends ConsumerWidget {
     if (lot == null) return const SizedBox.shrink();
 
     final product = line.product;
-    final next = ref.read(costStrategyProvider).applyPurchase(
-          product.stockState,
-          units: lot.unitsBase,
-          total: lot.lineTotal,
-        );
+    final strategy = ref.read(costStrategyProvider);
+    // Same order as registering: earlier lines of this product count.
+    final earlier = <int>[];
+    final before = ref
+        .watch(purchaseDraftProvider)
+        .stockBefore(index, strategy, earlier: earlier);
+    final next = strategy.applyPurchase(
+      before,
+      units: lot.unitsBase,
+      total: lot.lineTotal,
+    );
     final formula = purchaseCostSteps(
       lot,
-      before: product.stockState,
+      before: before,
       after: next,
+      earlierLines: earlier,
       usualPackSize: product.unitsIn(lot.presentation),
     );
 

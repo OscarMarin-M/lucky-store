@@ -99,12 +99,14 @@ class FormulaNote extends FormulaStep {
 /// average. [before] is the stock before this lot and [after] what the cost
 /// strategy computed with it. [usualPackSize] is the product's own size for
 /// the lot's pack (null: the product does not define it), to explain a lot
-/// that came with another count.
+/// that came with another count. [earlierLines] are the numbers of earlier
+/// lines of the same product in this purchase, already in [before].
 List<FormulaStep> purchaseCostSteps(
   PurchaseLot lot, {
   required StockState before,
   required StockState after,
   int? usualPackSize,
+  List<int> earlierLines = const [],
 }) {
   final units = lot.unitsBase;
   final steps = <FormulaStep?>[
@@ -153,6 +155,19 @@ List<FormulaStep> purchaseCostSteps(
   if (lot is PackLot) {
     final note = _packSizeNote(lot, usualPackSize);
     if (note != null) steps.add(FormulaNote(note));
+  }
+
+  if (earlierLines.isNotEmpty) {
+    final which = earlierLines.length == 1
+        ? 'la línea ${earlierLines.single}'
+        : 'las líneas ${earlierLines.join(', ')}';
+    steps.add(
+      FormulaNote(
+        'El stock de partida ya suma $which de esta compra (mismo '
+        'producto): ${before.units} u a ${before.avgCost.format()}. Se '
+        'registran en orden y cada una mueve el promedio.',
+      ),
+    );
   }
 
   // Negative stock (sold offline before buying) carries no value, like in
@@ -286,5 +301,124 @@ List<FormulaStep> productCostSteps(Product p) {
         'Vender un empaque: ganancia = precio del empaque − unidades × costo '
         'promedio.',
       ),
+  ];
+}
+
+/// `2 bolsas × 30 u = 60 u`: how a pack quantity becomes stock units. Null
+/// for loose units, which need no conversion.
+Equation? _toUnits(int quantity, Presentation presentation, int units) {
+  if (!presentation.isPack || quantity < 1) return null;
+  return Equation(
+    'Unidades',
+    Term('$quantity ${presentation.nameFor(quantity)}', 'cantidad'),
+    '×',
+    Term('${units ~/ quantity} u', 'por ${presentation.nameFor(1)}'),
+    Term('$units u', 'del stock'),
+  );
+}
+
+/// One cart line: the units it takes out of stock, what they cost at the
+/// current average and what the charged price leaves. The same formula the
+/// sale freezes when it is registered.
+List<FormulaStep> saleLineSteps({
+  required int quantity,
+  required Presentation presentation,
+  required int unitsBase,
+  required Money lineTotal,
+  required UnitCost avgCost,
+}) {
+  final cost = avgCost.totalFor(unitsBase);
+  final conversion = _toUnits(quantity, presentation, unitsBase);
+  return [
+    ?conversion,
+    PriceSplit(
+      title: 'Esta línea',
+      price: lineTotal,
+      cost: cost,
+      costDetail: '$unitsBase u × ${avgCost.format()}',
+    ),
+    if (lineTotal.isZero)
+      FormulaNote(
+        'Regalo: el cliente paga Bs 0 y el costo (${cost.format()}) queda '
+        'como pérdida de esta venta.',
+      ),
+    if (avgCost.raw == 0)
+      const FormulaNote(
+        'Sin compras registradas el costo es Bs 0: todo el precio se cuenta '
+        'como ganancia.',
+      )
+    else
+      const FormulaNote(
+        'Ganancia = precio cobrado − unidades × costo promedio vigente. Al '
+        'cobrar, ese costo queda guardado en la venta y no cambia aunque '
+        'después compres más caro o más barato.',
+      ),
+  ];
+}
+
+/// The order's estimated profit: the products' profit, plus what the
+/// customer pays on top, minus what the shop absorbs. Only the steps with
+/// charges are shown; without charges it is just the sum of the lines.
+List<FormulaStep> saleOrderSteps({
+  required Money productsProfit,
+  required Money customerCharges,
+  required Money shopCosts,
+}) {
+  final withCharges = productsProfit + customerCharges;
+  final profit = withCharges - shopCosts;
+  return [
+    if (customerCharges.cents > 0)
+      Equation(
+        'Con cargos al cliente',
+        Term(productsProfit.format(), 'ganancia productos'),
+        '+',
+        Term(customerCharges.format(), 'cargos cliente'),
+        Term(withCharges.format(), 'subtotal'),
+      ),
+    if (shopCosts.cents > 0)
+      Equation(
+        'Ganancia del pedido',
+        Term(
+          withCharges.format(),
+          customerCharges.cents > 0 ? 'subtotal' : 'ganancia productos',
+        ),
+        '−',
+        Term(shopCosts.format(), 'paga la tienda'),
+        Term(profit.format(), 'ganancia'),
+      ),
+    FormulaNote(
+      customerCharges.cents == 0 && shopCosts.cents == 0
+          ? 'Ganancia estimada = suma de la ganancia de cada línea '
+              '(${profit.format()}).'
+          : 'Los cargos que paga el cliente suman al total y a la ganancia; '
+              'los que paga la tienda no cambian el total y se restan de la '
+              'ganancia. Ningún cargo descuenta stock.',
+    ),
+  ];
+}
+
+/// A write-off: the units leaving stock and their loss at the average cost
+/// (the price is not involved, nothing is charged).
+List<FormulaStep> writeOffSteps({
+  required int quantity,
+  required Presentation presentation,
+  required int unitsBase,
+  required UnitCost avgCost,
+  required Money loss,
+}) {
+  final conversion = _toUnits(quantity, presentation, unitsBase);
+  return [
+    ?conversion,
+    Equation(
+      'Pérdida',
+      Term('$unitsBase u', 'unidades'),
+      '×',
+      Term(avgCost.format(), 'costo prom.'),
+      Term(loss.format(), 'pérdida'),
+    ),
+    const FormulaNote(
+      'Se resta de la ganancia del período. El costo promedio no cambia: '
+      'las unidades salen a ese costo.',
+    ),
   ];
 }

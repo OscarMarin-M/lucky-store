@@ -47,7 +47,7 @@ void main() {
     });
 
     expect(find.text('Agrega los productos que compraste'), findsOneWidget);
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+    expect(tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Registrar compra')).onPressed, isNull);
 
     await tester.tap(find.text('Agregar producto'));
     await tester.pumpAndSettle();

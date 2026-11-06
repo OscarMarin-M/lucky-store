@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/money/unit_cost.dart';
+import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/domain/costing/cost_strategy.dart';
 import 'package:lucky_store/domain/costing/weighted_average_cost_strategy.dart';
 import 'package:lucky_store/domain/entities/product.dart';
@@ -178,6 +179,93 @@ void main() {
       expect(productCostSteps(candy(stock: 0)).first, isA<PriceSplit>());
       final never = productCostSteps(candy(stock: 0, cost: 0));
       expect(never.single, isA<FormulaNote>());
+    });
+  });
+
+  group('same product twice in one purchase', () {
+    test('the later line says which lines it already includes', () {
+      final lot = LooseUnitsLot(units: 6, unitPrice: const Money(300));
+      const before = StockState(units: 24, avgCost: UnitCost(20000));
+      final steps = purchaseCostSteps(
+        lot,
+        before: before,
+        after: strategy.applyPurchase(before, units: 6, total: lot.lineTotal),
+        earlierLines: const [1],
+      );
+      expect(
+        steps.whereType<FormulaNote>().single.text,
+        startsWith('El stock de partida ya suma la línea 1 de esta compra '
+            '(mismo producto): 24 u a Bs 2,0000.'),
+      );
+      final mix = steps.whereType<AverageMix>().single;
+      expect(_eq(mix.result), 'Nuevo costo promedio: Bs 66,00 ÷ 30 u = Bs 2,2000');
+    });
+  });
+
+  group('sale and write-off', () {
+    test('a bag sold: units, cost and what it leaves', () {
+      final steps = saleLineSteps(
+        quantity: 2,
+        presentation: Presentation.bag,
+        unitsBase: 60,
+        lineTotal: const Money(5000),
+        avgCost: const UnitCost(6000),
+      );
+      expect(_eq(steps[0]), 'Unidades: 2 bolsas × 30 u = 60 u');
+      final split = steps[1] as PriceSplit;
+      expect(split.costDetail, '60 u × Bs 0,6000');
+      expect(split.cost, const Money(3600));
+      expect(split.profit, const Money(1400));
+      expect((steps.last as FormulaNote).text, startsWith('Ganancia = precio cobrado'));
+    });
+
+    test('a gift explains its loss; loose units need no conversion', () {
+      final steps = saleLineSteps(
+        quantity: 3,
+        presentation: Presentation.unit,
+        unitsBase: 3,
+        lineTotal: Money.zero,
+        avgCost: const UnitCost(20000),
+      );
+      expect(steps.first, isA<PriceSplit>());
+      expect((steps.first as PriceSplit).profit, const Money(-600));
+      expect(
+        steps.whereType<FormulaNote>().first.text,
+        'Regalo: el cliente paga Bs 0 y el costo (Bs 6,00) queda como pérdida '
+        'de esta venta.',
+      );
+    });
+
+    test('order profit: products + customer charges − shop costs', () {
+      final steps = saleOrderSteps(
+        productsProfit: const Money(2000),
+        customerCharges: const Money(500),
+        shopCosts: const Money(300),
+      );
+      expect(_eq(steps[0]), 'Con cargos al cliente: Bs 20,00 + Bs 5,00 = Bs 25,00');
+      expect(_eq(steps[1]), 'Ganancia del pedido: Bs 25,00 − Bs 3,00 = Bs 22,00');
+
+      final plain = saleOrderSteps(
+        productsProfit: const Money(2000),
+        customerCharges: Money.zero,
+        shopCosts: Money.zero,
+      );
+      expect(
+        (plain.single as FormulaNote).text,
+        'Ganancia estimada = suma de la ganancia de cada línea (Bs 20,00).',
+      );
+    });
+
+    test('a bag written off: units x average cost', () {
+      final steps = writeOffSteps(
+        quantity: 1,
+        presentation: Presentation.bag,
+        unitsBase: 30,
+        avgCost: const UnitCost(6000),
+        loss: const Money(1800),
+      );
+      expect(_eq(steps[0]), 'Unidades: 1 bolsa × 30 u = 30 u');
+      expect(_eq(steps[1]), 'Pérdida: 30 u × Bs 0,6000 = Bs 18,00');
     });
   });
 }

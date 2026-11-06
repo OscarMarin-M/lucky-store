@@ -303,6 +303,13 @@ void main() {
     expect(tester.widget<TextField>(price).controller!.text, '25,00');
     expect(tester.takeException(), isNull);
 
+    // Explanations start closed; the line's one opens with a tap.
+    expect(find.text('Esta línea · precio Bs 25,00'), findsNothing);
+    await tester.tap(find.text('Cómo se calcula').at(1)); // 0 = gum line
+    await tester.pump();
+    expect(find.text('Esta línea · precio Bs 25,00'), findsOneWidget);
+    expect(find.text('30 u'), findsNWidgets(2), reason: '1 bolsa × 30 u = 30 u');
+
     await tester.tap(find.byTooltip('Quitar').first); // drop the gum
     await tester.pumpAndSettle();
     await tester.tap(charge);

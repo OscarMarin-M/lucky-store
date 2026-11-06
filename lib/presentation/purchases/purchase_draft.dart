@@ -6,6 +6,7 @@ import '../../core/money/money.dart';
 import '../../core/money/unit_cost.dart';
 import '../../core/quantity/presentation.dart';
 import '../../core/util/clock.dart';
+import '../../domain/costing/cost_strategy.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/purchase.dart';
 import '../../domain/purchasing/purchase_lot.dart';
@@ -231,6 +232,31 @@ class PurchaseDraftState {
   final String notes;
 
   bool get canSubmit => lines.isNotEmpty && lines.every((l) => l.isValid);
+
+  /// Stock and average of line [index]'s product right before that line is
+  /// applied. Registering applies the lines in order, so earlier valid lines
+  /// of the SAME product (e.g. a bag and some loose units of it) already
+  /// moved them; other products never matter, each has its own average.
+  /// [earlier] gets the 1-based numbers of those lines, for the explanation.
+  StockState stockBefore(
+    int index,
+    CostStrategy strategy, {
+    List<int>? earlier,
+  }) {
+    final product = lines[index].product;
+    var state = product.stockState;
+    for (final (i, l) in lines.take(index).indexed) {
+      final lot = l.lot;
+      if (l.product.id != product.id || lot == null) continue;
+      state = strategy.applyPurchase(
+        state,
+        units: lot.unitsBase,
+        total: lot.lineTotal,
+      );
+      earlier?.add(i + 1);
+    }
+    return state;
+  }
 
   /// Sum of the valid line totals typed so far.
   Money get total => lines

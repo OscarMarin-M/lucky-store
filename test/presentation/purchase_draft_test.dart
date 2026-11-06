@@ -6,6 +6,7 @@ import 'package:lucky_store/core/errors/domain_exception.dart';
 import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/data/database/app_database.dart';
+import 'package:lucky_store/domain/costing/weighted_average_cost_strategy.dart';
 import 'package:lucky_store/domain/entities/product.dart';
 import 'package:lucky_store/domain/purchasing/purchase_lot.dart';
 import 'package:lucky_store/presentation/purchases/purchase_draft.dart';
@@ -231,5 +232,26 @@ void main() {
       draft().setMode(line().id, Presentation.box);
       expect((line().form as PackLotForm).unitsPerPackText, '24');
     });
+  });
+
+  test('a line starts from the stock left by earlier lines of its product', () {
+    const strategy = WeightedAverageCostStrategy();
+    draft()
+      ..addProduct(snickers)
+      ..addProduct(gum)
+      ..addProduct(snickers);
+    box((f) => f.copyWith(priceText: '48')); // 24 u @ 2,00
+    loose((f) => f.copyWith(units: 5, unitPriceText: '1'), 1);
+    draft().setMode(line(2).id, Presentation.unit);
+    loose((f) => f.copyWith(units: 6, unitPriceText: '3'), 2);
+
+    final earlier = <int>[];
+    final before = state().stockBefore(2, strategy, earlier: earlier);
+    expect(before.units, 24, reason: 'line 1 counts, the gum (line 2) does not');
+    expect(before.avgCost.raw, 20000);
+    expect(earlier, [1]);
+
+    expect(state().stockBefore(1, strategy).units, 0, reason: 'own product only');
+    expect(state().stockBefore(0, strategy), snickers.stockState);
   });
 }

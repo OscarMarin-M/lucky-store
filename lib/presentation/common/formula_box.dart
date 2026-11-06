@@ -7,15 +7,44 @@ import '../theme/app_theme.dart';
 /// owner sees where a cost or a profit comes from: equations as chips
 /// (figure on top, meaning below), the purchase average as a bar of what is
 /// mixed, and a price as a bar split into cost and profit.
-class FormulaBox extends StatelessWidget {
-  const FormulaBox({super.key, required this.steps});
+///
+/// [collapsible]: starts closed and the header opens it, for screens with
+/// many lines (Vender) where every explanation open would bury the form.
+class FormulaBox extends StatefulWidget {
+  const FormulaBox({super.key, required this.steps, this.collapsible = false});
 
   final List<FormulaStep> steps;
+  final bool collapsible;
+
+  @override
+  State<FormulaBox> createState() => _FormulaBoxState();
+}
+
+class _FormulaBoxState extends State<FormulaBox> {
+  late bool _open = !widget.collapsible;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final header = Row(
+      children: [
+        Icon(Icons.calculate_outlined, size: 18, color: scheme.primary),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'Cómo se calcula',
+            style: theme.textTheme.labelLarge?.copyWith(color: scheme.primary),
+          ),
+        ),
+        if (widget.collapsible)
+          Icon(
+            _open ? Icons.expand_less : Icons.expand_more,
+            size: 20,
+            color: scheme.primary,
+          ),
+      ],
+    );
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -26,27 +55,20 @@ class FormulaBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.calculate_outlined, size: 18, color: scheme.primary),
-              const SizedBox(width: 6),
-              Text(
-                'Cómo se calcula',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: scheme.primary,
-                ),
-              ),
+          if (widget.collapsible)
+            InkWell(onTap: () => setState(() => _open = !_open), child: header)
+          else
+            header,
+          if (_open)
+            for (final step in widget.steps) ...[
+              const SizedBox(height: 12),
+              switch (step) {
+                Equation() => _EquationView(step),
+                AverageMix() => _AverageMixView(step),
+                PriceSplit() => _PriceSplitView(step),
+                FormulaNote(:final text) => _NoteView(text),
+              },
             ],
-          ),
-          for (final step in steps) ...[
-            const SizedBox(height: 12),
-            switch (step) {
-              Equation() => _EquationView(step),
-              AverageMix() => _AverageMixView(step),
-              PriceSplit() => _PriceSplitView(step),
-              FormulaNote(:final text) => _NoteView(text),
-            },
-          ],
         ],
       ),
     );
@@ -74,9 +96,8 @@ class _EquationView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final op = Theme.of(context).textTheme.titleMedium?.copyWith(
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-    );
+    final op = Theme.of(context).textTheme.titleMedium
+        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

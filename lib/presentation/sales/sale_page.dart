@@ -5,9 +5,12 @@ import '../sync/sync_indicator.dart';
 import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
+import '../common/document_line_card.dart';
+import '../common/formula_box.dart';
 import '../common/presentation_selector.dart';
 import '../common/quantity_stepper.dart';
 import '../common/validators.dart';
+import '../format/cost_formula.dart';
 import '../format/date_format.dart';
 import '../purchases/product_picker_sheet.dart';
 import '../theme/app_theme.dart';
@@ -116,17 +119,18 @@ class _SalePageState extends ConsumerState<SalePage> {
             ],
           ),
           const SizedBox(height: 12),
-          for (final line in draft.lines) ...[
+          for (final (i, line) in draft.lines.indexed) ...[
             _SaleLineCard(
               key: ValueKey(line.id),
               line: line,
+              number: i + 1,
               fitsStock: draft.fitsStock(
                 line.product,
                 allowNegativeStock: allowNegative,
               ),
               requestedUnits: draft.unitsByProduct[line.product.id] ?? 0,
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
           ],
           if (draft.lines.isEmpty)
             Padding(
@@ -146,14 +150,7 @@ class _SalePageState extends ConsumerState<SalePage> {
                 ],
               ),
             ),
-          OutlinedButton.icon(
-            onPressed: _addProduct,
-            icon: const Icon(Icons.add),
-            label: const Text('Agregar producto'),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(52),
-            ),
-          ),
+          AddProductButton(onPressed: _addProduct),
           if (draft.lines.isNotEmpty) ...[
             const SizedBox(height: 16),
             TextField(
@@ -200,6 +197,19 @@ class _SalePageState extends ConsumerState<SalePage> {
                   onPressed: notifier.addExtraCharge,
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+            // How the footer's estimated profit is put together.
+            FormulaBox(
+              collapsible: true,
+              steps: saleOrderSteps(
+                productsProfit:
+                    draft.estimatedProfit -
+                    draft.customerChargesTotal +
+                    draft.shopCostsTotal,
+                customerCharges: draft.customerChargesTotal,
+                shopCosts: draft.shopCostsTotal,
+              ),
             ),
           ],
         ],
@@ -306,11 +316,15 @@ class _SaleLineCard extends ConsumerStatefulWidget {
   const _SaleLineCard({
     super.key,
     required this.line,
+    required this.number,
     required this.fitsStock,
     required this.requestedUnits,
   });
 
   final DraftSaleLine line;
+
+  /// 1-based position in the cart.
+  final int number;
   final bool fitsStock;
 
   /// Units of this product asked for by all lines of the cart.
@@ -363,114 +377,101 @@ class _SaleLineCardState extends ConsumerState<_SaleLineCard> {
     final profit = line.estimatedProfit;
     final discount = line.discount;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 8, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(product.name, style: theme.textTheme.titleMedium),
+    final units = line.unitsBase;
+    return DocumentLineCard(
+      number: widget.number,
+      title: product.name,
+      onRemove: () => notifier.removeLine(line.id),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PresentationSelector(
+            product: product,
+            selected: line.presentation,
+            onChanged: (p) => notifier.setPresentation(line.id, p),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              QuantityStepper(
+                controller: _qty,
+                onChanged: (q) => notifier.setQuantity(line.id, q),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _price,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (v) => notifier.setPrice(line.id, v),
+                  decoration: InputDecoration(
+                    labelText: pricePerLabel(line.presentation),
+                    prefixText: 'Bs ',
+                    errorText: validateMoney(line.priceText, required: true),
+                  ),
                 ),
-                IconButton(
-                  tooltip: 'Quitar',
-                  icon: const Icon(Icons.close),
-                  onPressed: () => notifier.removeLine(line.id),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              FilterChip(
+                avatar: const Icon(Icons.card_giftcard, size: 18),
+                label: const Text('Regalo'),
+                selected: line.isGift,
+                showCheckmark: false,
+                onSelected: (_) => notifier.toggleGift(line.id),
+              ),
+              const Spacer(),
+              if (subtotal != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(subtotal.format(), style: theme.textTheme.titleMedium),
+                    if (profit != null)
+                      Text(
+                        'Ganancia ${profit.format()}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: profit.isNegative
+                              ? theme.colorScheme.loss
+                              : theme.colorScheme.gain,
+                        ),
+                      ),
+                  ],
                 ),
-              ],
+            ],
+          ),
+          if (line.isGift)
+            _Note(
+              'Regalo: el costo cuenta contra la ganancia de esta venta.',
+              color: muted,
+            )
+          else if (discount != null && discount > Money.zero)
+            _Note(
+              'Descuento ${discount.format()} (sugerido ${line.suggestedPrice.format()})',
+              color: muted,
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 4),
-                  PresentationSelector(
-                    product: product,
-                    selected: line.presentation,
-                    onChanged: (p) => notifier.setPresentation(line.id, p),
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      QuantityStepper(
-                        controller: _qty,
-                        onChanged: (q) => notifier.setQuantity(line.id, q),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _price,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          onChanged: (v) => notifier.setPrice(line.id, v),
-                          decoration: InputDecoration(
-                            labelText: pricePerLabel(line.presentation),
-                            prefixText: 'Bs ',
-                            errorText: validateMoney(
-                              line.priceText,
-                              required: true,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      FilterChip(
-                        avatar: const Icon(Icons.card_giftcard, size: 18),
-                        label: const Text('Regalo'),
-                        selected: line.isGift,
-                        showCheckmark: false,
-                        onSelected: (_) => notifier.toggleGift(line.id),
-                      ),
-                      const Spacer(),
-                      if (subtotal != null)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              subtotal.format(),
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            if (profit != null)
-                              Text(
-                                'Ganancia ${profit.format()}',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: profit.isNegative
-                                      ? theme.colorScheme.loss
-                                      : theme.colorScheme.gain,
-                                ),
-                              ),
-                          ],
-                        ),
-                    ],
-                  ),
-                  if (line.isGift)
-                    _Note(
-                      'Regalo: el costo cuenta contra la ganancia de esta venta.',
-                      color: muted,
-                    )
-                  else if (discount != null && discount > Money.zero)
-                    _Note(
-                      'Descuento ${discount.format()} (sugerido ${line.suggestedPrice.format()})',
-                      color: muted,
-                    ),
-                  if (!widget.fitsStock)
-                    _Note(
-                      'Stock insuficiente: hay ${product.stockUnits} u y el carrito pide ${widget.requestedUnits} u',
-                      color: theme.colorScheme.loss,
-                    ),
-                ],
+          if (!widget.fitsStock)
+            _Note(
+              'Stock insuficiente: hay ${product.stockUnits} u y el carrito pide ${widget.requestedUnits} u',
+              color: theme.colorScheme.loss,
+            ),
+          if (subtotal != null && units != null) ...[
+            const SizedBox(height: 10),
+            FormulaBox(
+              collapsible: true,
+              steps: saleLineSteps(
+                quantity: line.quantity,
+                presentation: line.presentation,
+                unitsBase: units,
+                lineTotal: subtotal,
+                avgCost: product.avgCost,
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }

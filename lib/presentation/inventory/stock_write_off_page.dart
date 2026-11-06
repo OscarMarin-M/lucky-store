@@ -7,8 +7,10 @@ import '../../core/money/money.dart';
 import '../../core/quantity/presentation.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/stock_adjustment.dart';
+import '../common/formula_box.dart';
 import '../common/presentation_selector.dart';
 import '../common/quantity_stepper.dart';
+import '../format/cost_formula.dart';
 import '../format/date_format.dart';
 import '../format/stock_format.dart';
 import '../theme/app_theme.dart';
@@ -194,6 +196,16 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
                     Text(
                       'Quedan: ${formatProductStock(live, units: preview.remaining)}',
                       style: TextStyle(color: muted),
+                    ),
+                    const SizedBox(height: 10),
+                    FormulaBox(
+                      steps: writeOffSteps(
+                        quantity: _qty,
+                        presentation: _presentation,
+                        unitsBase: preview.units,
+                        avgCost: live.avgCost,
+                        loss: preview.loss,
+                      ),
                     ),
                   ],
                 ),
