@@ -42,6 +42,9 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   `void_reason`, y reproducir el inventario. El anulado sigue en el Historial
   (tachado) pero no cuenta en reportes ni stock; anular una compra ya vendida avisa
   del stock negativo y lo permite.
+- Cotización (botón en Vender): texto del carrito para el cliente (formato WhatsApp,
+  `quote_text.dart`). No registra nada ni toca stock ni lo valida (`canQuote`). Solo
+  muestra lo que paga el cliente: nunca costos, ganancia ni cargos que paga la tienda.
 
 ## Flujo de trabajo
 - Planificar antes de codificar en cambios grandes.
@@ -69,6 +72,11 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   PATH: `$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe`). Sin el dart-define la app
   queda solo local (sin login ni sync). Si Gradle falla con PKIX, desactivar el escaneo
   HTTPS de AVG.
+- Canal nativo `lucky_store/share` en `MainActivity.kt` (`installedApps`, `sendText`):
+  envía texto con ACTION_SEND a un paquete concreto (WhatsApp `com.whatsapp` /
+  Business `com.whatsapp.w4b`, declarados en `<queries>` del manifest; sin permisos).
+  No usar `wa.me`: abre siempre la app predeterminada. En tests, simular el canal con
+  `setMockMethodCallHandler(shareChannel, ...)` o la hoja de cotización no abre.
 - APK para compartir con el equipo: `flutter build apk --release --dart-define-from-file=env/dev.json`
   (~60 MB; se firma con la clave debug de esta PC, así las versiones nuevas se instalan
   encima sin perder datos ni sesión).
