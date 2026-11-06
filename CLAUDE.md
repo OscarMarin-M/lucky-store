@@ -16,16 +16,27 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
 ## Reglas de dominio (no romper)
 - Moneda: Bolivianos (Bs). Todo el dinero se guarda como entero con decimales, 2 decimales a lo más (Ej: 1352.99)
 - El inventario se guarda siempre en unidades base. Cada producto define
-  `unidades_por_caja`. Compras y ventas registran cantidad + presentación
-  (caja/unidad) y se convierten a unidades base.
+  `unidades_por_caja` y opcionalmente `unidades_por_bolsa` (v10; null = no viene
+  en bolsas, no se ofrece "Bolsa" al vender ni en bajas). Compras, ventas y bajas
+  registran cantidad + presentación (`unit`/`box`/`bag`) y se convierten a unidades
+  base. Una bolsa es de UN solo producto (no hay bolsas surtidas ni cajas de bolsas).
+  El stock se muestra en el empaque del producto (caja, si no bolsa): vender
+  unidades sueltas "abre" una bolsa (90 u en bolsas de 30 -5 u = 2 bolsas + 25 u).
+  No se sigue cada bolsa física: eso sería stock por lote (FIFO).
 - Costo: promedio ponderado. Ganancia por venta = (precio venta - costo promedio vigente) * cantidad.
   Diseñar para poder migrar a FIFO después.
 - Todas las tablas: id UUID, created_at, updated_at, deleted_at (borrado lógico).
 - Compras = "lotes" (`PurchaseLot`), cada modo con su propia lógica:
   - Caja: precio total de la caja, unidades por caja del lote (varía por proveedor),
     1 fecha de vencimiento opcional y 1 código.
+  - Bolsa (v10, `BagLot`): mismas reglas que la caja (`PackLot`); las unidades de la
+    bolsa se preguntan (vacías si el producto no tiene `unidades_por_bolsa`). El
+    tamaño del lote va en `purchase_lines.units_per_box` (columna del empaque).
   - Por unidades: precio por unidad, cantidad O monto pagado, rango de vencimiento opcional.
-  - `unidades_por_caja` del producto es solo el valor por defecto; una compra nunca lo cambia.
+  - `unidades_por_caja`/`unidades_por_bolsa` del producto son solo el valor por
+    defecto; una compra nunca los cambia.
+  - Presentación nueva: un APK viejo no sabe leer el valor y falla al recibirlo; hay
+    que actualizar TODOS los teléfonos antes de que alguien la use.
 - Venta = "pedido" (caja promocional = pedido con varios productos). Cada cargo
   adicional (mano de obra, empaque, impresión...) dice quién lo paga
   (`paid_by_customer`, v7): si lo paga el CLIENTE suma al total y a la ganancia; si lo
@@ -49,7 +60,7 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
 ## Flujo de trabajo
 - Planificar antes de codificar en cambios grandes.
 - Commits pequeños y descriptivos, una funcionalidad por rama.
-- Tests obligatorios para la lógica de costos y conversión de cajas.
+- Tests obligatorios para la lógica de costos y conversión de cajas y bolsas.
 - Comandos: `flutter pub get`, `dart run build_runner build`, `flutter test`, `flutter analyze`
 - Push: `git -c credential.helper=manager push origin main` (en esta PC `git push`
   a secas falla: no hay credential helper global ni `gh`).
