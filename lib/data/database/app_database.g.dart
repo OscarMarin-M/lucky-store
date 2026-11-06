@@ -599,6 +599,27 @@ class $ProductsTable extends Products
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _unitsPerBagMeta = const VerificationMeta(
+    'unitsPerBag',
+  );
+  @override
+  late final GeneratedColumn<int> unitsPerBag = GeneratedColumn<int>(
+    'units_per_bag',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _suggestedPriceBagCentsMeta =
+      const VerificationMeta('suggestedPriceBagCents');
+  @override
+  late final GeneratedColumn<int> suggestedPriceBagCents = GeneratedColumn<int>(
+    'suggested_price_bag_cents',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isActiveMeta = const VerificationMeta(
     'isActive',
   );
@@ -638,6 +659,8 @@ class $ProductsTable extends Products
     avgCostRaw,
     suggestedPriceUnitCents,
     suggestedPriceBoxCents,
+    unitsPerBag,
+    suggestedPriceBagCents,
     isActive,
     minStockUnits,
   ];
@@ -736,6 +759,24 @@ class $ProductsTable extends Products
         ),
       );
     }
+    if (data.containsKey('units_per_bag')) {
+      context.handle(
+        _unitsPerBagMeta,
+        unitsPerBag.isAcceptableOrUnknown(
+          data['units_per_bag']!,
+          _unitsPerBagMeta,
+        ),
+      );
+    }
+    if (data.containsKey('suggested_price_bag_cents')) {
+      context.handle(
+        _suggestedPriceBagCentsMeta,
+        suggestedPriceBagCents.isAcceptableOrUnknown(
+          data['suggested_price_bag_cents']!,
+          _suggestedPriceBagCentsMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_active')) {
       context.handle(
         _isActiveMeta,
@@ -804,6 +845,14 @@ class $ProductsTable extends Products
         DriftSqlType.int,
         data['${effectivePrefix}suggested_price_box_cents'],
       ),
+      unitsPerBag: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}units_per_bag'],
+      ),
+      suggestedPriceBagCents: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}suggested_price_bag_cents'],
+      ),
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
@@ -841,6 +890,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   /// Suggested prices in centavos.
   final int suggestedPriceUnitCents;
   final int? suggestedPriceBoxCents;
+
+  /// v10. Base units per bag; null = the product has no bags.
+  final int? unitsPerBag;
+
+  /// v10. Suggested price of a whole bag in centavos.
+  final int? suggestedPriceBagCents;
   final bool isActive;
 
   /// v3: "stock bajo" threshold in base units; null = no alert.
@@ -857,6 +912,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     required this.avgCostRaw,
     required this.suggestedPriceUnitCents,
     this.suggestedPriceBoxCents,
+    this.unitsPerBag,
+    this.suggestedPriceBagCents,
     required this.isActive,
     this.minStockUnits,
   });
@@ -879,6 +936,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     map['suggested_price_unit_cents'] = Variable<int>(suggestedPriceUnitCents);
     if (!nullToAbsent || suggestedPriceBoxCents != null) {
       map['suggested_price_box_cents'] = Variable<int>(suggestedPriceBoxCents);
+    }
+    if (!nullToAbsent || unitsPerBag != null) {
+      map['units_per_bag'] = Variable<int>(unitsPerBag);
+    }
+    if (!nullToAbsent || suggestedPriceBagCents != null) {
+      map['suggested_price_bag_cents'] = Variable<int>(suggestedPriceBagCents);
     }
     map['is_active'] = Variable<bool>(isActive);
     if (!nullToAbsent || minStockUnits != null) {
@@ -904,6 +967,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       suggestedPriceBoxCents: suggestedPriceBoxCents == null && nullToAbsent
           ? const Value.absent()
           : Value(suggestedPriceBoxCents),
+      unitsPerBag: unitsPerBag == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitsPerBag),
+      suggestedPriceBagCents: suggestedPriceBagCents == null && nullToAbsent
+          ? const Value.absent()
+          : Value(suggestedPriceBagCents),
       isActive: Value(isActive),
       minStockUnits: minStockUnits == null && nullToAbsent
           ? const Value.absent()
@@ -932,6 +1001,10 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       suggestedPriceBoxCents: serializer.fromJson<int?>(
         json['suggestedPriceBoxCents'],
       ),
+      unitsPerBag: serializer.fromJson<int?>(json['unitsPerBag']),
+      suggestedPriceBagCents: serializer.fromJson<int?>(
+        json['suggestedPriceBagCents'],
+      ),
       isActive: serializer.fromJson<bool>(json['isActive']),
       minStockUnits: serializer.fromJson<int?>(json['minStockUnits']),
     );
@@ -953,6 +1026,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         suggestedPriceUnitCents,
       ),
       'suggestedPriceBoxCents': serializer.toJson<int?>(suggestedPriceBoxCents),
+      'unitsPerBag': serializer.toJson<int?>(unitsPerBag),
+      'suggestedPriceBagCents': serializer.toJson<int?>(suggestedPriceBagCents),
       'isActive': serializer.toJson<bool>(isActive),
       'minStockUnits': serializer.toJson<int?>(minStockUnits),
     };
@@ -970,6 +1045,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     int? avgCostRaw,
     int? suggestedPriceUnitCents,
     Value<int?> suggestedPriceBoxCents = const Value.absent(),
+    Value<int?> unitsPerBag = const Value.absent(),
+    Value<int?> suggestedPriceBagCents = const Value.absent(),
     bool? isActive,
     Value<int?> minStockUnits = const Value.absent(),
   }) => ProductRow(
@@ -987,6 +1064,10 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     suggestedPriceBoxCents: suggestedPriceBoxCents.present
         ? suggestedPriceBoxCents.value
         : this.suggestedPriceBoxCents,
+    unitsPerBag: unitsPerBag.present ? unitsPerBag.value : this.unitsPerBag,
+    suggestedPriceBagCents: suggestedPriceBagCents.present
+        ? suggestedPriceBagCents.value
+        : this.suggestedPriceBagCents,
     isActive: isActive ?? this.isActive,
     minStockUnits: minStockUnits.present
         ? minStockUnits.value
@@ -1015,6 +1096,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       suggestedPriceBoxCents: data.suggestedPriceBoxCents.present
           ? data.suggestedPriceBoxCents.value
           : this.suggestedPriceBoxCents,
+      unitsPerBag: data.unitsPerBag.present
+          ? data.unitsPerBag.value
+          : this.unitsPerBag,
+      suggestedPriceBagCents: data.suggestedPriceBagCents.present
+          ? data.suggestedPriceBagCents.value
+          : this.suggestedPriceBagCents,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       minStockUnits: data.minStockUnits.present
           ? data.minStockUnits.value
@@ -1036,6 +1123,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('avgCostRaw: $avgCostRaw, ')
           ..write('suggestedPriceUnitCents: $suggestedPriceUnitCents, ')
           ..write('suggestedPriceBoxCents: $suggestedPriceBoxCents, ')
+          ..write('unitsPerBag: $unitsPerBag, ')
+          ..write('suggestedPriceBagCents: $suggestedPriceBagCents, ')
           ..write('isActive: $isActive, ')
           ..write('minStockUnits: $minStockUnits')
           ..write(')'))
@@ -1055,6 +1144,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     avgCostRaw,
     suggestedPriceUnitCents,
     suggestedPriceBoxCents,
+    unitsPerBag,
+    suggestedPriceBagCents,
     isActive,
     minStockUnits,
   );
@@ -1073,6 +1164,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.avgCostRaw == this.avgCostRaw &&
           other.suggestedPriceUnitCents == this.suggestedPriceUnitCents &&
           other.suggestedPriceBoxCents == this.suggestedPriceBoxCents &&
+          other.unitsPerBag == this.unitsPerBag &&
+          other.suggestedPriceBagCents == this.suggestedPriceBagCents &&
           other.isActive == this.isActive &&
           other.minStockUnits == this.minStockUnits);
 }
@@ -1089,6 +1182,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<int> avgCostRaw;
   final Value<int> suggestedPriceUnitCents;
   final Value<int?> suggestedPriceBoxCents;
+  final Value<int?> unitsPerBag;
+  final Value<int?> suggestedPriceBagCents;
   final Value<bool> isActive;
   final Value<int?> minStockUnits;
   final Value<int> rowid;
@@ -1104,6 +1199,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.avgCostRaw = const Value.absent(),
     this.suggestedPriceUnitCents = const Value.absent(),
     this.suggestedPriceBoxCents = const Value.absent(),
+    this.unitsPerBag = const Value.absent(),
+    this.suggestedPriceBagCents = const Value.absent(),
     this.isActive = const Value.absent(),
     this.minStockUnits = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1120,6 +1217,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.avgCostRaw = const Value.absent(),
     this.suggestedPriceUnitCents = const Value.absent(),
     this.suggestedPriceBoxCents = const Value.absent(),
+    this.unitsPerBag = const Value.absent(),
+    this.suggestedPriceBagCents = const Value.absent(),
     this.isActive = const Value.absent(),
     this.minStockUnits = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -1139,6 +1238,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<int>? avgCostRaw,
     Expression<int>? suggestedPriceUnitCents,
     Expression<int>? suggestedPriceBoxCents,
+    Expression<int>? unitsPerBag,
+    Expression<int>? suggestedPriceBagCents,
     Expression<bool>? isActive,
     Expression<int>? minStockUnits,
     Expression<int>? rowid,
@@ -1157,6 +1258,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
         'suggested_price_unit_cents': suggestedPriceUnitCents,
       if (suggestedPriceBoxCents != null)
         'suggested_price_box_cents': suggestedPriceBoxCents,
+      if (unitsPerBag != null) 'units_per_bag': unitsPerBag,
+      if (suggestedPriceBagCents != null)
+        'suggested_price_bag_cents': suggestedPriceBagCents,
       if (isActive != null) 'is_active': isActive,
       if (minStockUnits != null) 'min_stock_units': minStockUnits,
       if (rowid != null) 'rowid': rowid,
@@ -1175,6 +1279,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Value<int>? avgCostRaw,
     Value<int>? suggestedPriceUnitCents,
     Value<int?>? suggestedPriceBoxCents,
+    Value<int?>? unitsPerBag,
+    Value<int?>? suggestedPriceBagCents,
     Value<bool>? isActive,
     Value<int?>? minStockUnits,
     Value<int>? rowid,
@@ -1193,6 +1299,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           suggestedPriceUnitCents ?? this.suggestedPriceUnitCents,
       suggestedPriceBoxCents:
           suggestedPriceBoxCents ?? this.suggestedPriceBoxCents,
+      unitsPerBag: unitsPerBag ?? this.unitsPerBag,
+      suggestedPriceBagCents:
+          suggestedPriceBagCents ?? this.suggestedPriceBagCents,
       isActive: isActive ?? this.isActive,
       minStockUnits: minStockUnits ?? this.minStockUnits,
       rowid: rowid ?? this.rowid,
@@ -1239,6 +1348,14 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
         suggestedPriceBoxCents.value,
       );
     }
+    if (unitsPerBag.present) {
+      map['units_per_bag'] = Variable<int>(unitsPerBag.value);
+    }
+    if (suggestedPriceBagCents.present) {
+      map['suggested_price_bag_cents'] = Variable<int>(
+        suggestedPriceBagCents.value,
+      );
+    }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
@@ -1265,6 +1382,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('avgCostRaw: $avgCostRaw, ')
           ..write('suggestedPriceUnitCents: $suggestedPriceUnitCents, ')
           ..write('suggestedPriceBoxCents: $suggestedPriceBoxCents, ')
+          ..write('unitsPerBag: $unitsPerBag, ')
+          ..write('suggestedPriceBagCents: $suggestedPriceBagCents, ')
           ..write('isActive: $isActive, ')
           ..write('minStockUnits: $minStockUnits, ')
           ..write('rowid: $rowid')
@@ -2358,7 +2477,8 @@ class PurchaseLineRow extends DataClass implements Insertable<PurchaseLineRow> {
   /// Cost per base unit of this purchase, 1/10.000 Bs.
   final int unitCostRaw;
 
-  /// Box size of this lot; null for loose units.
+  /// Size of the pack of this lot (box or bag, see `presentation`; the
+  /// column keeps its v2 name); null for loose units.
   final int? unitsPerBox;
 
   /// Expiry range (a box has from == to). Drives "por vencer" alerts.
@@ -5903,7 +6023,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'products_outbox_insert',
   );
   late final Trigger productsOutboxUpdate = Trigger(
-    'CREATE TRIGGER products_outbox_update AFTER UPDATE OF name, sku, units_per_box, suggested_price_unit_cents, suggested_price_box_cents, is_active, min_stock_units, deleted_at ON products WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'products\', new.id);END',
+    'CREATE TRIGGER products_outbox_update AFTER UPDATE OF name, sku, units_per_box, suggested_price_unit_cents, suggested_price_box_cents, units_per_bag, suggested_price_bag_cents, is_active, min_stock_units, deleted_at ON products WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = \'applying_remote\') BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES (\'products\', new.id);END',
     'products_outbox_update',
   );
   late final $PurchasesTable purchases = $PurchasesTable(this);
@@ -6463,6 +6583,8 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<int> avgCostRaw,
   Value<int> suggestedPriceUnitCents,
   Value<int?> suggestedPriceBoxCents,
+  Value<int?> unitsPerBag,
+  Value<int?> suggestedPriceBagCents,
   Value<bool> isActive,
   Value<int?> minStockUnits,
   Value<int> rowid,
@@ -6479,6 +6601,8 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<int> avgCostRaw,
   Value<int> suggestedPriceUnitCents,
   Value<int?> suggestedPriceBoxCents,
+  Value<int?> unitsPerBag,
+  Value<int?> suggestedPriceBagCents,
   Value<bool> isActive,
   Value<int?> minStockUnits,
   Value<int> rowid,
@@ -6606,6 +6730,16 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<int> get suggestedPriceBoxCents => $composableBuilder(
     column: $table.suggestedPriceBoxCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get unitsPerBag => $composableBuilder(
+    column: $table.unitsPerBag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get suggestedPriceBagCents => $composableBuilder(
+    column: $table.suggestedPriceBagCents,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6759,6 +6893,16 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get unitsPerBag => $composableBuilder(
+    column: $table.unitsPerBag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get suggestedPriceBagCents => $composableBuilder(
+    column: $table.suggestedPriceBagCents,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
@@ -6819,6 +6963,16 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<int> get suggestedPriceBoxCents => $composableBuilder(
     column: $table.suggestedPriceBoxCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get unitsPerBag => $composableBuilder(
+    column: $table.unitsPerBag,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get suggestedPriceBagCents => $composableBuilder(
+    column: $table.suggestedPriceBagCents,
     builder: (column) => column,
   );
 
@@ -6949,6 +7103,8 @@ class $$ProductsTableTableManager
                 Value<int> avgCostRaw = const Value.absent(),
                 Value<int> suggestedPriceUnitCents = const Value.absent(),
                 Value<int?> suggestedPriceBoxCents = const Value.absent(),
+                Value<int?> unitsPerBag = const Value.absent(),
+                Value<int?> suggestedPriceBagCents = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int?> minStockUnits = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6964,6 +7120,8 @@ class $$ProductsTableTableManager
                 avgCostRaw: avgCostRaw,
                 suggestedPriceUnitCents: suggestedPriceUnitCents,
                 suggestedPriceBoxCents: suggestedPriceBoxCents,
+                unitsPerBag: unitsPerBag,
+                suggestedPriceBagCents: suggestedPriceBagCents,
                 isActive: isActive,
                 minStockUnits: minStockUnits,
                 rowid: rowid,
@@ -6981,6 +7139,8 @@ class $$ProductsTableTableManager
                 Value<int> avgCostRaw = const Value.absent(),
                 Value<int> suggestedPriceUnitCents = const Value.absent(),
                 Value<int?> suggestedPriceBoxCents = const Value.absent(),
+                Value<int?> unitsPerBag = const Value.absent(),
+                Value<int?> suggestedPriceBagCents = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int?> minStockUnits = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6996,6 +7156,8 @@ class $$ProductsTableTableManager
                 avgCostRaw: avgCostRaw,
                 suggestedPriceUnitCents: suggestedPriceUnitCents,
                 suggestedPriceBoxCents: suggestedPriceBoxCents,
+                unitsPerBag: unitsPerBag,
+                suggestedPriceBagCents: suggestedPriceBagCents,
                 isActive: isActive,
                 minStockUnits: minStockUnits,
                 rowid: rowid,

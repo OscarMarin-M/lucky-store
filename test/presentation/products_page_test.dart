@@ -85,6 +85,35 @@ void main() {
     await teardown(tester);
   });
 
+  testWidgets('creates a product that comes in bags (v10)', (tester) async {
+    // Tall phone: the whole form is built, bag section included.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpPage(tester);
+    await tester.tap(find.text('Nuevo'));
+    await tester.pumpAndSettle();
+    expect(find.text('Precio por bolsa'), findsNothing);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'Nombre'), 'Skittles');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por unidad'), '1');
+    await tester.ensureVisible(find.text('Viene en bolsas'));
+    await tester.tap(find.text('Viene en bolsas'));
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextFormField, 'Unidades por bolsa'), '30');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Precio por bolsa'), '25');
+    await tester.pump();
+    expect(find.text('Sale a Bs 0,83 c/u · Bs 5,00 menos que por unidad'), findsOneWidget);
+    await tester.ensureVisible(find.text('Crear producto'));
+    await tester.tap(find.text('Crear producto'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bolsa de 30 u'), findsOneWidget);
+    expect(find.text('Bs 25,00 / bolsa'), findsOneWidget);
+    expect(find.text('Precio por caja'), findsNothing, reason: 'no boxes');
+    await teardown(tester);
+  });
+
   testWidgets('validates required fields and money format', (tester) async {
     await pumpPage(tester);
     await tester.tap(find.text('Nuevo'));

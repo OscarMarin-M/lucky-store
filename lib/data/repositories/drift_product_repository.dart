@@ -33,6 +33,10 @@ class DriftProductRepository
         suggestedPriceBox: row.suggestedPriceBoxCents == null
             ? null
             : Money(row.suggestedPriceBoxCents!),
+        unitsPerBag: row.unitsPerBag,
+        suggestedPriceBag: row.suggestedPriceBagCents == null
+            ? null
+            : Money(row.suggestedPriceBagCents!),
         minStockUnits: row.minStockUnits,
         isActive: row.isActive,
       );
@@ -50,6 +54,8 @@ class DriftProductRepository
         avgCostRaw: Value(p.avgCost.raw),
         suggestedPriceUnitCents: Value(p.suggestedPriceUnit.cents),
         suggestedPriceBoxCents: Value(p.suggestedPriceBox?.cents),
+        unitsPerBag: Value(p.unitsPerBag),
+        suggestedPriceBagCents: Value(p.suggestedPriceBag?.cents),
         minStockUnits: Value(p.minStockUnits),
         isActive: Value(p.isActive),
       );

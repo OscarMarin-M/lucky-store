@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky_store/core/errors/domain_exception.dart';
 import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/money/unit_cost.dart';
+import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/domain/entities/product.dart';
 
 void main() {
@@ -45,5 +46,57 @@ void main() {
 
   test('stockValue is stock x average cost', () {
     expect(base.stockValue, const Money(6000)); // 30 x 2,00
+  });
+
+  group('bags (v10)', () {
+    final bagged = Product.create(
+      name: 'Skittles',
+      suggestedPriceUnit: const Money(100),
+      unitsPerBag: 30,
+    );
+
+    test('offers only the packs the product defines', () {
+      expect(base.presentations, [Presentation.unit, Presentation.box]);
+      expect(bagged.presentations, [Presentation.unit, Presentation.bag]);
+      expect(
+        base.copyWith(unitsPerBag: 50).presentations,
+        [Presentation.unit, Presentation.box, Presentation.bag],
+      );
+    });
+
+    test('converts with its own bag size', () {
+      expect(bagged.toBase(2, Presentation.bag), 60);
+      expect(bagged.unitsIn(Presentation.bag), 30);
+      expect(base.unitsIn(Presentation.bag), isNull);
+      expect(
+        () => base.toBase(1, Presentation.bag),
+        throwsA(isA<MissingBagSizeException>()),
+      );
+    });
+
+    test('bag price: its own, else units x unit price', () {
+      expect(bagged.suggestedPriceFor(Presentation.bag), const Money(3000));
+      expect(
+        bagged
+            .copyWith(suggestedPriceBag: const Money(2500))
+            .suggestedPriceFor(Presentation.bag),
+        const Money(2500),
+      );
+    });
+
+    test('withDetails can clear the bag; rejects a size < 1', () {
+      final cleared = bagged.withDetails(
+        name: 'Skittles',
+        unitsPerBox: 1,
+        suggestedPriceUnit: const Money(100),
+        unitsPerBag: null,
+        isActive: true,
+      );
+      expect(cleared.hasBags, isFalse);
+      expect(
+        () => Product.create(name: 'x', unitsPerBag: 0),
+        throwsA(isA<InvalidUnitsPerBagException>()),
+      );
+    });
   });
 }

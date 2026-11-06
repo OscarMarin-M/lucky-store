@@ -23,6 +23,12 @@ class Products extends Table with BaseColumns {
       integer().withDefault(const Constant(0))();
   IntColumn get suggestedPriceBoxCents => integer().nullable()();
 
+  /// v10. Base units per bag; null = the product has no bags.
+  IntColumn get unitsPerBag => integer().nullable()();
+
+  /// v10. Suggested price of a whole bag in centavos.
+  IntColumn get suggestedPriceBagCents => integer().nullable()();
+
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 
   /// v3: "stock bajo" threshold in base units; null = no alert.

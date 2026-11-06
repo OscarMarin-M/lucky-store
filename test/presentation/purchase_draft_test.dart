@@ -7,6 +7,7 @@ import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/data/database/app_database.dart';
 import 'package:lucky_store/domain/entities/product.dart';
+import 'package:lucky_store/domain/purchasing/purchase_lot.dart';
 import 'package:lucky_store/presentation/purchases/purchase_draft.dart';
 
 void main() {
@@ -20,8 +21,8 @@ void main() {
   DraftPurchaseLine line([int i = 0]) => state().lines[i];
 
   /// Edits the box form of line [i].
-  void box(BoxLotForm Function(BoxLotForm f) edit, [int i = 0]) =>
-      draft().updateForm(line(i).id, edit(line(i).form as BoxLotForm));
+  void box(PackLotForm Function(PackLotForm f) edit, [int i = 0]) =>
+      draft().updateForm(line(i).id, edit(line(i).form as PackLotForm));
 
   /// Edits the loose-units form of line [i].
   void loose(LooseLotForm Function(LooseLotForm f) edit, [int i = 0]) =>
@@ -47,7 +48,7 @@ void main() {
       ..addProduct(snickers)
       ..addProduct(gum);
     expect(line(0).mode, Presentation.box);
-    expect((line(0).form as BoxLotForm).unitsPerBoxText, '24');
+    expect((line(0).form as PackLotForm).unitsPerPackText, '24');
     expect(line(1).mode, Presentation.unit);
   });
 
@@ -55,7 +56,7 @@ void main() {
     draft().addProduct(snickers);
     expect(state().canSubmit, isFalse, reason: 'no price yet');
 
-    box((f) => f.copyWith(boxes: 2, priceText: '72', unitsPerBoxText: '36'));
+    box((f) => f.copyWith(packs: 2, priceText: '72', unitsPerPackText: '36'));
 
     expect(line().unitsBase, 72);
     expect(line().lineTotal, const Money(14400));
@@ -68,10 +69,10 @@ void main() {
     box((f) => f.copyWith(priceText: '1.234'));
     expect(state().canSubmit, isFalse, reason: 'more than 2 decimals');
 
-    box((f) => f.copyWith(priceText: '48', unitsPerBoxText: ''));
+    box((f) => f.copyWith(priceText: '48', unitsPerPackText: ''));
     expect(state().canSubmit, isFalse, reason: 'no box size');
 
-    box((f) => f.copyWith(unitsPerBoxText: '0'));
+    box((f) => f.copyWith(unitsPerPackText: '0'));
     expect(state().canSubmit, isFalse);
     expect(line().ruleError, contains('unidades por caja'));
   });
@@ -121,20 +122,20 @@ void main() {
     expect(state().canSubmit, isFalse);
 
     draft().setMode(line().id, Presentation.box);
-    expect((line().form as BoxLotForm).priceText, isEmpty);
+    expect((line().form as PackLotForm).priceText, isEmpty);
   });
 
   test('a form of the other mode is ignored', () {
     draft().addProduct(snickers);
     draft().updateForm(line().id, const LooseLotForm(unitPriceText: '1'));
-    expect(line().form, isA<BoxLotForm>());
+    expect(line().form, isA<PackLotForm>());
   });
 
   test('the total adds up the lines', () {
     draft()
       ..addProduct(snickers)
       ..addProduct(gum);
-    box((f) => f.copyWith(boxes: 2, priceText: '48'));
+    box((f) => f.copyWith(packs: 2, priceText: '48'));
     loose((f) => f.copyWith(unitPriceText: '1,25', units: 10), 1);
     expect(state().total, const Money(10850));
   });
@@ -156,7 +157,7 @@ void main() {
       ..setSupplier('  Distribuidora Sur ')
       ..setDate(DateTime(2026, 10, 1));
     box((f) => f.copyWith(
-          boxes: 2,
+          packs: 2,
           priceText: '48',
           expiry: () => DateTime(2027, 3, 15),
           lotCode: 'L-1',
@@ -186,5 +187,49 @@ void main() {
 
     await expectLater(draft().submit(), throwsA(isA<EntityNotFoundException>()));
     expect(state().lines, hasLength(1));
+  });
+
+  group('bags (v10)', () {
+    test('a product with bags (no boxes) starts as a bag of its usual size',
+        () async {
+      final skittles = await container
+          .read(productRepositoryProvider)
+          .create(Product.create(name: 'Skittles', unitsPerBag: 30));
+      draft().addProduct(skittles);
+      expect(line().mode, Presentation.bag);
+      expect((line().form as PackLotForm).unitsPerPackText, '30');
+
+      box((f) => f.copyWith(packs: 2, priceText: '24'));
+      expect(line().lot, isA<BagLot>());
+      expect(line().unitsBase, 60);
+      expect(line().lineTotal, const Money(4800));
+      expect(line().unitCost!.raw, 8000);
+      expect(state().canSubmit, isTrue);
+    });
+
+    test('a bag of a product without bag size asks for it', () {
+      draft().addProduct(snickers);
+      draft().setMode(line().id, Presentation.bag);
+      final form = line().form as PackLotForm;
+      expect(form.pack, Presentation.bag);
+      expect(form.unitsPerPackText, isEmpty, reason: 'ask the seller');
+
+      box((f) => f.copyWith(priceText: '20'));
+      expect(state().canSubmit, isFalse, reason: 'no bag size yet');
+      box((f) => f.copyWith(unitsPerPackText: '0'));
+      expect(line().ruleError, contains('unidades por bolsa'));
+      box((f) => f.copyWith(unitsPerPackText: '25'));
+      expect(line().unitsBase, 25);
+      expect(state().canSubmit, isTrue);
+    });
+
+    test('switching box <-> bag starts a blank form', () {
+      draft().addProduct(snickers);
+      box((f) => f.copyWith(priceText: '50'));
+      draft().setMode(line().id, Presentation.bag);
+      expect((line().form as PackLotForm).priceText, isEmpty);
+      draft().setMode(line().id, Presentation.box);
+      expect((line().form as PackLotForm).unitsPerPackText, '24');
+    });
   });
 }

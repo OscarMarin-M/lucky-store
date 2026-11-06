@@ -19,6 +19,8 @@ class Product extends BaseEntity {
     this.avgCost = UnitCost.zero,
     this.suggestedPriceUnit = Money.zero,
     this.suggestedPriceBox,
+    this.unitsPerBag,
+    this.suggestedPriceBag,
     this.minStockUnits,
     this.isActive = true,
   });
@@ -31,10 +33,12 @@ class Product extends BaseEntity {
     int unitsPerBox = 1,
     Money suggestedPriceUnit = Money.zero,
     Money? suggestedPriceBox,
+    int? unitsPerBag,
+    Money? suggestedPriceBag,
     int? minStockUnits,
     Clock clock = DateTime.now,
   }) {
-    if (unitsPerBox < 1) throw InvalidUnitsPerBoxException(unitsPerBox);
+    _checkSizes(unitsPerBox, unitsPerBag);
     final now = clock();
     return Product(
       id: newId(),
@@ -45,6 +49,8 @@ class Product extends BaseEntity {
       unitsPerBox: unitsPerBox,
       suggestedPriceUnit: suggestedPriceUnit,
       suggestedPriceBox: suggestedPriceBox,
+      unitsPerBag: unitsPerBag,
+      suggestedPriceBag: suggestedPriceBag,
       minStockUnits: minStockUnits,
     );
   }
@@ -66,6 +72,14 @@ class Product extends BaseEntity {
   /// Suggested price of a whole box; when null it is units x unit price.
   final Money? suggestedPriceBox;
 
+  /// v10. Base units in one bag; null = the product does not come in bags
+  /// (then "Bolsa" is not offered when selling or writing off). Like the box
+  /// size it is only a default: each purchased bag lot keeps its own size.
+  final int? unitsPerBag;
+
+  /// Suggested price of a whole bag; when null it is units x unit price.
+  final Money? suggestedPriceBag;
+
   /// At or below this many base units the product shows as "stock bajo" in
   /// Inicio. Null = no alert for this product.
   final int? minStockUnits;
@@ -83,15 +97,43 @@ class Product extends BaseEntity {
     return min != null && stockUnits <= min;
   }
 
+  bool get hasBoxes => unitsPerBox > 1;
+  bool get hasBags => unitsPerBag != null;
+
+  /// What a sale or write-off of this product can be counted in.
+  List<Presentation> get presentations => [
+        Presentation.unit,
+        if (hasBoxes) Presentation.box,
+        if (hasBags) Presentation.bag,
+      ];
+
+  /// Base units in one [presentation] by default (null: no bags).
+  int? unitsIn(Presentation presentation) => switch (presentation) {
+        Presentation.unit => 1,
+        Presentation.box => unitsPerBox,
+        Presentation.bag => unitsPerBag,
+      };
+
+  /// [quantity] of [presentation] in base units, with this product's sizes.
+  int toBase(int quantity, Presentation presentation) => toBaseUnits(
+        quantity: quantity,
+        presentation: presentation,
+        unitsPerBox: unitsPerBox,
+        unitsPerBag: unitsPerBag,
+      );
+
   /// Suggested price for one [presentation]; the sale can override it.
   Money suggestedPriceFor(Presentation presentation) => switch (presentation) {
         Presentation.unit => suggestedPriceUnit,
         Presentation.box =>
           suggestedPriceBox ?? suggestedPriceUnit.times(unitsPerBox),
+        Presentation.bag =>
+          suggestedPriceBag ?? suggestedPriceUnit.times(unitsPerBag ?? 1),
       };
 
   /// Edits the catalog data of the product (what a form changes). Unlike
-  /// [copyWith], null [sku] / [suggestedPriceBox] really clear the field.
+  /// [copyWith], null [sku] / [suggestedPriceBox] / [unitsPerBag] /
+  /// [suggestedPriceBag] really clear the field.
   /// Stock and average cost are untouched: only purchases, sales and
   /// adjustments move them.
   Product withDetails({
@@ -100,10 +142,12 @@ class Product extends BaseEntity {
     required int unitsPerBox,
     required Money suggestedPriceUnit,
     Money? suggestedPriceBox,
+    int? unitsPerBag,
+    Money? suggestedPriceBag,
     int? minStockUnits,
     required bool isActive,
   }) {
-    if (unitsPerBox < 1) throw InvalidUnitsPerBoxException(unitsPerBox);
+    _checkSizes(unitsPerBox, unitsPerBag);
     return Product(
       id: id,
       createdAt: createdAt,
@@ -116,6 +160,8 @@ class Product extends BaseEntity {
       avgCost: avgCost,
       suggestedPriceUnit: suggestedPriceUnit,
       suggestedPriceBox: suggestedPriceBox,
+      unitsPerBag: unitsPerBag,
+      suggestedPriceBag: suggestedPriceBag,
       minStockUnits: minStockUnits,
       isActive: isActive,
     );
@@ -131,12 +177,12 @@ class Product extends BaseEntity {
     UnitCost? avgCost,
     Money? suggestedPriceUnit,
     Money? suggestedPriceBox,
+    int? unitsPerBag,
+    Money? suggestedPriceBag,
     int? minStockUnits,
     bool? isActive,
   }) {
-    if (unitsPerBox != null && unitsPerBox < 1) {
-      throw InvalidUnitsPerBoxException(unitsPerBox);
-    }
+    _checkSizes(unitsPerBox ?? this.unitsPerBox, unitsPerBag);
     return Product(
       id: id,
       createdAt: createdAt,
@@ -149,8 +195,17 @@ class Product extends BaseEntity {
       avgCost: avgCost ?? this.avgCost,
       suggestedPriceUnit: suggestedPriceUnit ?? this.suggestedPriceUnit,
       suggestedPriceBox: suggestedPriceBox ?? this.suggestedPriceBox,
+      unitsPerBag: unitsPerBag ?? this.unitsPerBag,
+      suggestedPriceBag: suggestedPriceBag ?? this.suggestedPriceBag,
       minStockUnits: minStockUnits ?? this.minStockUnits,
       isActive: isActive ?? this.isActive,
     );
+  }
+}
+
+void _checkSizes(int unitsPerBox, int? unitsPerBag) {
+  if (unitsPerBox < 1) throw InvalidUnitsPerBoxException(unitsPerBox);
+  if (unitsPerBag != null && unitsPerBag < 1) {
+    throw InvalidUnitsPerBagException(unitsPerBag);
   }
 }

@@ -39,6 +39,11 @@ void main() {
           ),
         Presentation.unit =>
           LooseUnitsLot(units: qty, unitPrice: Money(total.cents ~/ qty)),
+        Presentation.bag => BagLot(
+            bags: qty,
+            unitsPerBag: p.unitsPerBag!,
+            pricePerBag: Money(total.cents ~/ qty),
+          ),
       };
 
   Future<void> buy(
@@ -687,6 +692,93 @@ void main() {
     test('a purchase with enough stock left warns about nothing', () async {
       final bought = await purchase('48', DateTime(2026, 11, 1));
       expect(negativeStockIfVoided(bought, {p.id: 30}), isEmpty);
+    });
+  });
+
+  group('bags (v10)', () {
+    // Bags of 30 by default, Bs 1,00 per unit / Bs 25,00 per bag suggested.
+    Future<Product> newBagged() => env.products.create(Product.create(
+          name: 'Skittles',
+          unitsPerBag: 30,
+          suggestedPriceUnit: const Money(100),
+          suggestedPriceBag: const Money(2500),
+        ));
+
+    test('the product keeps its bag size and price', () async {
+      final p = await reload(await newBagged());
+      expect(p.unitsPerBag, 30);
+      expect(p.suggestedPriceBag, const Money(2500));
+    });
+
+    test('an informal bag lot keeps its own size; costs pool in units',
+        () async {
+      final p = await newBagged();
+      await buy(p, 2, Presentation.bag, '36'); // 60 u @ 0,60
+      await env.registerPurchase(lines: [
+        PurchaseLineInput(
+          productId: p.id,
+          // Street seller: a bag of 25, not the usual 30.
+          lot: BagLot(bags: 1, unitsPerBag: 25, pricePerBag: Money.parse('20')),
+        ),
+      ]);
+
+      final after = await reload(p);
+      expect(after.stockUnits, 85);
+      // (60 x 0,60 + 25 x 0,80) / 85 = 56 / 85 = 0,6588
+      expect(after.avgCost.raw, 6588);
+      expect(after.unitsPerBag, 30, reason: 'a purchase never changes it');
+
+      final informal = (await env.purchases.getAll())
+          .expand((x) => x.lines)
+          .singleWhere((l) => l.unitsBase == 25);
+      expect(informal.presentation, Presentation.bag);
+      expect(informal.quantity, 1);
+      expect(informal.unitsPerBox, 25);
+    });
+
+    test('units sold out of a bag, then a whole bag', () async {
+      final p = await newBagged();
+      await buy(p, 3, Presentation.bag, '60'); // 90 u @ 0,6667
+
+      final loose = await env.registerSale(lines: [
+        SaleLineInput(productId: p.id, quantity: 5, presentation: Presentation.unit),
+      ]);
+      expect(loose.lines.single.unitsBase, 5);
+      expect((await reload(p)).stockUnits, 85); // 2 bolsas + 25 u
+
+      final bag = await env.registerSale(lines: [
+        SaleLineInput(productId: p.id, quantity: 1, presentation: Presentation.bag),
+      ]);
+      final line = bag.lines.single;
+      expect(line.presentation, Presentation.bag);
+      expect(line.unitsBase, 30);
+      expect(line.unitPrice, const Money(2500), reason: 'suggested bag price');
+      expect(line.costTotal, const Money(2000)); // 30 x 0,6667
+      expect(line.profit, const Money(500));
+      expect((await reload(p)).stockUnits, 55);
+    });
+
+    test('a bag can be written off; a product without bags cannot', () async {
+      final p = await newBagged();
+      await buy(p, 2, Presentation.bag, '36');
+      final adj = await env.registerAdjustment(
+        productId: p.id,
+        quantity: 1,
+        presentation: Presentation.bag,
+        reason: AdjustmentReason.shrinkage,
+      );
+      expect(adj.unitsBase, 30);
+      expect((await reload(p)).stockUnits, 30);
+
+      final candy = await newCandy();
+      await buy(candy, 1, Presentation.box, '48');
+      await expectLater(
+        env.registerSale(lines: [
+          SaleLineInput(productId: candy.id, quantity: 1, presentation: Presentation.bag),
+        ]),
+        throwsA(isA<MissingBagSizeException>()),
+      );
+      expect((await reload(candy)).stockUnits, 24, reason: 'nothing stored');
     });
   });
 }

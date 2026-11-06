@@ -18,6 +18,17 @@ class InvalidUnitsPerBoxException extends DomainException {
       : super('Las unidades por caja deben ser al menos 1 (recibido: $unitsPerBox)');
 }
 
+class InvalidUnitsPerBagException extends DomainException {
+  const InvalidUnitsPerBagException(int unitsPerBag)
+      : super('Las unidades por bolsa deben ser al menos 1 (recibido: $unitsPerBag)');
+}
+
+/// Selling or writing off bags of a product whose bag size is not defined.
+class MissingBagSizeException extends DomainException {
+  const MissingBagSizeException()
+      : super('El producto no tiene definidas las unidades por bolsa');
+}
+
 class InvalidAmountException extends DomainException {
   const InvalidAmountException(super.message);
 }

@@ -98,8 +98,9 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
                         enabled: enabled,
                         title: Text(p.name),
                         subtitle: Text(
-                          'Stock: ${formatStock(p.stockUnits, p.unitsPerBox)}'
-                          '${p.unitsPerBox > 1 ? ' · ${p.unitsPerBox} u/caja' : ''}',
+                          'Stock: ${formatProductStock(p)}'
+                          '${p.hasBoxes ? ' · ${p.unitsPerBox} u/caja' : ''}'
+                          '${p.hasBags ? ' · ${p.unitsPerBag} u/bolsa' : ''}',
                           style: TextStyle(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

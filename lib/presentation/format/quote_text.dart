@@ -1,5 +1,4 @@
 import '../../core/money/money.dart';
-import '../../core/quantity/presentation.dart';
 import '../sales/sale_draft.dart';
 import 'date_format.dart';
 
@@ -54,18 +53,19 @@ String quoteText(SaleDraftState draft, {required DateTime date}) {
   return out.toString();
 }
 
-/// `3 × Snickers — Bs 5,00 c/u = Bs 15,00`, `1 caja de Twix (24 u) — Bs 100,00`
+/// `3 × Snickers — Bs 5,00 c/u = Bs 15,00`, `1 caja de Twix (24 u) — Bs 100,00`,
+/// `2 bolsas de Skittles (30 u c/u) — Bs 25,00 c/bolsa = Bs 50,00`
 String _line(DraftSaleLine l) {
   final q = l.quantity;
   final name = l.product.name;
-  final isBox = l.presentation == Presentation.box;
-  final what = isBox
-      ? '$q ${q == 1 ? 'caja' : 'cajas'} de $name '
-            '(${l.product.unitsPerBox} u${q == 1 ? '' : ' c/u'})'
+  final pack = l.presentation;
+  final what = pack.isPack
+      ? '$q ${pack.nameFor(q)} de $name '
+            '(${l.product.unitsIn(pack)} u${q == 1 ? '' : ' c/u'})'
       : '$q × $name';
   final price = l.unitPrice ?? Money.zero;
   if (price.isZero) return '$what — de regalo 🎁';
   if (q == 1) return '$what — ${price.format()}';
-  final each = isBox ? 'c/caja' : 'c/u';
+  final each = pack.eachSuffix;
   return '$what — ${price.format()} $each = ${l.lineTotal!.format()}';
 }

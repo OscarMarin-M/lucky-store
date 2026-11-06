@@ -80,11 +80,7 @@ class InventoryLedger {
     required Presentation presentation,
   }) async {
     final product = await this.product(productId);
-    final units = toBaseUnits(
-      quantity: quantity,
-      presentation: presentation,
-      unitsPerBox: product.unitsPerBox,
-    );
+    final units = product.toBase(quantity, presentation);
     final result = _strategy.applyOutflow(
       product.stockState,
       units: units,

@@ -44,11 +44,7 @@ class DraftSaleLine {
 
   int? get unitsBase => quantity < 1
       ? null
-      : toBaseUnits(
-          quantity: quantity,
-          presentation: presentation,
-          unitsPerBox: product.unitsPerBox,
-        );
+      : product.toBase(quantity, presentation);
 
   Money? get lineTotal => quantity < 1 ? null : unitPrice?.times(quantity);
 

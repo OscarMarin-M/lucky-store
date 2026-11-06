@@ -25,55 +25,71 @@ sealed class LotForm {
   PurchaseLot? build();
 }
 
-/// Sealed box from a supplier: price of one box, size of THIS box, one
-/// expiry date and the code printed on it.
-final class BoxLotForm extends LotForm {
-  const BoxLotForm({
-    this.boxes = 1,
-    required this.unitsPerBoxText,
+/// Sealed pack (box or bag, [pack]): price of one pack, size of THIS pack,
+/// one expiry date and the code printed on it.
+final class PackLotForm extends LotForm {
+  const PackLotForm({
+    required this.pack,
+    this.packs = 1,
+    required this.unitsPerPackText,
     this.priceText = '',
     this.expiry,
     this.lotCode = '',
   });
 
-  /// The product's usual box size is only a starting point.
-  factory BoxLotForm.forProduct(Product p) =>
-      BoxLotForm(unitsPerBoxText: '${p.unitsPerBox}');
+  /// The product's usual pack size is only a starting point. A product with
+  /// no bag size starts the field empty: the owner asks the seller.
+  factory PackLotForm.forProduct(Product p, Presentation pack) => PackLotForm(
+        pack: pack,
+        unitsPerPackText: '${p.unitsIn(pack) ?? ''}',
+      );
 
-  final int boxes;
-  final String unitsPerBoxText;
+  /// [Presentation.box] or [Presentation.bag].
+  final Presentation pack;
+  final int packs;
+  final String unitsPerPackText;
   final String priceText;
   final DateTime? expiry;
   final String lotCode;
 
-  int? get unitsPerBox => int.tryParse(unitsPerBoxText.trim());
+  int? get unitsPerPack => int.tryParse(unitsPerPackText.trim());
 
   @override
-  Presentation get mode => Presentation.box;
+  Presentation get mode => pack;
 
   @override
   PurchaseLot? build() {
     final price = tryParseMoney(priceText);
-    final size = unitsPerBox;
-    if (price == null || size == null || boxes < 1) return null;
-    return BoxLot(
-      boxes: boxes,
-      unitsPerBox: size,
-      pricePerBox: price,
-      expiry: expiry,
-      lotCode: lotCode,
-    );
+    final size = unitsPerPack;
+    if (price == null || size == null || packs < 1) return null;
+    return switch (pack) {
+      Presentation.bag => BagLot(
+          bags: packs,
+          unitsPerBag: size,
+          pricePerBag: price,
+          expiry: expiry,
+          lotCode: lotCode,
+        ),
+      _ => BoxLot(
+          boxes: packs,
+          unitsPerBox: size,
+          pricePerBox: price,
+          expiry: expiry,
+          lotCode: lotCode,
+        ),
+    };
   }
 
-  BoxLotForm copyWith({
-    int? boxes,
-    String? unitsPerBoxText,
+  PackLotForm copyWith({
+    int? packs,
+    String? unitsPerPackText,
     String? priceText,
     DateTime? Function()? expiry,
     String? lotCode,
-  }) => BoxLotForm(
-    boxes: boxes ?? this.boxes,
-    unitsPerBoxText: unitsPerBoxText ?? this.unitsPerBoxText,
+  }) => PackLotForm(
+    pack: pack,
+    packs: packs ?? this.packs,
+    unitsPerPackText: unitsPerPackText ?? this.unitsPerPackText,
     priceText: priceText ?? this.priceText,
     expiry: expiry != null ? expiry() : this.expiry,
     lotCode: lotCode ?? this.lotCode,
@@ -155,13 +171,15 @@ class DraftPurchaseLine {
     required this.form,
   });
 
-  /// Starts as a box when the product usually comes in boxes.
+  /// Starts as the product's usual pack: box, else bag, else loose units.
   factory DraftPurchaseLine.forProduct(Product product) => DraftPurchaseLine(
     id: newId(),
     product: product,
-    form: product.unitsPerBox > 1
-        ? BoxLotForm.forProduct(product)
-        : const LooseLotForm(),
+    form: product.hasBoxes
+        ? PackLotForm.forProduct(product, Presentation.box)
+        : product.hasBags
+            ? PackLotForm.forProduct(product, Presentation.bag)
+            : const LooseLotForm(),
   );
 
   final String id;
@@ -248,15 +266,15 @@ class PurchaseDraft extends Notifier<PurchaseDraftState> {
     );
   }
 
-  /// Box and loose purchases ask for different things, so switching starts a
-  /// blank form: a box price is never kept as a unit price by accident.
+  /// Each way of buying asks for different things, so switching starts a
+  /// blank form: a box price is never kept as a bag or unit price by accident.
   void setMode(String id, Presentation mode) => _updateLine(
     id,
     (l) => l.mode == mode
         ? l
         : l.withForm(
-            mode == Presentation.box
-                ? BoxLotForm.forProduct(l.product)
+            mode.isPack
+                ? PackLotForm.forProduct(l.product, mode)
                 : const LooseLotForm(),
           ),
   );

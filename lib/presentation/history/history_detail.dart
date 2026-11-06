@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/money/money.dart';
-import '../../core/quantity/presentation.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/purchase.dart';
 import '../../domain/entities/sale.dart';
@@ -174,7 +173,7 @@ class _SaleLineTile extends StatelessWidget {
     final isGift = l.unitPrice == Money.zero;
     final qty = formatLineQuantity(
       quantity: l.quantity,
-      isBox: l.presentation == Presentation.box,
+      presentation: l.presentation,
       unitsBase: l.unitsBase,
     );
     return Padding(
@@ -349,9 +348,9 @@ class _PurchaseLineTile extends StatelessWidget {
     final l = line;
     final qty = formatLineQuantity(
       quantity: l.quantity,
-      isBox: l.presentation == Presentation.box,
+      presentation: l.presentation,
       unitsBase: l.unitsBase,
-      unitsPerBox: l.unitsPerBox,
+      packSize: l.unitsPerBox,
     );
     final price = _pricePerPresentation(l.lineTotal, l.quantity);
     final expiry = expiryText(l);
@@ -447,7 +446,7 @@ Future<void> showWriteOffDetail(
                     'Cantidad',
                     formatLineQuantity(
                       quantity: a.quantity,
-                      isBox: a.presentation == Presentation.box,
+                      presentation: a.presentation,
                       unitsBase: a.unitsBase,
                     ),
                     null,

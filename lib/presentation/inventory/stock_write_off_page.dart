@@ -7,6 +7,7 @@ import '../../core/money/money.dart';
 import '../../core/quantity/presentation.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/stock_adjustment.dart';
+import '../common/presentation_selector.dart';
 import '../common/quantity_stepper.dart';
 import '../format/date_format.dart';
 import '../format/stock_format.dart';
@@ -48,11 +49,7 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
   }) {
     if (_qty < 1) return null;
     try {
-      final units = toBaseUnits(
-        quantity: _qty,
-        presentation: _presentation,
-        unitsPerBox: p.unitsPerBox,
-      );
+      final units = p.toBase(_qty, _presentation);
       final out = ref
           .read(costStrategyProvider)
           .applyOutflow(
@@ -125,8 +122,8 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
         children: [
           Text(live.name, style: theme.textTheme.titleLarge),
           Text(
-            'Stock: ${formatStock(live.stockUnits, live.unitsPerBox)}'
-            '${live.stockUnits > 0 && live.unitsPerBox > 1 ? ' (${live.stockUnits} u)' : ''}',
+            'Stock: ${formatProductStock(live)}'
+            '${live.stockUnits > 0 && stockPackOf(live).isPack ? ' (${live.stockUnits} u)' : ''}',
             style: TextStyle(color: muted),
           ),
           const SizedBox(height: 16),
@@ -151,25 +148,11 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
             style: theme.textTheme.bodySmall?.copyWith(color: muted),
           ),
           const SizedBox(height: 16),
-          if (live.unitsPerBox > 1) ...[
-            SegmentedButton<Presentation>(
-              showSelectedIcon: false,
-              segments: [
-                const ButtonSegment(
-                  value: Presentation.unit,
-                  label: Text('Unidad'),
-                ),
-                ButtonSegment(
-                  value: Presentation.box,
-                  label: Text('Caja (${live.unitsPerBox} u)'),
-                ),
-              ],
-              selected: {_presentation},
-              onSelectionChanged: (s) =>
-                  setState(() => _presentation = s.first),
-            ),
-            const SizedBox(height: 12),
-          ],
+          PresentationSelector(
+            product: live,
+            selected: _presentation,
+            onChanged: (p) => setState(() => _presentation = p),
+          ),
           Row(
             children: [
               QuantityStepper(
@@ -178,7 +161,9 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
               ),
               const SizedBox(width: 12),
               Text(
-                _presentation == Presentation.box ? 'cajas' : 'unidades',
+                _presentation.isPack
+                    ? _presentation.nameFor(_qty)
+                    : 'unidades',
                 style: TextStyle(color: muted),
               ),
             ],
@@ -207,7 +192,7 @@ class _StockWriteOffPageState extends ConsumerState<StockWriteOffPage> {
                       ),
                     ),
                     Text(
-                      'Quedan: ${formatStock(preview.remaining, live.unitsPerBox)}',
+                      'Quedan: ${formatProductStock(live, units: preview.remaining)}',
                       style: TextStyle(color: muted),
                     ),
                   ],

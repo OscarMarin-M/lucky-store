@@ -249,7 +249,7 @@ class _AlertsCard extends StatelessWidget {
           leading: Icon(Icons.trending_down, color: scheme.tertiary),
           title: Text(p.name),
           subtitle: Text(
-            'Stock bajo: ${formatStock(p.stockUnits, p.unitsPerBox)} '
+            'Stock bajo: ${formatProductStock(p)} '
             '(mínimo ${p.minStockUnits} u)',
           ),
         ),
@@ -339,10 +339,7 @@ class _TopSellersCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    formatStock(
-                      sellers[i].product.stockUnits,
-                      sellers[i].product.unitsPerBox,
-                    ),
+                    formatProductStock(sellers[i].product),
                     style: theme.textTheme.titleSmall,
                   ),
                   Text(

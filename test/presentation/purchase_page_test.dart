@@ -56,7 +56,7 @@ void main() {
 
     // Line card: a box of the product's usual size, 1 -> 2 boxes with "+".
     expect(find.text('Caja'), findsOneWidget);
-    expect(find.text('Por unidades'), findsOneWidget);
+    expect(find.text('Por unidad'), findsOneWidget);
     expect(
       tester.widget<TextField>(find.widgetWithText(TextField, 'Unidades por caja'))
           .controller!.text,
@@ -140,7 +140,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Ask how it was bought: the form changes to the loose-units one.
-    await tester.tap(find.text('Por unidades'));
+    await tester.tap(find.text('Por unidad'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextField, 'Precio por caja'), findsNothing);
     expect(find.text('Vence desde (opcional)'), findsOneWidget);
@@ -183,6 +183,41 @@ void main() {
 
     expect(find.text('Comprar'), findsOneWidget);
     expect(find.text('Gomitas'), findsOneWidget, reason: 'added to the draft');
+    await teardown(tester);
+  });
+
+  testWidgets('informal bag: the units per bag are asked, not assumed (v10)',
+      (tester) async {
+    late Product snickers;
+    await pumpPage(tester, seed: (repo) async {
+      snickers = await repo.create(Product.create(name: 'Snickers', unitsPerBox: 24));
+    });
+
+    await tester.tap(find.text('Agregar producto'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Snickers'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Bolsa'));
+    await tester.pumpAndSettle();
+    final size = find.widgetWithText(TextField, 'Unidades por bolsa');
+    expect(tester.widget<TextField>(size).controller!.text, isEmpty);
+
+    await tester.enterText(size, '25');
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextField, 'Precio por bolsa'), '20');
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('Total (25 u)'), findsOneWidget);
+    expect(find.text('Bs 0,8000 c/u'), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: 'three options fit a 360 dp phone');
+
+    await tester.tap(find.text('Registrar compra'));
+    await tester.pumpAndSettle();
+    final stored = (await tester.runAsync(
+      () => container.read(productRepositoryProvider).getById(snickers.id),
+    ))!;
+    expect(stored.stockUnits, 25);
+    expect(stored.unitsPerBag, isNull, reason: 'a purchase never sets the default');
     await teardown(tester);
   });
 }

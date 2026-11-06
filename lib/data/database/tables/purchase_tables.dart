@@ -39,7 +39,8 @@ class PurchaseLines extends Table with BaseColumns {
 
   // --- v2: each line is a lot ---
 
-  /// Box size of this lot; null for loose units.
+  /// Size of the pack of this lot (box or bag, see `presentation`; the
+  /// column keeps its v2 name); null for loose units.
   IntColumn get unitsPerBox => integer().nullable()();
 
   /// Expiry range (a box has from == to). Drives "por vencer" alerts.

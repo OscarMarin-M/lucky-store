@@ -41,4 +41,43 @@ void main() {
       );
     });
   });
+
+  group('bags (v10)', () {
+    test('bags multiply by unitsPerBag, independent of the box', () {
+      expect(
+        toBaseUnits(
+          quantity: 2,
+          presentation: Presentation.bag,
+          unitsPerBox: 24,
+          unitsPerBag: 30,
+        ),
+        60,
+      );
+    });
+
+    test('a product without bag size cannot convert bags', () {
+      expect(
+        () => toBaseUnits(quantity: 1, presentation: Presentation.bag, unitsPerBox: 24),
+        throwsA(isA<MissingBagSizeException>()),
+      );
+      expect(
+        () => toBaseUnits(
+          quantity: 1,
+          presentation: Presentation.bag,
+          unitsPerBox: 1,
+          unitsPerBag: 0,
+        ),
+        throwsA(isA<InvalidUnitsPerBagException>()),
+      );
+    });
+
+    test('names in Spanish, singular and plural', () {
+      expect(Presentation.bag.nameFor(1), 'bolsa');
+      expect(Presentation.bag.nameFor(3), 'bolsas');
+      expect(Presentation.box.nameFor(2), 'cajas');
+      expect(Presentation.bag.eachSuffix, 'c/bolsa');
+      expect(Presentation.unit.isPack, isFalse);
+      expect(Presentation.bag.isPack, isTrue);
+    });
+  });
 }

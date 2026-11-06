@@ -89,4 +89,16 @@ Precios sujetos a disponibilidad.''');
     expect(SaleDraftState(lines: [line(snickers, 1, 'abc')]).canQuote, isFalse);
     expect(const SaleDraftState().canQuote, isFalse);
   });
+
+  test('a bag line names the bag and its units (v10)', () {
+    final skittles = Product.create(name: 'Skittles', unitsPerBag: 30);
+    final text = quoteText(
+      SaleDraftState(lines: [line(skittles, 2, '25', Presentation.bag)]),
+      date: date,
+    );
+    expect(
+      text,
+      contains('2 bolsas de Skittles (30 u c/u) — Bs 25,00 c/bolsa = Bs 50,00'),
+    );
+  });
 }

@@ -5,7 +5,7 @@ import '../sync/sync_indicator.dart';
 import '../../app/providers.dart';
 import '../../core/errors/domain_exception.dart';
 import '../../core/money/money.dart';
-import '../../core/quantity/presentation.dart';
+import '../common/presentation_selector.dart';
 import '../common/quantity_stepper.dart';
 import '../common/validators.dart';
 import '../format/date_format.dart';
@@ -387,25 +387,11 @@ class _SaleLineCardState extends ConsumerState<_SaleLineCard> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 4),
-                  if (product.unitsPerBox > 1) ...[
-                    SegmentedButton<Presentation>(
-                      showSelectedIcon: false,
-                      segments: [
-                        const ButtonSegment(
-                          value: Presentation.unit,
-                          label: Text('Unidad'),
-                        ),
-                        ButtonSegment(
-                          value: Presentation.box,
-                          label: Text('Caja (${product.unitsPerBox} u)'),
-                        ),
-                      ],
-                      selected: {line.presentation},
-                      onSelectionChanged: (s) =>
-                          notifier.setPresentation(line.id, s.first),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                  PresentationSelector(
+                    product: product,
+                    selected: line.presentation,
+                    onChanged: (p) => notifier.setPresentation(line.id, p),
+                  ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -422,9 +408,7 @@ class _SaleLineCardState extends ConsumerState<_SaleLineCard> {
                           ),
                           onChanged: (v) => notifier.setPrice(line.id, v),
                           decoration: InputDecoration(
-                            labelText: line.presentation == Presentation.box
-                                ? 'Precio por caja'
-                                : 'Precio por unidad',
+                            labelText: pricePerLabel(line.presentation),
                             prefixText: 'Bs ',
                             errorText: validateMoney(
                               line.priceText,

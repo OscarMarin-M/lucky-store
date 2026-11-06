@@ -125,10 +125,10 @@ void main() {
     expect(formatTime(DateTime(2026, 1, 1, 9, 5)), '09:05');
 
     expect(
-      formatLineQuantity(quantity: 2, isBox: true, unitsBase: 72, unitsPerBox: 36),
+      formatLineQuantity(quantity: 2, presentation: Presentation.box, unitsBase: 72, packSize: 36),
       '2 cajas de 36 u',
     );
-    expect(formatLineQuantity(quantity: 1, isBox: true, unitsBase: 24), '1 caja de 24 u');
-    expect(formatLineQuantity(quantity: 10, isBox: false, unitsBase: 10), '10 u');
+    expect(formatLineQuantity(quantity: 1, presentation: Presentation.box, unitsBase: 24), '1 caja de 24 u');
+    expect(formatLineQuantity(quantity: 10, presentation: Presentation.unit, unitsBase: 10), '10 u');
   });
 }

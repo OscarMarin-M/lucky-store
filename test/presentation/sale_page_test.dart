@@ -17,7 +17,8 @@ void main() {
   late ProviderContainer container;
   late Product gum;
 
-  /// Gum: 10 units @ Bs 2,00, sold at Bs 3,00. Twix: no stock.
+  /// Gum: 10 units @ Bs 2,00, sold at Bs 3,00. Twix: no stock. Skittles:
+  /// bags of 30.
   /// Seeded before the page listens to the database (see products_page_test).
   Future<void> pumpPage(WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1600);
@@ -33,6 +34,14 @@ void main() {
       await repo.updateInventory(g.id, stockUnits: 10, avgCost: const UnitCost(20000));
       gum = (await repo.getById(g.id))!;
       await repo.create(Product.create(name: 'Twix', suggestedPriceUnit: const Money(500)));
+      // Skittles: bags of 30 (Bs 25,00 the bag), 60 units @ Bs 0,60.
+      final s = await repo.create(Product.create(
+        name: 'Skittles',
+        suggestedPriceUnit: const Money(100),
+        unitsPerBag: 30,
+        suggestedPriceBag: const Money(2500),
+      ));
+      await repo.updateInventory(s.id, stockUnits: 60, avgCost: const UnitCost(6000));
     });
     await tester.pumpWidget(UncontrolledProviderScope(
       container: container,
@@ -275,6 +284,35 @@ void main() {
     ))!
         .single;
     expect(sale.extraCharges.single.paidByCustomer, isFalse);
+    await teardown(tester);
+  });
+
+  testWidgets('sells a whole bag at the bag price (v10)', (tester) async {
+    await pumpPage(tester);
+    await addGum(tester);
+    expect(find.text('Unidad'), findsNothing, reason: 'gum: units only');
+
+    await tester.tap(find.text('Agregar producto'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skittles'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bolsa (30 u)'));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final price = find.widgetWithText(TextField, 'Precio por bolsa');
+    expect(tester.widget<TextField>(price).controller!.text, '25,00');
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byTooltip('Quitar').first); // drop the gum
+    await tester.pumpAndSettle();
+    await tester.tap(charge);
+    await tester.pumpAndSettle();
+    // 25,00 - 30 x 0,60
+    expect(find.text('Venta registrada · Bs 25,00 · ganancia Bs 7,00'), findsOneWidget);
+    final stored = (await tester.runAsync(
+      () => container.read(productRepositoryProvider).getAll(),
+    ))!;
+    expect(stored.singleWhere((p) => p.name == 'Skittles').stockUnits, 30);
     await teardown(tester);
   });
 }

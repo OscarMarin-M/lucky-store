@@ -105,16 +105,16 @@ List<FormulaStep> purchaseCostSteps(
 }) {
   final units = lot.unitsBase;
   final steps = <FormulaStep?>[
-    // A single box's total is just its price: no step for it.
+    // A single pack's total is just its price: no step for it.
     switch (lot) {
-      BoxLot(:final boxes, :final pricePerBox) when boxes > 1 => Equation(
+      PackLot(:final packs, :final pricePerPack) when packs > 1 => Equation(
         'Total',
-        Term('$boxes cajas', 'cantidad'),
+        Term('$packs ${lot.presentation.nameFor(packs)}', 'cantidad'),
         '×',
-        Term(pricePerBox.format(), 'precio caja'),
+        Term(pricePerPack.format(), _packPriceLabel(lot)),
         Term(lot.lineTotal.format(), 'total'),
       ),
-      BoxLot() => null,
+      PackLot() => null,
       LooseUnitsLot(:final unitPrice) => Equation(
         'Total',
         Term('$units u', 'cantidad'),
@@ -124,12 +124,12 @@ List<FormulaStep> purchaseCostSteps(
       ),
     },
     // Loose units are typed at their unit price: nothing to divide.
-    if (lot is BoxLot)
+    if (lot is PackLot)
       Equation(
         'Costo por unidad',
         Term(
           lot.lineTotal.format(),
-          lot.boxes > 1 ? 'total' : 'precio caja',
+          lot.packs > 1 ? 'total' : _packPriceLabel(lot),
         ),
         '÷',
         Term('$units u', 'unidades'),
@@ -166,8 +166,12 @@ List<FormulaStep> purchaseCostSteps(
   return steps;
 }
 
+/// "precio caja" / "precio bolsa".
+String _packPriceLabel(PackLot lot) =>
+    'precio ${lot.presentation.nameFor(1)}';
+
 /// The product's current figures: what its stock is worth and what one
-/// unit / one box leaves at the suggested prices.
+/// unit / one box / one bag leaves at the suggested prices.
 List<FormulaStep> productCostSteps(Product p) {
   final cost = p.avgCost;
   if (cost.raw == 0) {
@@ -199,6 +203,13 @@ List<FormulaStep> productCostSteps(Product p) {
         price: p.suggestedPriceFor(Presentation.box),
         cost: cost.totalFor(box),
         costDetail: '$box u × ${cost.format()}',
+      ),
+    if (p.unitsPerBag case final bag?)
+      PriceSplit(
+        title: 'Por bolsa ($bag u)',
+        price: p.suggestedPriceFor(Presentation.bag),
+        cost: cost.totalFor(bag),
+        costDetail: '$bag u × ${cost.format()}',
       ),
     const FormulaNote(
       'Cada compra recalcula el costo promedio: (stock × costo actual + total '

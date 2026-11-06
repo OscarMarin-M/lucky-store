@@ -15,10 +15,10 @@ void main() {
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
   test('every old version migrates to exactly the current schema', () async {
-    for (final from in [1, 2, 3, 4, 5, 6, 7, 8]) {
+    for (final from in [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
       final connection = await verifier.startAt(from);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 9);
+      await verifier.migrateAndValidate(db, 10);
       await db.close();
     }
   });
@@ -46,7 +46,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 9);
+    await verifier.migrateAndValidate(db, 10);
 
     final purchase =
         (await DriftPurchaseRepository(db).getById('c1'))!;
@@ -84,7 +84,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 9);
+    await verifier.migrateAndValidate(db, 10);
 
     final repo = DriftSaleRepository(db);
     final s1 = (await repo.getById('s1'))!;
@@ -112,7 +112,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 9);
+    await verifier.migrateAndValidate(db, 10);
     final queued = await db.select(db.syncOutbox).get();
     expect(
       queued.map((e) => '${e.tableName$}/${e.rowId}'),
@@ -137,12 +137,39 @@ void main() {
       ..execute('DELETE FROM sync_outbox');
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 9);
+    await verifier.migrateAndValidate(db, 10);
     final sale = (await DriftSaleRepository(db).getById('s1'))!;
     expect(sale.extraCharges.single.paidByCustomer, isTrue);
     expect(sale.total.cents, 3500, reason: 'sales untouched');
     expect(sale.profit.cents, 1500);
     expect(await db.select(db.syncOutbox).get(), isEmpty);
+    await db.close();
+  });
+
+  test('v10 products have no bags and bag edits are uploaded', () async {
+    final schema = await verifier.schemaAt(9);
+    const ts = "'2026-11-01T10:00:00.000'";
+    schema.rawDatabase
+      ..execute(
+        "INSERT INTO products (id, created_at, updated_at, name, units_per_box, "
+        "suggested_price_unit_cents, stock_units, avg_cost_raw) "
+        "VALUES ('p1', $ts, $ts, 'Skittles', 1, 100, 0, 0)",
+      )
+      ..execute('DELETE FROM sync_outbox');
+
+    final db = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(db, 10);
+    final row = await db.select(db.products).getSingle();
+    expect(row.unitsPerBag, isNull);
+    expect(row.suggestedPriceBagCents, isNull);
+    expect(await db.select(db.syncOutbox).get(), isEmpty);
+
+    // The recreated trigger watches the new catalog columns.
+    await db.customStatement(
+      "UPDATE products SET units_per_bag = 30 WHERE id = 'p1'",
+    );
+    final queued = await db.select(db.syncOutbox).get();
+    expect(queued.map((r) => r.rowId), ['p1']);
     await db.close();
   });
 }

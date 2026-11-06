@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -116,6 +116,14 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(sales, sales.voidReason);
             await m.addColumn(stockAdjustments, stockAdjustments.voidedBy);
             await m.addColumn(stockAdjustments, stockAdjustments.voidReason);
+          }
+          if (from < 10) {
+            // Products can also come in bags (own size and suggested price).
+            // The products trigger now also watches these columns.
+            await m.addColumn(products, products.unitsPerBag);
+            await m.addColumn(products, products.suggestedPriceBagCents);
+            await customStatement('DROP TRIGGER IF EXISTS products_outbox_update');
+            await m.create(productsOutboxUpdate);
           }
         },
         beforeOpen: (details) async {

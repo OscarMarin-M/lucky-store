@@ -9,6 +9,7 @@ import '../../core/quantity/presentation.dart';
 /// * [BoxLot]: a sealed box from a regular supplier. The size of the box
 ///   belongs to THIS lot (suppliers bring 24 or 36), it has one expiry date
 ///   and maybe a code printed on the box.
+/// * [BagLot] (v10): a sealed bag of one product, same rules as a box.
 /// * [LooseUnitsLot]: loose units bought informally (offers, street sellers).
 ///   Priced per unit; the expiry dates may differ between units, so it keeps
 ///   a range.
@@ -28,7 +29,7 @@ sealed class PurchaseLot {
   Presentation get presentation;
   int get quantity;
 
-  /// Box size of this lot; null for loose units.
+  /// Pack size (box or bag) of this lot; null for loose units.
   int? get unitsPerBox;
 
   /// Earliest / latest expiry in the lot (equal for a box). Null = unknown.
@@ -40,44 +41,99 @@ sealed class PurchaseLot {
   UnitCost get unitCost => UnitCost.fromTotal(lineTotal, unitsBase);
 }
 
-final class BoxLot extends PurchaseLot {
-  /// [pricePerBox] is the price of ONE box: the owner reads it off the
-  /// invoice and the app multiplies by [boxes].
-  BoxLot({
-    required this.boxes,
-    required int unitsPerBox,
-    required this.pricePerBox,
+/// A sealed pack (box or bag) of one product: N packs of the same size at
+/// one price each, one expiry date and maybe a printed code. The size
+/// belongs to THIS lot, the product's size is only the suggested default.
+sealed class PackLot extends PurchaseLot {
+  PackLot({
+    required this.packs,
+    required this.unitsPerPack,
+    required this.pricePerPack,
     DateTime? expiry,
     String? lotCode,
-  })  : _unitsPerBox = unitsPerBox,
-        expiry = _dateOnly(expiry),
+  })  : expiry = _dateOnly(expiry),
         lotCode = _blankToNull(lotCode) {
-    if (boxes < 1) throw InvalidQuantityException(boxes);
-    if (unitsPerBox < 1) throw InvalidUnitsPerBoxException(unitsPerBox);
-    _rejectNegative(pricePerBox);
+    if (packs < 1) throw InvalidQuantityException(packs);
+    _rejectNegative(pricePerPack);
   }
 
-  final int boxes;
-  final int _unitsPerBox;
-  final Money pricePerBox;
+  final int packs;
+  final int unitsPerPack;
+
+  /// Price of ONE pack: the owner reads it off the invoice or asks the
+  /// seller, and the app multiplies by [packs].
+  final Money pricePerPack;
   final DateTime? expiry;
   @override
   final String? lotCode;
 
   @override
-  int get unitsBase => boxes * _unitsPerBox;
+  int get unitsBase => packs * unitsPerPack;
   @override
-  Money get lineTotal => pricePerBox.times(boxes);
+  Money get lineTotal => pricePerPack.times(packs);
   @override
-  Presentation get presentation => Presentation.box;
+  int get quantity => packs;
+
+  /// Stored in the lot's pack size column whatever the pack is.
   @override
-  int get quantity => boxes;
-  @override
-  int get unitsPerBox => _unitsPerBox;
+  int get unitsPerBox => unitsPerPack;
   @override
   DateTime? get expiryFrom => expiry;
   @override
   DateTime? get expiryTo => expiry;
+}
+
+/// Sealed box from a regular supplier (24 or 36 depending on who brings it).
+final class BoxLot extends PackLot {
+  BoxLot({
+    required int boxes,
+    required int unitsPerBox,
+    required Money pricePerBox,
+    super.expiry,
+    super.lotCode,
+  }) : super(
+          packs: boxes,
+          unitsPerPack: _checkBox(unitsPerBox),
+          pricePerPack: pricePerBox,
+        );
+
+  int get boxes => packs;
+  Money get pricePerBox => pricePerPack;
+
+  @override
+  Presentation get presentation => Presentation.box;
+
+  static int _checkBox(int size) {
+    if (size < 1) throw InvalidUnitsPerBoxException(size);
+    return size;
+  }
+}
+
+/// v10. Bag of one product, often bought informally: its unit count is
+/// asked to the seller and may differ from the product's usual bag.
+final class BagLot extends PackLot {
+  BagLot({
+    required int bags,
+    required int unitsPerBag,
+    required Money pricePerBag,
+    super.expiry,
+    super.lotCode,
+  }) : super(
+          packs: bags,
+          unitsPerPack: _checkBag(unitsPerBag),
+          pricePerPack: pricePerBag,
+        );
+
+  int get bags => packs;
+  Money get pricePerBag => pricePerPack;
+
+  @override
+  Presentation get presentation => Presentation.bag;
+
+  static int _checkBag(int size) {
+    if (size < 1) throw InvalidUnitsPerBagException(size);
+    return size;
+  }
 }
 
 final class LooseUnitsLot extends PurchaseLot {

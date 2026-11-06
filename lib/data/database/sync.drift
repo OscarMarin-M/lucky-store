@@ -30,7 +30,8 @@ BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('products', new.id); 
 
 CREATE TRIGGER products_outbox_update AFTER UPDATE OF
   name, sku, units_per_box, suggested_price_unit_cents,
-  suggested_price_box_cents, is_active, min_stock_units, deleted_at
+  suggested_price_box_cents, units_per_bag, suggested_price_bag_cents,
+  is_active, min_stock_units, deleted_at
 ON products
 WHEN NOT EXISTS (SELECT 1 FROM sync_state WHERE "key" = 'applying_remote')
 BEGIN INSERT INTO sync_outbox (table_name, row_id) VALUES ('products', new.id); END;

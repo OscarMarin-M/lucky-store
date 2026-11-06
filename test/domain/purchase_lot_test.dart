@@ -113,4 +113,39 @@ void main() {
           throwsA(isA<InvalidQuantityException>()));
     });
   });
+
+  group('BagLot (v10)', () {
+    test('same rules as a box, with the size of THIS bag', () {
+      final lot = BagLot(
+        bags: 3,
+        unitsPerBag: 25,
+        pricePerBag: Money.parse('20'),
+        expiry: DateTime(2027, 1, 10, 9),
+        lotCode: ' B7 ',
+      );
+      expect(lot.unitsBase, 75);
+      expect(lot.lineTotal, const Money(6000));
+      expect(lot.unitCost.raw, 8000); // 20 / 25 = Bs 0,80 c/u
+      expect(lot.presentation, Presentation.bag);
+      expect(lot.quantity, 3);
+      expect(lot.unitsPerBox, 25, reason: 'stored in the pack size column');
+      expect(lot.expiryFrom, DateTime(2027, 1, 10));
+      expect(lot.lotCode, 'B7');
+    });
+
+    test('rejects no bags, a size < 1 and a negative price', () {
+      expect(
+        () => BagLot(bags: 0, unitsPerBag: 30, pricePerBag: Money.zero),
+        throwsA(isA<InvalidQuantityException>()),
+      );
+      expect(
+        () => BagLot(bags: 1, unitsPerBag: 0, pricePerBag: Money.zero),
+        throwsA(isA<InvalidUnitsPerBagException>()),
+      );
+      expect(
+        () => BagLot(bags: 1, unitsPerBag: 30, pricePerBag: const Money(-1)),
+        throwsA(isA<InvalidAmountException>()),
+      );
+    });
+  });
 }

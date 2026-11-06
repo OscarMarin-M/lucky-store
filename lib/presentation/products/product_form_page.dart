@@ -31,9 +31,12 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   late final TextEditingController _unitsPerBox;
   late final TextEditingController _priceUnit;
   late final TextEditingController _priceBox;
+  late final TextEditingController _unitsPerBag;
+  late final TextEditingController _priceBag;
   late final TextEditingController _minStock;
   late bool _isActive;
   late bool _hasBoxes;
+  late bool _hasBags;
   bool _saving = false;
 
   bool get _isEdit => widget.product != null;
@@ -54,6 +57,13 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     _priceBox = TextEditingController(
       text: p?.suggestedPriceBox?.format(symbol: false) ?? '',
     );
+    _hasBags = p?.hasBags ?? false;
+    _unitsPerBag = TextEditingController(
+      text: _hasBags ? '${p!.unitsPerBag}' : '',
+    );
+    _priceBag = TextEditingController(
+      text: p?.suggestedPriceBag?.format(symbol: false) ?? '',
+    );
     _minStock = TextEditingController(
       text: p?.minStockUnits == null ? '' : '${p!.minStockUnits}',
     );
@@ -67,6 +77,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     _unitsPerBox.dispose();
     _priceUnit.dispose();
     _priceBox.dispose();
+    _unitsPerBag.dispose();
+    _priceBag.dispose();
     _minStock.dispose();
     super.dispose();
   }
@@ -75,12 +87,15 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   int get _unitsPerBoxValue =>
       _hasBoxes ? (int.tryParse(_unitsPerBox.text.trim()) ?? 1) : 1;
 
-  /// What the box price means per unit, compared with the loose price:
-  /// `Sale a Bs 3,33 c/u · Bs 4,00 menos que por unidad`. Empty box price =
-  /// the sale uses units × unit price.
-  String _boxPriceHint() {
-    final units = _unitsPerBoxValue;
-    final box = tryParseMoney(_priceBox.text.trim());
+  /// Off = the product never comes in bags (no "Bolsa" when selling).
+  int? get _unitsPerBagValue =>
+      _hasBags ? int.tryParse(_unitsPerBag.text.trim()) : null;
+
+  /// What a pack price (box or bag) means per unit, compared with the loose
+  /// price: `Sale a Bs 3,33 c/u · Bs 4,00 menos que por unidad`. Empty pack
+  /// price = the sale uses units × unit price.
+  String _packPriceHint(int units, TextEditingController price) {
+    final box = tryParseMoney(price.text.trim());
     final unit = tryParseMoney(_priceUnit.text.trim());
     if (box == null || units < 2) {
       return unit == null || units < 2
@@ -109,6 +124,11 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
     final priceBox = unitsPerBox > 1 && priceBoxText.isNotEmpty
         ? Money.parse(priceBoxText)
         : null;
+    final unitsPerBag = _unitsPerBagValue;
+    final priceBagText = _priceBag.text.trim();
+    final priceBag = unitsPerBag != null && priceBagText.isNotEmpty
+        ? Money.parse(priceBagText)
+        : null;
     // Empty = no "stock bajo" alert for this product.
     final minStock = int.tryParse(_minStock.text.trim());
 
@@ -123,6 +143,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             unitsPerBox: unitsPerBox,
             suggestedPriceUnit: priceUnit,
             suggestedPriceBox: priceBox,
+            unitsPerBag: unitsPerBag,
+            suggestedPriceBag: priceBag,
             minStockUnits: minStock,
           ),
         );
@@ -134,6 +156,8 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
             unitsPerBox: unitsPerBox,
             suggestedPriceUnit: priceUnit,
             suggestedPriceBox: priceBox,
+            unitsPerBag: unitsPerBag,
+            suggestedPriceBag: priceBag,
             minStockUnits: minStock,
             isActive: _isActive,
           ),
@@ -163,6 +187,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                   .firstOrNull ??
               original);
     final hasBoxes = _hasBoxes;
+    final hasBags = _hasBags;
 
     return Scaffold(
       appBar: AppBar(
@@ -247,7 +272,58 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                     decoration: InputDecoration(
                       labelText: 'Precio por caja',
                       prefixText: 'Bs ',
-                      helperText: _boxPriceHint(),
+                      helperText: _packPriceHint(_unitsPerBoxValue, _priceBox),
+                      helperMaxLines: 2,
+                    ),
+                    validator: (v) => validateMoney(v, required: false),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Bags of one product (often bought informally). Optional: off,
+            // the product is never offered as "Bolsa" when selling.
+            _SectionCard(
+              icon: Icons.shopping_bag_outlined,
+              title: 'Venta por bolsa',
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Viene en bolsas'),
+                  subtitle: const Text('Para comprar y vender la bolsa cerrada'),
+                  value: _hasBags,
+                  onChanged: (v) => setState(() => _hasBags = v),
+                ),
+                if (hasBags) ...[
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _unitsPerBag,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    textInputAction: TextInputAction.next,
+                    onChanged: (_) => setState(() {}),
+                    decoration: const InputDecoration(
+                      labelText: 'Unidades por bolsa',
+                      helperText:
+                          'Por defecto; cada compra puede traer otra cantidad',
+                    ),
+                    validator: (v) {
+                      final n = int.tryParse(v?.trim() ?? '');
+                      return (n == null || n < 2) ? 'Debe ser 2 o más' : null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _priceBag,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: 'Precio por bolsa',
+                      prefixText: 'Bs ',
+                      helperText:
+                          _packPriceHint(_unitsPerBagValue ?? 0, _priceBag),
                       helperMaxLines: 2,
                     ),
                     validator: (v) => validateMoney(v, required: false),
@@ -292,7 +368,7 @@ class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                       Text('Inventario', style: theme.textTheme.titleSmall),
                       const SizedBox(height: 8),
                       Text(
-                        'Stock: ${formatStock(p!.stockUnits, p.unitsPerBox)}'
+                        'Stock: ${formatProductStock(p!)}'
                         '${p.stockUnits > 0 ? ' (${p.stockUnits} u)' : ''}',
                       ),
                       Text('Costo promedio: ${p.avgCost.format()} por unidad'),

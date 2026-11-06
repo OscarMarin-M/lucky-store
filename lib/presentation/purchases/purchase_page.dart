@@ -174,8 +174,8 @@ class _PurchasePageState extends ConsumerState<PurchasePage> {
   }
 }
 
-/// One lot: the owner first says HOW it was bought (box or loose units) and
-/// the form below changes, because each way asks for different data.
+/// One lot: the owner first says HOW it was bought (box, bag or loose units)
+/// and the form below changes, because each way asks for different data.
 class _LineCard extends ConsumerWidget {
   const _LineCard({super.key, required this.line});
 
@@ -222,9 +222,14 @@ class _LineCard extends ConsumerWidget {
                         label: Text('Caja'),
                       ),
                       ButtonSegment(
+                        value: Presentation.bag,
+                        icon: Icon(Icons.shopping_bag_outlined),
+                        label: Text('Bolsa'),
+                      ),
+                      ButtonSegment(
                         value: Presentation.unit,
                         icon: Icon(Icons.scatter_plot_outlined),
-                        label: Text('Por unidades'),
+                        label: Text('Por unidad'),
                       ),
                     ],
                     selected: {line.mode},
@@ -234,8 +239,8 @@ class _LineCard extends ConsumerWidget {
                   const SizedBox(height: 12),
                   // Keyed by mode: switching builds fresh fields/controllers.
                   switch (line.form) {
-                    BoxLotForm f => _BoxLotFields(
-                      key: ValueKey('${line.id}-box'),
+                    PackLotForm f => _PackLotFields(
+                      key: ValueKey('${line.id}-${f.pack.name}'),
                       form: f,
                       onChanged: (next) => notifier.updateForm(line.id, next),
                     ),
@@ -256,21 +261,22 @@ class _LineCard extends ConsumerWidget {
   }
 }
 
-/// Box: how many boxes and the price of ONE, the size of this box (it changes
-/// between suppliers), its code and its single expiry date.
-class _BoxLotFields extends StatefulWidget {
-  const _BoxLotFields({super.key, required this.form, required this.onChanged});
+/// Box or bag: how many and the price of ONE, the size of this pack (it
+/// changes between suppliers; for an informal bag it is asked to the seller),
+/// its code and its single expiry date.
+class _PackLotFields extends StatefulWidget {
+  const _PackLotFields({super.key, required this.form, required this.onChanged});
 
-  final BoxLotForm form;
-  final ValueChanged<BoxLotForm> onChanged;
+  final PackLotForm form;
+  final ValueChanged<PackLotForm> onChanged;
 
   @override
-  State<_BoxLotFields> createState() => _BoxLotFieldsState();
+  State<_PackLotFields> createState() => _PackLotFieldsState();
 }
 
-class _BoxLotFieldsState extends State<_BoxLotFields> {
-  late final _boxes = TextEditingController(text: '${widget.form.boxes}');
-  late final _size = TextEditingController(text: widget.form.unitsPerBoxText);
+class _PackLotFieldsState extends State<_PackLotFields> {
+  late final _boxes = TextEditingController(text: '${widget.form.packs}');
+  late final _size = TextEditingController(text: widget.form.unitsPerPackText);
   late final _price = TextEditingController(text: widget.form.priceText);
   late final _code = TextEditingController(text: widget.form.lotCode);
 
@@ -286,7 +292,8 @@ class _BoxLotFieldsState extends State<_BoxLotFields> {
   @override
   Widget build(BuildContext context) {
     final form = widget.form;
-    final size = form.unitsPerBox;
+    final size = form.unitsPerPack;
+    final one = form.pack.nameFor(1);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -295,13 +302,13 @@ class _BoxLotFieldsState extends State<_BoxLotFields> {
           children: [
             QuantityStepper(
               controller: _boxes,
-              onChanged: (q) => widget.onChanged(form.copyWith(boxes: q)),
+              onChanged: (q) => widget.onChanged(form.copyWith(packs: q)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _MoneyField(
                 controller: _price,
-                label: 'Precio por caja',
+                label: 'Precio por $one',
                 onChanged: (v) => widget.onChanged(form.copyWith(priceText: v)),
               ),
             ),
@@ -316,10 +323,10 @@ class _BoxLotFieldsState extends State<_BoxLotFields> {
                 controller: _size,
                 keyboardType: TextInputType.number,
                 onChanged: (v) =>
-                    widget.onChanged(form.copyWith(unitsPerBoxText: v)),
+                    widget.onChanged(form.copyWith(unitsPerPackText: v)),
                 decoration: InputDecoration(
-                  labelText: 'Unidades por caja',
-                  errorText: form.unitsPerBoxText.isEmpty ||
+                  labelText: 'Unidades por $one',
+                  errorText: form.unitsPerPackText.isEmpty ||
                           (size != null && size >= 1)
                       ? null
                       : 'Mínimo 1',
@@ -563,10 +570,10 @@ class _LotSummary extends ConsumerWidget {
             value: lot.lineTotal.format(),
             emphasis: true,
           ),
-          // A box price hides the unit cost; a loose lot by amount hides the
+          // A pack price hides the unit cost; a loose lot by amount hides the
           // count. Show the figure the owner did not type.
           switch (lot) {
-            BoxLot() => _InfoRow(
+            PackLot() => _InfoRow(
               label: 'Sale a',
               value: '${lot.unitCost.format()} c/u',
             ),

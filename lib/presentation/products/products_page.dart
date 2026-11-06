@@ -215,7 +215,8 @@ class _ProductCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final p = product;
     final noStock = p.stockUnits <= 0;
-    final hasBoxes = p.unitsPerBox > 1;
+    final hasBoxes = p.hasBoxes;
+    final packSize = p.unitsIn(stockPackOf(p)) ?? 1;
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -268,6 +269,8 @@ class _ProductCard extends StatelessWidget {
                               _Pill(text: status, color: statusColor),
                             if (hasBoxes)
                               Text('Caja de ${p.unitsPerBox} u', style: muted),
+                            if (p.unitsPerBag case final bag?)
+                              Text('Bolsa de $bag u', style: muted),
                             if (p.sku != null)
                               Text('Cód. ${p.sku}', style: muted),
                           ],
@@ -288,6 +291,11 @@ class _ProductCard extends StatelessWidget {
                           '${p.suggestedPriceFor(Presentation.box).format()} / caja',
                           style: muted,
                         ),
+                      if (p.hasBags)
+                        Text(
+                          '${p.suggestedPriceFor(Presentation.bag).format()} / bolsa',
+                          style: muted,
+                        ),
                     ],
                   ),
                 ],
@@ -306,8 +314,8 @@ class _ProductCard extends StatelessWidget {
                       // The pill already says "Sin stock".
                       value: noStock
                           ? '${p.stockUnits} u'
-                          : formatStock(p.stockUnits, p.unitsPerBox),
-                      detail: hasBoxes && p.stockUnits >= p.unitsPerBox
+                          : formatProductStock(p),
+                      detail: packSize > 1 && p.stockUnits >= packSize
                           ? '${p.stockUnits} u'
                           : null,
                       color: noStock ? scheme.loss : null,
