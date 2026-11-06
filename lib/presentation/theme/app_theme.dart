@@ -1,22 +1,35 @@
 import 'package:flutter/material.dart';
 
 /// Dark theme for one-handed phone use: big touch targets, rounded fields.
+///
+/// Colours come from the logo but stay easy on the eyes: the accent is the
+/// ring pink of the logo through Material's tonal palette (a soft, dusty
+/// rose, never the saturated pink), and backgrounds are near-neutral dark
+/// with a slight warm tint instead of blue-grey.
+const brandPink = Color(0xFFD16D69);
+const _background = Color(0xFF141213);
+const _surface = Color(0xFF1E1A1B);
+
 ThemeData buildDarkTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFF7C6CF0),
+    seedColor: brandPink,
     brightness: Brightness.dark,
+    dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot,
+    // Material's error is a pink almost equal to the accent: use the same
+    // red as losses so an error never looks like a button.
+    error: const Color(0xFFFF6B6B),
   );
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    scaffoldBackgroundColor: const Color(0xFF111116),
+    scaffoldBackgroundColor: _background,
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF111116),
+      backgroundColor: _background,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: const Color(0xFF1A1A22),
+      backgroundColor: _surface,
       indicatorColor: scheme.primaryContainer,
     ),
     // Underline-style borders keep the floating label INSIDE the filled box
@@ -40,7 +53,7 @@ ThemeData buildDarkTheme() {
       ),
     ),
     cardTheme: CardThemeData(
-      color: const Color(0xFF1A1A22),
+      color: _surface,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
