@@ -3,11 +3,14 @@ import 'package:lucky_store/core/errors/domain_exception.dart';
 import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/domain/entities/product.dart';
+import 'package:lucky_store/domain/entities/purchase.dart';
+import 'package:lucky_store/domain/entities/sale.dart';
 import 'package:lucky_store/domain/entities/stock_adjustment.dart';
 import 'package:lucky_store/domain/purchasing/purchase_lot.dart';
 import 'package:lucky_store/domain/usecases/inventory_ledger.dart';
 import 'package:lucky_store/domain/usecases/register_purchase.dart';
 import 'package:lucky_store/domain/usecases/register_sale.dart';
+import 'package:lucky_store/domain/usecases/void_document.dart';
 
 import 'test_env.dart';
 
@@ -577,6 +580,113 @@ void main() {
       final p = await newCandy();
       await buy(p, 1, Presentation.box, '48');
       expect((await env.purchases.getAll()).single.registeredBy, isNull);
+    });
+  });
+
+  group('voiding', () {
+    late Product p;
+
+    setUp(() async {
+      await env.dispose();
+      env = TestEnv(currentUser: () => 'ana@gmail.com');
+      p = await newCandy();
+    });
+
+    Future<Purchase> purchase(String boxPrice, DateTime date) =>
+        env.registerPurchase(date: date, lines: [
+          PurchaseLineInput(
+            productId: p.id,
+            lot: lotOf(p, 1, Presentation.box, Money.parse(boxPrice)),
+          ),
+        ]);
+
+    Future<Sale> sell(int units, DateTime date) => env.registerSale(
+          date: date,
+          lines: [
+            SaleLineInput(
+              productId: p.id,
+              quantity: units,
+              presentation: Presentation.unit,
+            ),
+          ],
+        );
+
+    test('a voided sale gives its units back and stays listed as voided',
+        () async {
+      await purchase('48', DateTime(2026, 11, 1)); // 24 @ 2,00
+      final sale = await sell(10, DateTime(2026, 11, 2));
+      expect((await reload(p)).stockUnits, 14);
+
+      await env.voidDocument.sale(sale.id, reason: '  precio mal cargado ');
+
+      final after = await reload(p);
+      expect(after.stockUnits, 24);
+      expect(after.avgCost.raw, 20000);
+      expect(await env.sales.getAll(), isEmpty, reason: 'reports skip it');
+      expect(await env.sales.profitByProduct(), isEmpty);
+
+      final listed =
+          (await env.sales.watchAll(includeVoided: true).first).single;
+      expect(listed.isVoided, isTrue);
+      expect(listed.voidedBy, 'ana@gmail.com');
+      expect(listed.voidReason, 'precio mal cargado');
+      expect(listed.total, sale.total, reason: 'figures are kept');
+    });
+
+    test('a voided purchase replays the average; frozen sale costs stay',
+        () async {
+      await purchase('48', DateTime(2026, 11, 1)); // 24 @ 2,00
+      final second = await purchase('72', DateTime(2026, 11, 2)); // 24 @ 3,00
+      final sale = await sell(10, DateTime(2026, 11, 3)); // at 2,50
+      expect(sale.lines.single.costAtSale.raw, 25000);
+
+      await env.voidDocument.purchase(second.id);
+
+      final after = await reload(p);
+      expect(after.stockUnits, 14); // 24 - 10
+      expect(after.avgCost.raw, 20000, reason: 'only the first box counts');
+      final stored = (await env.sales.getById(sale.id))!;
+      expect(stored.lines.single.costAtSale.raw, 25000,
+          reason: 'a cost frozen in a sale never changes');
+      expect(stored.profit, sale.profit);
+    });
+
+    test('voiding a purchase already sold leaves negative stock, warned first',
+        () async {
+      final bought = await purchase('48', DateTime(2026, 11, 1)); // 24 u
+      await sell(20, DateTime(2026, 11, 2));
+
+      final stock = {p.id: (await reload(p)).stockUnits}; // 4
+      expect(negativeStockIfVoided(bought, stock), {p.id: -20});
+
+      await env.voidDocument.purchase(bought.id);
+      expect((await reload(p)).stockUnits, -20);
+    });
+
+    test('a voided write-off returns its units; voiding twice fails',
+        () async {
+      await purchase('48', DateTime(2026, 11, 1));
+      final writeOff = await env.registerAdjustment(
+        productId: p.id,
+        quantity: 3,
+        presentation: Presentation.unit,
+        reason: AdjustmentReason.expired,
+      );
+      expect((await reload(p)).stockUnits, 21);
+
+      await env.voidDocument.writeOff(writeOff.id);
+      expect((await reload(p)).stockUnits, 24);
+      expect(await env.adjustments.getAll(), isEmpty);
+
+      await expectLater(
+        env.voidDocument.writeOff(writeOff.id),
+        throwsA(isA<AlreadyVoidedException>()),
+      );
+    });
+
+    test('a purchase with enough stock left warns about nothing', () async {
+      final bought = await purchase('48', DateTime(2026, 11, 1));
+      expect(negativeStockIfVoided(bought, {p.id: 30}), isEmpty);
     });
   });
 }

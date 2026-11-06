@@ -22,44 +22,54 @@ class DriftPurchaseRepository implements PurchaseRepository {
 
   @override
   Future<Purchase> save(Purchase p) => _db.transaction(() async {
-        await _db.into(_db.purchases).insert(PurchasesCompanion(
-              id: Value(p.id),
-              createdAt: Value(p.createdAt),
-              updatedAt: Value(p.updatedAt),
-              deletedAt: Value(p.deletedAt),
-              date: Value(p.date),
-              supplier: Value(p.supplier),
-              notes: Value(p.notes),
-              registeredBy: Value(p.registeredBy),
-              totalCents: Value(p.total.cents),
-            ));
-        for (final l in p.lines) {
-          await _db.into(_db.purchaseLines).insert(PurchaseLinesCompanion(
-                id: Value(l.id),
-                createdAt: Value(l.createdAt),
-                updatedAt: Value(l.updatedAt),
-                deletedAt: Value(l.deletedAt),
-                purchaseId: Value(l.purchaseId),
-                productId: Value(l.productId),
-                quantity: Value(l.quantity),
-                presentation: Value(l.presentation),
-                unitsBase: Value(l.unitsBase),
-                lineTotalCents: Value(l.lineTotal.cents),
-                unitCostRaw: Value(l.unitCost.raw),
-                unitsPerBox: Value(l.unitsPerBox),
-                expiryFrom: Value(l.expiryFrom),
-                expiryTo: Value(l.expiryTo),
-                lotCode: Value(l.lotCode),
-              ));
-        }
-        return p;
-      });
+    await _db
+        .into(_db.purchases)
+        .insert(
+          PurchasesCompanion(
+            id: Value(p.id),
+            createdAt: Value(p.createdAt),
+            updatedAt: Value(p.updatedAt),
+            deletedAt: Value(p.deletedAt),
+            date: Value(p.date),
+            supplier: Value(p.supplier),
+            notes: Value(p.notes),
+            registeredBy: Value(p.registeredBy),
+            voidedBy: Value(p.voidedBy),
+            voidReason: Value(p.voidReason),
+            totalCents: Value(p.total.cents),
+          ),
+        );
+    for (final l in p.lines) {
+      await _db
+          .into(_db.purchaseLines)
+          .insert(
+            PurchaseLinesCompanion(
+              id: Value(l.id),
+              createdAt: Value(l.createdAt),
+              updatedAt: Value(l.updatedAt),
+              deletedAt: Value(l.deletedAt),
+              purchaseId: Value(l.purchaseId),
+              productId: Value(l.productId),
+              quantity: Value(l.quantity),
+              presentation: Value(l.presentation),
+              unitsBase: Value(l.unitsBase),
+              lineTotalCents: Value(l.lineTotal.cents),
+              unitCostRaw: Value(l.unitCost.raw),
+              unitsPerBox: Value(l.unitsPerBox),
+              expiryFrom: Value(l.expiryFrom),
+              expiryTo: Value(l.expiryTo),
+              lotCode: Value(l.lotCode),
+            ),
+          );
+    }
+    return p;
+  });
 
   @override
   Future<Purchase?> getById(String id) async {
-    final row = await (_db.select(_db.purchases)
-          ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.purchases,
+    )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
     if (row == null) return null;
     return (await _withLines([row])).single;
   }
@@ -71,16 +81,43 @@ class DriftPurchaseRepository implements PurchaseRepository {
   }
 
   @override
-  Stream<List<Purchase>> watchAll() =>
-      _query(null, null).watch().asyncMap(_withLines);
+  Stream<List<Purchase>> watchAll({bool includeVoided = false}) => _query(
+    null,
+    null,
+    includeVoided: includeVoided,
+  ).watch().asyncMap(_withLines);
+
+  @override
+  Future<bool> markVoided(
+    String id, {
+    required DateTime at,
+    String? by,
+    String? reason,
+  }) async {
+    final n =
+        await (_db.update(
+          _db.purchases,
+        )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).write(
+          PurchasesCompanion(
+            deletedAt: Value(at),
+            updatedAt: Value(at),
+            voidedBy: Value(by),
+            voidReason: Value(reason),
+          ),
+        );
+    return n == 1;
+  }
 
   SimpleSelectStatement<$PurchasesTable, PurchaseRow> _query(
     DateTime? from,
-    DateTime? to,
-  ) {
+    DateTime? to, {
+    bool includeVoided = false,
+  }) {
     return _db.select(_db.purchases)
       ..where((t) {
-        var cond = t.deletedAt.isNull();
+        Expression<bool> cond = includeVoided
+            ? const Constant(true)
+            : t.deletedAt.isNull();
         if (from != null) cond = cond & t.date.isBiggerOrEqualValue(from);
         if (to != null) cond = cond & t.date.isSmallerThanValue(to);
         return cond;
@@ -90,33 +127,41 @@ class DriftPurchaseRepository implements PurchaseRepository {
 
   Future<List<Purchase>> _withLines(List<PurchaseRow> headers) async {
     if (headers.isEmpty) return [];
-    final lineRows = await (_db.select(_db.purchaseLines)
-          ..where((t) =>
-              t.purchaseId.isIn(headers.map((h) => h.id)) & t.deletedAt.isNull())
-          ..orderBy([
-            (t) => OrderingTerm.asc(t.createdAt),
-            (t) => OrderingTerm.asc(const CustomExpression<int>('rowid')),
-          ]))
-        .get();
+    final lineRows =
+        await (_db.select(_db.purchaseLines)
+              ..where(
+                (t) =>
+                    t.purchaseId.isIn(headers.map((h) => h.id)) &
+                    t.deletedAt.isNull(),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.createdAt),
+                (t) => OrderingTerm.asc(const CustomExpression<int>('rowid')),
+              ]))
+            .get();
     final byPurchase = <String, List<PurchaseLine>>{};
     for (final r in lineRows) {
-      byPurchase.putIfAbsent(r.purchaseId, () => []).add(PurchaseLine(
-            id: r.id,
-            createdAt: r.createdAt,
-            updatedAt: r.updatedAt,
-            deletedAt: r.deletedAt,
-            purchaseId: r.purchaseId,
-            productId: r.productId,
-            quantity: r.quantity,
-            presentation: r.presentation,
-            unitsBase: r.unitsBase,
-            lineTotal: Money(r.lineTotalCents),
-            unitCost: UnitCost(r.unitCostRaw),
-            unitsPerBox: r.unitsPerBox,
-            expiryFrom: r.expiryFrom,
-            expiryTo: r.expiryTo,
-            lotCode: r.lotCode,
-          ));
+      byPurchase
+          .putIfAbsent(r.purchaseId, () => [])
+          .add(
+            PurchaseLine(
+              id: r.id,
+              createdAt: r.createdAt,
+              updatedAt: r.updatedAt,
+              deletedAt: r.deletedAt,
+              purchaseId: r.purchaseId,
+              productId: r.productId,
+              quantity: r.quantity,
+              presentation: r.presentation,
+              unitsBase: r.unitsBase,
+              lineTotal: Money(r.lineTotalCents),
+              unitCost: UnitCost(r.unitCostRaw),
+              unitsPerBox: r.unitsPerBox,
+              expiryFrom: r.expiryFrom,
+              expiryTo: r.expiryTo,
+              lotCode: r.lotCode,
+            ),
+          );
     }
     return [
       for (final h in headers)
@@ -129,6 +174,8 @@ class DriftPurchaseRepository implements PurchaseRepository {
           supplier: h.supplier,
           notes: h.notes,
           registeredBy: h.registeredBy,
+          voidedBy: h.voidedBy,
+          voidReason: h.voidReason,
           total: Money(h.totalCents),
           lines: byPurchase[h.id] ?? const [],
         ),

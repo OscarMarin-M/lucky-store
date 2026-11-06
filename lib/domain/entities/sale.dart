@@ -95,6 +95,8 @@ class Sale extends BaseEntity {
     required this.date,
     this.notes,
     this.registeredBy,
+    this.voidedBy,
+    this.voidReason,
     required this.total,
     required this.profit,
     required this.lines,
@@ -110,6 +112,14 @@ class Sale extends BaseEntity {
   /// when registered without an account (before sign-in existed, or in a
   /// build without cloud).
   final String? registeredBy;
+
+  /// Email of who voided it (null if voided without an account) and the
+  /// optional reason typed. Only meaningful when [isVoided].
+  final String? voidedBy;
+  final String? voidReason;
+
+  /// Voided documents keep their figures but count in no report or stock.
+  bool get isVoided => deletedAt != null;
 
   /// What the customer paid: the lines plus the [extraCharges] they pay.
   final Money total;

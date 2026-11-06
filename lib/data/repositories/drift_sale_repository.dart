@@ -13,56 +13,70 @@ class DriftSaleRepository implements SaleRepository {
 
   @override
   Future<Sale> save(Sale s) => _db.transaction(() async {
-        await _db.into(_db.sales).insert(SalesCompanion(
-              id: Value(s.id),
-              createdAt: Value(s.createdAt),
-              updatedAt: Value(s.updatedAt),
-              deletedAt: Value(s.deletedAt),
-              date: Value(s.date),
-              notes: Value(s.notes),
-              registeredBy: Value(s.registeredBy),
-              totalCents: Value(s.total.cents),
-              profitCents: Value(s.profit.cents),
-            ));
-        for (final l in s.lines) {
-          await _db.into(_db.saleLines).insert(SaleLinesCompanion(
-                id: Value(l.id),
-                createdAt: Value(l.createdAt),
-                updatedAt: Value(l.updatedAt),
-                deletedAt: Value(l.deletedAt),
-                saleId: Value(l.saleId),
-                productId: Value(l.productId),
-                quantity: Value(l.quantity),
-                presentation: Value(l.presentation),
-                unitsBase: Value(l.unitsBase),
-                unitPriceCents: Value(l.unitPrice.cents),
-                suggestedUnitPriceCents: Value(l.suggestedUnitPrice.cents),
-                lineTotalCents: Value(l.lineTotal.cents),
-                costAtSaleRaw: Value(l.costAtSale.raw),
-                costTotalCents: Value(l.costTotal.cents),
-                profitCents: Value(l.profit.cents),
-              ));
-        }
-        for (final c in s.extraCharges) {
-          await _db.into(_db.saleExtraCharges).insert(SaleExtraChargesCompanion(
-                id: Value(c.id),
-                createdAt: Value(c.createdAt),
-                updatedAt: Value(c.updatedAt),
-                deletedAt: Value(c.deletedAt),
-                saleId: Value(c.saleId),
-                concept: Value(c.concept),
-                amountCents: Value(c.amount.cents),
-                paidByCustomer: Value(c.paidByCustomer),
-              ));
-        }
-        return s;
-      });
+    await _db
+        .into(_db.sales)
+        .insert(
+          SalesCompanion(
+            id: Value(s.id),
+            createdAt: Value(s.createdAt),
+            updatedAt: Value(s.updatedAt),
+            deletedAt: Value(s.deletedAt),
+            date: Value(s.date),
+            notes: Value(s.notes),
+            registeredBy: Value(s.registeredBy),
+            voidedBy: Value(s.voidedBy),
+            voidReason: Value(s.voidReason),
+            totalCents: Value(s.total.cents),
+            profitCents: Value(s.profit.cents),
+          ),
+        );
+    for (final l in s.lines) {
+      await _db
+          .into(_db.saleLines)
+          .insert(
+            SaleLinesCompanion(
+              id: Value(l.id),
+              createdAt: Value(l.createdAt),
+              updatedAt: Value(l.updatedAt),
+              deletedAt: Value(l.deletedAt),
+              saleId: Value(l.saleId),
+              productId: Value(l.productId),
+              quantity: Value(l.quantity),
+              presentation: Value(l.presentation),
+              unitsBase: Value(l.unitsBase),
+              unitPriceCents: Value(l.unitPrice.cents),
+              suggestedUnitPriceCents: Value(l.suggestedUnitPrice.cents),
+              lineTotalCents: Value(l.lineTotal.cents),
+              costAtSaleRaw: Value(l.costAtSale.raw),
+              costTotalCents: Value(l.costTotal.cents),
+              profitCents: Value(l.profit.cents),
+            ),
+          );
+    }
+    for (final c in s.extraCharges) {
+      await _db
+          .into(_db.saleExtraCharges)
+          .insert(
+            SaleExtraChargesCompanion(
+              id: Value(c.id),
+              createdAt: Value(c.createdAt),
+              updatedAt: Value(c.updatedAt),
+              deletedAt: Value(c.deletedAt),
+              saleId: Value(c.saleId),
+              concept: Value(c.concept),
+              amountCents: Value(c.amount.cents),
+              paidByCustomer: Value(c.paidByCustomer),
+            ),
+          );
+    }
+    return s;
+  });
 
   @override
   Future<Sale?> getById(String id) async {
-    final row = await (_db.select(_db.sales)
-          ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.sales,
+    )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
     if (row == null) return null;
     return (await _withLines([row])).single;
   }
@@ -74,8 +88,32 @@ class DriftSaleRepository implements SaleRepository {
   }
 
   @override
-  Stream<List<Sale>> watchAll() =>
-      _query(null, null).watch().asyncMap(_withLines);
+  Stream<List<Sale>> watchAll({bool includeVoided = false}) => _query(
+    null,
+    null,
+    includeVoided: includeVoided,
+  ).watch().asyncMap(_withLines);
+
+  @override
+  Future<bool> markVoided(
+    String id, {
+    required DateTime at,
+    String? by,
+    String? reason,
+  }) async {
+    final n =
+        await (_db.update(
+          _db.sales,
+        )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).write(
+          SalesCompanion(
+            deletedAt: Value(at),
+            updatedAt: Value(at),
+            voidedBy: Value(by),
+            voidReason: Value(reason),
+          ),
+        );
+    return n == 1;
+  }
 
   @override
   Future<List<ProductProfit>> profitByProduct({
@@ -88,19 +126,29 @@ class DriftSaleRepository implements SaleRepository {
     final cost = lines.costTotalCents.sum();
     final profit = lines.profitCents.sum();
 
-    final query = _db.selectOnly(lines).join([
-      innerJoin(_db.sales, _db.sales.id.equalsExp(lines.saleId)),
-      innerJoin(_db.products, _db.products.id.equalsExp(lines.productId)),
-    ])
-      ..addColumns([lines.productId, _db.products.name, units, revenue, cost, profit])
-      ..where(() {
-        var cond = lines.deletedAt.isNull() & _db.sales.deletedAt.isNull();
-        if (from != null) cond = cond & _db.sales.date.isBiggerOrEqualValue(from);
-        if (to != null) cond = cond & _db.sales.date.isSmallerThanValue(to);
-        return cond;
-      }())
-      ..groupBy([lines.productId, _db.products.name])
-      ..orderBy([OrderingTerm.desc(profit)]);
+    final query =
+        _db.selectOnly(lines).join([
+            innerJoin(_db.sales, _db.sales.id.equalsExp(lines.saleId)),
+            innerJoin(_db.products, _db.products.id.equalsExp(lines.productId)),
+          ])
+          ..addColumns([
+            lines.productId,
+            _db.products.name,
+            units,
+            revenue,
+            cost,
+            profit,
+          ])
+          ..where(() {
+            var cond = lines.deletedAt.isNull() & _db.sales.deletedAt.isNull();
+            if (from != null) {
+              cond = cond & _db.sales.date.isBiggerOrEqualValue(from);
+            }
+            if (to != null) cond = cond & _db.sales.date.isSmallerThanValue(to);
+            return cond;
+          }())
+          ..groupBy([lines.productId, _db.products.name])
+          ..orderBy([OrderingTerm.desc(profit)]);
 
     final rows = await query.get();
     return [
@@ -118,11 +166,14 @@ class DriftSaleRepository implements SaleRepository {
 
   SimpleSelectStatement<$SalesTable, SaleRow> _query(
     DateTime? from,
-    DateTime? to,
-  ) {
+    DateTime? to, {
+    bool includeVoided = false,
+  }) {
     return _db.select(_db.sales)
       ..where((t) {
-        var cond = t.deletedAt.isNull();
+        Expression<bool> cond = includeVoided
+            ? const Constant(true)
+            : t.deletedAt.isNull();
         if (from != null) cond = cond & t.date.isBiggerOrEqualValue(from);
         if (to != null) cond = cond & t.date.isSmallerThanValue(to);
         return cond;
@@ -132,54 +183,70 @@ class DriftSaleRepository implements SaleRepository {
 
   Future<List<Sale>> _withLines(List<SaleRow> headers) async {
     if (headers.isEmpty) return [];
-    final lineRows = await (_db.select(_db.saleLines)
-          ..where((t) =>
-              t.saleId.isIn(headers.map((h) => h.id)) & t.deletedAt.isNull())
-          ..orderBy([
-            (t) => OrderingTerm.asc(t.createdAt),
-            (t) => OrderingTerm.asc(const CustomExpression<int>('rowid')),
-          ]))
-        .get();
+    final lineRows =
+        await (_db.select(_db.saleLines)
+              ..where(
+                (t) =>
+                    t.saleId.isIn(headers.map((h) => h.id)) &
+                    t.deletedAt.isNull(),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.createdAt),
+                (t) => OrderingTerm.asc(const CustomExpression<int>('rowid')),
+              ]))
+            .get();
     final bySale = <String, List<SaleLine>>{};
     for (final r in lineRows) {
-      bySale.putIfAbsent(r.saleId, () => []).add(SaleLine(
-            id: r.id,
-            createdAt: r.createdAt,
-            updatedAt: r.updatedAt,
-            deletedAt: r.deletedAt,
-            saleId: r.saleId,
-            productId: r.productId,
-            quantity: r.quantity,
-            presentation: r.presentation,
-            unitsBase: r.unitsBase,
-            unitPrice: Money(r.unitPriceCents),
-            suggestedUnitPrice: Money(r.suggestedUnitPriceCents),
-            lineTotal: Money(r.lineTotalCents),
-            costAtSale: UnitCost(r.costAtSaleRaw),
-            costTotal: Money(r.costTotalCents),
-            profit: Money(r.profitCents),
-          ));
+      bySale
+          .putIfAbsent(r.saleId, () => [])
+          .add(
+            SaleLine(
+              id: r.id,
+              createdAt: r.createdAt,
+              updatedAt: r.updatedAt,
+              deletedAt: r.deletedAt,
+              saleId: r.saleId,
+              productId: r.productId,
+              quantity: r.quantity,
+              presentation: r.presentation,
+              unitsBase: r.unitsBase,
+              unitPrice: Money(r.unitPriceCents),
+              suggestedUnitPrice: Money(r.suggestedUnitPriceCents),
+              lineTotal: Money(r.lineTotalCents),
+              costAtSale: UnitCost(r.costAtSaleRaw),
+              costTotal: Money(r.costTotalCents),
+              profit: Money(r.profitCents),
+            ),
+          );
     }
-    final extraRows = await (_db.select(_db.saleExtraCharges)
-          ..where((t) =>
-              t.saleId.isIn(headers.map((h) => h.id)) & t.deletedAt.isNull())
-          ..orderBy([
-            (t) => OrderingTerm.asc(t.createdAt),
-            (t) => OrderingTerm.asc(const CustomExpression<int>('rowid')),
-          ]))
-        .get();
+    final extraRows =
+        await (_db.select(_db.saleExtraCharges)
+              ..where(
+                (t) =>
+                    t.saleId.isIn(headers.map((h) => h.id)) &
+                    t.deletedAt.isNull(),
+              )
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.createdAt),
+                (t) => OrderingTerm.asc(const CustomExpression<int>('rowid')),
+              ]))
+            .get();
     final extrasBySale = <String, List<SaleExtraCharge>>{};
     for (final r in extraRows) {
-      extrasBySale.putIfAbsent(r.saleId, () => []).add(SaleExtraCharge(
-            id: r.id,
-            createdAt: r.createdAt,
-            updatedAt: r.updatedAt,
-            deletedAt: r.deletedAt,
-            saleId: r.saleId,
-            concept: r.concept,
-            amount: Money(r.amountCents),
-            paidByCustomer: r.paidByCustomer,
-          ));
+      extrasBySale
+          .putIfAbsent(r.saleId, () => [])
+          .add(
+            SaleExtraCharge(
+              id: r.id,
+              createdAt: r.createdAt,
+              updatedAt: r.updatedAt,
+              deletedAt: r.deletedAt,
+              saleId: r.saleId,
+              concept: r.concept,
+              amount: Money(r.amountCents),
+              paidByCustomer: r.paidByCustomer,
+            ),
+          );
     }
     return [
       for (final h in headers)
@@ -191,6 +258,8 @@ class DriftSaleRepository implements SaleRepository {
           date: h.date,
           notes: h.notes,
           registeredBy: h.registeredBy,
+          voidedBy: h.voidedBy,
+          voidReason: h.voidReason,
           total: Money(h.totalCents),
           profit: Money(h.profitCents),
           lines: bySale[h.id] ?? const [],

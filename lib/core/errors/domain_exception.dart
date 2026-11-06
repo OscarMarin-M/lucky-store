@@ -49,3 +49,10 @@ class EmptyDocumentException extends DomainException {
   const EmptyDocumentException()
       : super('El documento debe tener al menos una línea');
 }
+
+/// The document was voided meanwhile (e.g. by another phone, synced while
+/// the detail was open) or does not exist.
+class AlreadyVoidedException extends DomainException {
+  const AlreadyVoidedException()
+      : super('Este documento ya estaba anulado');
+}

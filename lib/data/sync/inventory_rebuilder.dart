@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../core/money/money.dart';
 import '../../core/money/unit_cost.dart';
 import '../../domain/costing/cost_strategy.dart';
+import '../../domain/repositories/document_repositories.dart';
 import '../database/app_database.dart';
 
 /// Recomputes stock and average cost of every product from the documents of
@@ -11,11 +12,14 @@ import '../database/app_database.dart';
 /// Every phone replays the same documents in the same order, so they all
 /// reach the same numbers no matter who synced first. Costs already frozen
 /// in sales and write-offs are not touched: history never moves.
-class InventoryRebuilder {
+class InventoryRebuilder implements InventoryReplayer {
   InventoryRebuilder(this._db, this._strategy);
 
   final AppDatabase _db;
   final CostStrategy _strategy;
+
+  @override
+  Future<void> replay() => rebuild();
 
   /// Returns how many products changed.
   Future<int> rebuild() async {

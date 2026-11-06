@@ -15,10 +15,10 @@ void main() {
   setUpAll(() => verifier = SchemaVerifier(GeneratedHelper()));
 
   test('every old version migrates to exactly the current schema', () async {
-    for (final from in [1, 2, 3, 4, 5, 6, 7]) {
+    for (final from in [1, 2, 3, 4, 5, 6, 7, 8]) {
       final connection = await verifier.startAt(from);
       final db = AppDatabase(connection);
-      await verifier.migrateAndValidate(db, 8);
+      await verifier.migrateAndValidate(db, 9);
       await db.close();
     }
   });
@@ -46,7 +46,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 8);
+    await verifier.migrateAndValidate(db, 9);
 
     final purchase =
         (await DriftPurchaseRepository(db).getById('c1'))!;
@@ -84,7 +84,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 8);
+    await verifier.migrateAndValidate(db, 9);
 
     final repo = DriftSaleRepository(db);
     final s1 = (await repo.getById('s1'))!;
@@ -112,7 +112,7 @@ void main() {
       );
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 8);
+    await verifier.migrateAndValidate(db, 9);
     final queued = await db.select(db.syncOutbox).get();
     expect(
       queued.map((e) => '${e.tableName$}/${e.rowId}'),
@@ -137,7 +137,7 @@ void main() {
       ..execute('DELETE FROM sync_outbox');
 
     final db = AppDatabase(schema.newConnection());
-    await verifier.migrateAndValidate(db, 8);
+    await verifier.migrateAndValidate(db, 9);
     final sale = (await DriftSaleRepository(db).getById('s1'))!;
     expect(sale.extraCharges.single.paidByCustomer, isTrue);
     expect(sale.total.cents, 3500, reason: 'sales untouched');

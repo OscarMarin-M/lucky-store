@@ -172,6 +172,29 @@ void main() {
     expect(await b.env.sales.getAll(), hasLength(2));
   });
 
+  test('a sale voided on one phone gives the stock back on the other',
+      () async {
+    final p = await newCandy(a);
+    await a.buyUnits(p.id, 10, 200);
+    await a.sell(p.id, 4);
+    await a.sync.sync();
+    await b.sync.sync();
+    expect((await b.product(p.id)).stockUnits, 6);
+
+    final sale = (await b.env.sales.getAll()).single;
+    await b.env.voidDocument.sale(sale.id, reason: 'cliente devolvió');
+    expect((await b.product(p.id)).stockUnits, 10, reason: 'at once, here');
+    await b.sync.sync();
+    await a.sync.sync();
+
+    expect((await a.product(p.id)).stockUnits, 10);
+    expect(await a.env.sales.getAll(), isEmpty);
+    final voided =
+        (await a.env.sales.watchAll(includeVoided: true).first).single;
+    expect(voided.isVoided, isTrue);
+    expect(voided.voidReason, 'cliente devolvió');
+  });
+
   test('selling the last unit twice offline shows negative stock', () async {
     final p = await newCandy(a);
     await a.buyUnits(p.id, 1, 200);

@@ -38,6 +38,10 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   El costo congelado en cada venta/baja nunca se modifica. Dos ventas offline de la
   última unidad dejan stock negativo (se muestra, no se bloquea al sincronizar).
 - Documentos (compras, ventas, bajas) no se borran físicamente nunca: solo `deleted_at`.
+  Anular (`VoidDocument`, v9) = poner `deleted_at` en la cabecera + `voided_by` y
+  `void_reason`, y reproducir el inventario. El anulado sigue en el Historial
+  (tachado) pero no cuenta en reportes ni stock; anular una compra ya vendida avisa
+  del stock negativo y lo permite.
 
 ## Flujo de trabajo
 - Planificar antes de codificar en cambios grandes.

@@ -38,6 +38,8 @@ class StockAdjustment extends BaseEntity {
     required this.reason,
     this.notes,
     this.registeredBy,
+    this.voidedBy,
+    this.voidReason,
     required this.unitCost,
     required this.costTotal,
   });
@@ -54,6 +56,14 @@ class StockAdjustment extends BaseEntity {
   /// when registered without an account (before sign-in existed, or in a
   /// build without cloud).
   final String? registeredBy;
+
+  /// Email of who voided it (null if voided without an account) and the
+  /// optional reason typed. Only meaningful when [isVoided].
+  final String? voidedBy;
+  final String? voidReason;
+
+  /// Voided documents keep their figures but count in no report or stock.
+  bool get isVoided => deletedAt != null;
 
   /// Average cost per base unit when the units were written off.
   final UnitCost unitCost;

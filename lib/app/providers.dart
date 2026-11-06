@@ -7,6 +7,7 @@ import '../data/repositories/drift_product_repository.dart';
 import '../data/repositories/drift_purchase_repository.dart';
 import '../data/repositories/drift_sale_repository.dart';
 import '../data/repositories/drift_stock_adjustment_repository.dart';
+import '../data/sync/inventory_rebuilder.dart';
 import '../data/sync/supabase_config.dart';
 import '../domain/costing/cost_strategy.dart';
 import '../domain/costing/weighted_average_cost_strategy.dart';
@@ -20,6 +21,7 @@ import '../domain/usecases/inventory_ledger.dart';
 import '../domain/usecases/register_purchase.dart';
 import '../domain/usecases/register_sale.dart';
 import '../domain/usecases/register_stock_adjustment.dart';
+import '../domain/usecases/void_document.dart';
 
 /// Composition root: the only place that knows which implementation backs
 /// each interface. The UI reads providers and never touches Drift. Tests
@@ -105,6 +107,26 @@ final registerStockAdjustmentProvider = Provider<RegisterStockAdjustment>(
     transactions: ref.watch(transactionRunnerProvider),
     costStrategy: ref.watch(costStrategyProvider),
     policy: ref.watch(inventoryPolicyProvider),
+    currentUser: ref.watch(currentUserProvider),
+  ),
+);
+
+/// Replays stock and average cost from the documents that still count; the
+/// sync uses it after downloading, voiding after marking a document.
+final inventoryReplayerProvider = Provider<InventoryRebuilder>(
+  (ref) => InventoryRebuilder(
+    ref.watch(appDatabaseProvider),
+    ref.watch(costStrategyProvider),
+  ),
+);
+
+final voidDocumentProvider = Provider<VoidDocument>(
+  (ref) => VoidDocument(
+    purchases: ref.watch(purchaseRepositoryProvider),
+    sales: ref.watch(saleRepositoryProvider),
+    adjustments: ref.watch(stockAdjustmentRepositoryProvider),
+    transactions: ref.watch(transactionRunnerProvider),
+    inventory: ref.watch(inventoryReplayerProvider),
     currentUser: ref.watch(currentUserProvider),
   ),
 );

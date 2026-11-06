@@ -8,12 +8,32 @@ abstract interface class TransactionRunner {
   Future<T> run<T>(Future<T> Function() action);
 }
 
+/// Recomputes stock and average cost of every product from the documents
+/// that still count (e.g. after one is voided). Implemented by the
+/// `InventoryRebuilder` of the sync.
+abstract interface class InventoryReplayer {
+  Future<void> replay();
+}
+
 abstract interface class PurchaseRepository {
   /// Stores the purchase and its lines.
   Future<Purchase> save(Purchase purchase);
   Future<Purchase?> getById(String id);
   Future<List<Purchase>> getAll({DateTime? from, DateTime? to});
-  Stream<List<Purchase>> watchAll();
+  /// Newest first. [includeVoided] adds the voided ones (the history shows
+  /// them crossed out); every report leaves them out.
+  Stream<List<Purchase>> watchAll({bool includeVoided = false});
+
+  /// Voids the document: sets `deleted_at` (and `updated_at`, so it syncs)
+  /// with who and why. Returns false if it does not exist or was already
+  /// voided. Its lines are left as they are: everything that counts joins
+  /// the header.
+  Future<bool> markVoided(
+    String id, {
+    required DateTime at,
+    String? by,
+    String? reason,
+  });
 }
 
 /// Profit summary of one product over a period.
@@ -39,7 +59,20 @@ abstract interface class SaleRepository {
   Future<Sale> save(Sale sale);
   Future<Sale?> getById(String id);
   Future<List<Sale>> getAll({DateTime? from, DateTime? to});
-  Stream<List<Sale>> watchAll();
+  /// Newest first. [includeVoided] adds the voided ones (the history shows
+  /// them crossed out); every report leaves them out.
+  Stream<List<Sale>> watchAll({bool includeVoided = false});
+
+  /// Voids the document: sets `deleted_at` (and `updated_at`, so it syncs)
+  /// with who and why. Returns false if it does not exist or was already
+  /// voided. Its lines are left as they are: everything that counts joins
+  /// the header.
+  Future<bool> markVoided(
+    String id, {
+    required DateTime at,
+    String? by,
+    String? reason,
+  });
 
   /// Sales profit grouped by product, best first. This is the app's main
   /// question: how much is earned or lost per product.
@@ -53,5 +86,18 @@ abstract interface class StockAdjustmentRepository {
     DateTime? from,
     DateTime? to,
   });
-  Stream<List<StockAdjustment>> watchAll();
+  /// Newest first. [includeVoided] adds the voided ones (the history shows
+  /// them crossed out); every report leaves them out.
+  Stream<List<StockAdjustment>> watchAll({bool includeVoided = false});
+
+  /// Voids the document: sets `deleted_at` (and `updated_at`, so it syncs)
+  /// with who and why. Returns false if it does not exist or was already
+  /// voided. Its lines are left as they are: everything that counts joins
+  /// the header.
+  Future<bool> markVoided(
+    String id, {
+    required DateTime at,
+    String? by,
+    String? reason,
+  });
 }

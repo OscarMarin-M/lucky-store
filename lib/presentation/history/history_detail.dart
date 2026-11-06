@@ -8,11 +8,13 @@ import '../../domain/entities/product.dart';
 import '../../domain/entities/purchase.dart';
 import '../../domain/entities/sale.dart';
 import '../../domain/entities/stock_adjustment.dart';
+import '../../domain/usecases/void_document.dart';
 import '../common/section_title.dart';
 import '../format/date_format.dart';
 import '../format/stock_format.dart';
 import '../inventory/adjustment_labels.dart';
 import '../theme/app_theme.dart';
+import 'void_ui.dart';
 
 /// Name of [id], also for products deleted after the document was made.
 String productName(Map<String, Product> byId, String id) =>
@@ -55,10 +57,34 @@ class SaleDetailPage extends ConsumerWidget {
 
     return Scaffold(
       // The note names the order ("Caja San Valentín para Ana").
-      appBar: AppBar(title: Text(sale.notes ?? 'Venta')),
+      appBar: AppBar(
+        title: Text(sale.notes ?? 'Venta'),
+        actions: [
+          if (!sale.isVoided)
+            IconButton(
+              tooltip: 'Anular venta',
+              icon: const Icon(Icons.block),
+              onPressed: () async {
+                final voided = await confirmAndVoid(
+                  context,
+                  kind: VoidKind.sale,
+                  onVoid: (reason) =>
+                      ref.read(voidDocumentProvider).sale(sale.id, reason: reason),
+                );
+                if (voided && context.mounted) Navigator.of(context).pop();
+              },
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
+          if (sale.isVoided)
+            VoidedBanner(
+              voidedAt: sale.deletedAt!,
+              voidedBy: sale.voidedBy,
+              reason: sale.voidReason,
+            ),
           _HeroCard(
             color: scheme.gain,
             icon: Icons.point_of_sale_outlined,
@@ -221,10 +247,45 @@ class PurchaseDetailPage extends ConsumerWidget {
     final units = p.lines.map((l) => l.unitsBase).fold(0, (a, b) => a + b);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Compra')),
+      appBar: AppBar(
+        title: const Text('Compra'),
+        actions: [
+          if (!p.isVoided)
+            IconButton(
+              tooltip: 'Anular compra',
+              icon: const Icon(Icons.block),
+              onPressed: () async {
+                // Units already sold would leave stock below zero: allowed
+                // (like two offline sales), but said before confirming.
+                final negative = negativeStockIfVoided(p, {
+                  for (final prod in byId.values) prod.id: prod.stockUnits,
+                });
+                final voided = await confirmAndVoid(
+                  context,
+                  kind: VoidKind.purchase,
+                  warnings: [
+                    for (final MapEntry(key: id, value: after)
+                        in negative.entries)
+                      '${productName(byId, id)} quedará con stock $after u '
+                          '(ya se vendieron unidades de esta compra).',
+                  ],
+                  onVoid: (reason) =>
+                      ref.read(voidDocumentProvider).purchase(p.id, reason: reason),
+                );
+                if (voided && context.mounted) Navigator.of(context).pop();
+              },
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
+          if (p.isVoided)
+            VoidedBanner(
+              voidedAt: p.deletedAt!,
+              voidedBy: p.voidedBy,
+              reason: p.voidReason,
+            ),
           _HeroCard(
             color: scheme.purchase,
             icon: Icons.shopping_basket_outlined,
@@ -351,15 +412,23 @@ Future<void> showWriteOffDetail(
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    // Scrolls when the banner and the void button do not fit a short phone.
+    isScrollControlled: true,
     builder: (context) {
       final scheme = Theme.of(context).colorScheme;
       return SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (a.isVoided)
+                VoidedBanner(
+                  voidedAt: a.deletedAt!,
+                  voidedBy: a.voidedBy,
+                  reason: a.voidReason,
+                ),
               _HeroCard(
                 color: scheme.loss,
                 icon: reasonIcon(a.reason),
@@ -390,6 +459,27 @@ Future<void> showWriteOffDetail(
               if (a.notes != null) ...[
                 const SizedBox(height: 8),
                 Text('Notas: ${a.notes}'),
+              ],
+              if (!a.isVoided) ...[
+                const SizedBox(height: 12),
+                Consumer(
+                  builder: (context, ref, _) => OutlinedButton.icon(
+                    icon: const Icon(Icons.block),
+                    label: const Text('Anular baja'),
+                    onPressed: () async {
+                      final voided = await confirmAndVoid(
+                        context,
+                        kind: VoidKind.writeOff,
+                        onVoid: (reason) => ref
+                            .read(voidDocumentProvider)
+                            .writeOff(a.id, reason: reason),
+                      );
+                      if (voided && context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                  ),
+                ),
               ],
             ],
           ),

@@ -165,4 +165,66 @@ void main() {
     expect(find.text('Registrado por ana.perez@gmail.com'), findsOneWidget);
     await teardown(tester);
   });
+
+  testWidgets('voiding a sale: crossed out, out of the day totals, stock back',
+      (tester) async {
+    await pumpPage(tester, user: 'ana.perez@gmail.com');
+    expect(find.textContaining('ganancia Bs 6,00'), findsOneWidget);
+
+    await tester.tap(find.text('10:00 · Venta · ana.perez'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Anular venta'));
+    await tester.pumpAndSettle();
+    expect(find.text('¿Anular esta venta?'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Motivo (opcional)'),
+      'Me equivoqué de producto',
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Anular'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+
+    // Back on the list: still there, crossed out, and the day only counts
+    // the write-off now (no sales left to show totals for).
+    expect(find.text('Venta anulada'), findsOneWidget);
+    expect(find.text('Anulada · 10:00 · Venta · ana.perez'), findsOneWidget);
+    expect(find.textContaining('ganancia'), findsNothing);
+
+    final snickers = (await tester.runAsync(
+      () => container.read(productRepositoryProvider).getAll(),
+    ))!
+        .single;
+    expect(snickers.stockUnits, 35, reason: '36 bought - 1 written off');
+
+    await tester.tap(find.text('Anulada · 10:00 · Venta · ana.perez'));
+    await tester.pumpAndSettle();
+    expect(find.text('Anulada · no cuenta en stock ni ganancias'), findsOneWidget);
+    expect(find.textContaining(' · por ana.perez@gmail.com'), findsOneWidget);
+    expect(find.text('Motivo: Me equivoqué de producto'), findsOneWidget);
+    expect(find.byTooltip('Anular venta'), findsNothing);
+    await teardown(tester);
+  });
+
+  testWidgets('voiding a purchase already sold warns about negative stock',
+      (tester) async {
+    await pumpPage(tester);
+    // The box brought 36 u and 24 remain: voiding it leaves -12.
+    await tester.tap(find.textContaining('08:00 · Compra'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Anular compra'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Snickers quedará con stock -12 u (ya se vendieron unidades de esta compra).',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Anular compra'), findsOneWidget, reason: 'kept');
+    await teardown(tester);
+  });
 }

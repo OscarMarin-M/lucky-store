@@ -5,7 +5,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../data/sync/inventory_rebuilder.dart';
 import '../data/sync/remote_store.dart';
 import '../data/sync/supabase_config.dart';
 import '../data/sync/sync_service.dart';
@@ -34,7 +33,7 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
   return SyncService(
     db,
     SupabaseRemoteStore(client),
-    InventoryRebuilder(db, ref.watch(costStrategyProvider)),
+    ref.watch(inventoryReplayerProvider),
   );
 });
 

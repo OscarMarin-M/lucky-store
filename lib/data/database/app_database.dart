@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   /// Bump on every schema change, add the step in [migration] and dump the
   /// new schema with `dart run drift_dev schema dump` (see drift_schemas/).
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -107,6 +107,15 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(purchases, purchases.registeredBy);
             await m.addColumn(sales, sales.registeredBy);
             await m.addColumn(stockAdjustments, stockAdjustments.registeredBy);
+          }
+          if (from < 9) {
+            // Voiding a document records who did it and why.
+            await m.addColumn(purchases, purchases.voidedBy);
+            await m.addColumn(purchases, purchases.voidReason);
+            await m.addColumn(sales, sales.voidedBy);
+            await m.addColumn(sales, sales.voidReason);
+            await m.addColumn(stockAdjustments, stockAdjustments.voidedBy);
+            await m.addColumn(stockAdjustments, stockAdjustments.voidReason);
           }
         },
         beforeOpen: (details) async {

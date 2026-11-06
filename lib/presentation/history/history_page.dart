@@ -104,7 +104,7 @@ class _DaySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
-    final hasSales = day.entries.any((e) => e is SaleEntry);
+    final hasSales = day.hasSales;
     final profit = day.profit;
 
     return Column(
@@ -240,7 +240,11 @@ class _EntryTile extends StatelessWidget {
         ),
     };
 
-    final kind = _kindColor(scheme, entry);
+    // A voided document stays in the timeline, grey and crossed out, so the
+    // team sees it was undone; tapping it shows who and why.
+    final voided = entry.isVoided;
+    final kind = voided ? scheme.outline : _kindColor(scheme, entry);
+    const crossed = TextStyle(decoration: TextDecoration.lineThrough);
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -258,9 +262,23 @@ class _EntryTile extends StatelessWidget {
           backgroundColor: kind.withValues(alpha: 0.20),
           child: Icon(icon, color: kind),
         ),
-        title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
-        trailing: trailing,
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: voided ? crossed : null,
+        ),
+        subtitle: Text(
+          voided ? 'Anulada · $subtitle' : subtitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: voided
+            ? Opacity(
+                opacity: 0.5,
+                child: DefaultTextStyle.merge(style: crossed, child: trailing),
+              )
+            : trailing,
       ),
     );
   }

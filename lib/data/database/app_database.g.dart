@@ -1361,6 +1361,28 @@ class $PurchasesTable extends Purchases
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _voidedByMeta = const VerificationMeta(
+    'voidedBy',
+  );
+  @override
+  late final GeneratedColumn<String> voidedBy = GeneratedColumn<String>(
+    'voided_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _voidReasonMeta = const VerificationMeta(
+    'voidReason',
+  );
+  @override
+  late final GeneratedColumn<String> voidReason = GeneratedColumn<String>(
+    'void_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _totalCentsMeta = const VerificationMeta(
     'totalCents',
   );
@@ -1382,6 +1404,8 @@ class $PurchasesTable extends Purchases
     supplier,
     notes,
     registeredBy,
+    voidedBy,
+    voidReason,
     totalCents,
   ];
   @override
@@ -1452,6 +1476,18 @@ class $PurchasesTable extends Purchases
         ),
       );
     }
+    if (data.containsKey('voided_by')) {
+      context.handle(
+        _voidedByMeta,
+        voidedBy.isAcceptableOrUnknown(data['voided_by']!, _voidedByMeta),
+      );
+    }
+    if (data.containsKey('void_reason')) {
+      context.handle(
+        _voidReasonMeta,
+        voidReason.isAcceptableOrUnknown(data['void_reason']!, _voidReasonMeta),
+      );
+    }
     if (data.containsKey('total_cents')) {
       context.handle(
         _totalCentsMeta,
@@ -1501,6 +1537,14 @@ class $PurchasesTable extends Purchases
         DriftSqlType.string,
         data['${effectivePrefix}registered_by'],
       ),
+      voidedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}voided_by'],
+      ),
+      voidReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}void_reason'],
+      ),
       totalCents: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_cents'],
@@ -1525,6 +1569,11 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
 
   /// v8. Email of the account that registered it (see the entity).
   final String? registeredBy;
+
+  /// v9. Who voided it and why. A voided document has `deleted_at` set:
+  /// it stays visible in the history but counts nowhere.
+  final String? voidedBy;
+  final String? voidReason;
   final int totalCents;
   const PurchaseRow({
     required this.id,
@@ -1535,6 +1584,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     this.supplier,
     this.notes,
     this.registeredBy,
+    this.voidedBy,
+    this.voidReason,
     required this.totalCents,
   });
   @override
@@ -1555,6 +1606,12 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     }
     if (!nullToAbsent || registeredBy != null) {
       map['registered_by'] = Variable<String>(registeredBy);
+    }
+    if (!nullToAbsent || voidedBy != null) {
+      map['voided_by'] = Variable<String>(voidedBy);
+    }
+    if (!nullToAbsent || voidReason != null) {
+      map['void_reason'] = Variable<String>(voidReason);
     }
     map['total_cents'] = Variable<int>(totalCents);
     return map;
@@ -1578,6 +1635,12 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       registeredBy: registeredBy == null && nullToAbsent
           ? const Value.absent()
           : Value(registeredBy),
+      voidedBy: voidedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voidedBy),
+      voidReason: voidReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voidReason),
       totalCents: Value(totalCents),
     );
   }
@@ -1596,6 +1659,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       supplier: serializer.fromJson<String?>(json['supplier']),
       notes: serializer.fromJson<String?>(json['notes']),
       registeredBy: serializer.fromJson<String?>(json['registeredBy']),
+      voidedBy: serializer.fromJson<String?>(json['voidedBy']),
+      voidReason: serializer.fromJson<String?>(json['voidReason']),
       totalCents: serializer.fromJson<int>(json['totalCents']),
     );
   }
@@ -1611,6 +1676,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       'supplier': serializer.toJson<String?>(supplier),
       'notes': serializer.toJson<String?>(notes),
       'registeredBy': serializer.toJson<String?>(registeredBy),
+      'voidedBy': serializer.toJson<String?>(voidedBy),
+      'voidReason': serializer.toJson<String?>(voidReason),
       'totalCents': serializer.toJson<int>(totalCents),
     };
   }
@@ -1624,6 +1691,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     Value<String?> supplier = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     Value<String?> registeredBy = const Value.absent(),
+    Value<String?> voidedBy = const Value.absent(),
+    Value<String?> voidReason = const Value.absent(),
     int? totalCents,
   }) => PurchaseRow(
     id: id ?? this.id,
@@ -1634,6 +1703,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     supplier: supplier.present ? supplier.value : this.supplier,
     notes: notes.present ? notes.value : this.notes,
     registeredBy: registeredBy.present ? registeredBy.value : this.registeredBy,
+    voidedBy: voidedBy.present ? voidedBy.value : this.voidedBy,
+    voidReason: voidReason.present ? voidReason.value : this.voidReason,
     totalCents: totalCents ?? this.totalCents,
   );
   PurchaseRow copyWithCompanion(PurchasesCompanion data) {
@@ -1648,6 +1719,10 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
       registeredBy: data.registeredBy.present
           ? data.registeredBy.value
           : this.registeredBy,
+      voidedBy: data.voidedBy.present ? data.voidedBy.value : this.voidedBy,
+      voidReason: data.voidReason.present
+          ? data.voidReason.value
+          : this.voidReason,
       totalCents: data.totalCents.present
           ? data.totalCents.value
           : this.totalCents,
@@ -1665,6 +1740,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
           ..write('supplier: $supplier, ')
           ..write('notes: $notes, ')
           ..write('registeredBy: $registeredBy, ')
+          ..write('voidedBy: $voidedBy, ')
+          ..write('voidReason: $voidReason, ')
           ..write('totalCents: $totalCents')
           ..write(')'))
         .toString();
@@ -1680,6 +1757,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
     supplier,
     notes,
     registeredBy,
+    voidedBy,
+    voidReason,
     totalCents,
   );
   @override
@@ -1694,6 +1773,8 @@ class PurchaseRow extends DataClass implements Insertable<PurchaseRow> {
           other.supplier == this.supplier &&
           other.notes == this.notes &&
           other.registeredBy == this.registeredBy &&
+          other.voidedBy == this.voidedBy &&
+          other.voidReason == this.voidReason &&
           other.totalCents == this.totalCents);
 }
 
@@ -1706,6 +1787,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
   final Value<String?> supplier;
   final Value<String?> notes;
   final Value<String?> registeredBy;
+  final Value<String?> voidedBy;
+  final Value<String?> voidReason;
   final Value<int> totalCents;
   final Value<int> rowid;
   const PurchasesCompanion({
@@ -1717,6 +1800,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     this.supplier = const Value.absent(),
     this.notes = const Value.absent(),
     this.registeredBy = const Value.absent(),
+    this.voidedBy = const Value.absent(),
+    this.voidReason = const Value.absent(),
     this.totalCents = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1729,6 +1814,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     this.supplier = const Value.absent(),
     this.notes = const Value.absent(),
     this.registeredBy = const Value.absent(),
+    this.voidedBy = const Value.absent(),
+    this.voidReason = const Value.absent(),
     required int totalCents,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1745,6 +1832,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     Expression<String>? supplier,
     Expression<String>? notes,
     Expression<String>? registeredBy,
+    Expression<String>? voidedBy,
+    Expression<String>? voidReason,
     Expression<int>? totalCents,
     Expression<int>? rowid,
   }) {
@@ -1757,6 +1846,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
       if (supplier != null) 'supplier': supplier,
       if (notes != null) 'notes': notes,
       if (registeredBy != null) 'registered_by': registeredBy,
+      if (voidedBy != null) 'voided_by': voidedBy,
+      if (voidReason != null) 'void_reason': voidReason,
       if (totalCents != null) 'total_cents': totalCents,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1771,6 +1862,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     Value<String?>? supplier,
     Value<String?>? notes,
     Value<String?>? registeredBy,
+    Value<String?>? voidedBy,
+    Value<String?>? voidReason,
     Value<int>? totalCents,
     Value<int>? rowid,
   }) {
@@ -1783,6 +1876,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
       supplier: supplier ?? this.supplier,
       notes: notes ?? this.notes,
       registeredBy: registeredBy ?? this.registeredBy,
+      voidedBy: voidedBy ?? this.voidedBy,
+      voidReason: voidReason ?? this.voidReason,
       totalCents: totalCents ?? this.totalCents,
       rowid: rowid ?? this.rowid,
     );
@@ -1815,6 +1910,12 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
     if (registeredBy.present) {
       map['registered_by'] = Variable<String>(registeredBy.value);
     }
+    if (voidedBy.present) {
+      map['voided_by'] = Variable<String>(voidedBy.value);
+    }
+    if (voidReason.present) {
+      map['void_reason'] = Variable<String>(voidReason.value);
+    }
     if (totalCents.present) {
       map['total_cents'] = Variable<int>(totalCents.value);
     }
@@ -1835,6 +1936,8 @@ class PurchasesCompanion extends UpdateCompanion<PurchaseRow> {
           ..write('supplier: $supplier, ')
           ..write('notes: $notes, ')
           ..write('registeredBy: $registeredBy, ')
+          ..write('voidedBy: $voidedBy, ')
+          ..write('voidReason: $voidReason, ')
           ..write('totalCents: $totalCents, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2813,6 +2916,28 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _voidedByMeta = const VerificationMeta(
+    'voidedBy',
+  );
+  @override
+  late final GeneratedColumn<String> voidedBy = GeneratedColumn<String>(
+    'voided_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _voidReasonMeta = const VerificationMeta(
+    'voidReason',
+  );
+  @override
+  late final GeneratedColumn<String> voidReason = GeneratedColumn<String>(
+    'void_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _totalCentsMeta = const VerificationMeta(
     'totalCents',
   );
@@ -2844,6 +2969,8 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
     date,
     notes,
     registeredBy,
+    voidedBy,
+    voidReason,
     totalCents,
     profitCents,
   ];
@@ -2909,6 +3036,18 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
         ),
       );
     }
+    if (data.containsKey('voided_by')) {
+      context.handle(
+        _voidedByMeta,
+        voidedBy.isAcceptableOrUnknown(data['voided_by']!, _voidedByMeta),
+      );
+    }
+    if (data.containsKey('void_reason')) {
+      context.handle(
+        _voidReasonMeta,
+        voidReason.isAcceptableOrUnknown(data['void_reason']!, _voidReasonMeta),
+      );
+    }
     if (data.containsKey('total_cents')) {
       context.handle(
         _totalCentsMeta,
@@ -2965,6 +3104,14 @@ class $SalesTable extends Sales with TableInfo<$SalesTable, SaleRow> {
         DriftSqlType.string,
         data['${effectivePrefix}registered_by'],
       ),
+      voidedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}voided_by'],
+      ),
+      voidReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}void_reason'],
+      ),
       totalCents: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_cents'],
@@ -2992,6 +3139,11 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
 
   /// v8. Email of the account that registered it (see the entity).
   final String? registeredBy;
+
+  /// v9. Who voided it and why. A voided document has `deleted_at` set:
+  /// it stays visible in the history but counts nowhere.
+  final String? voidedBy;
+  final String? voidReason;
   final int totalCents;
   final int profitCents;
   const SaleRow({
@@ -3002,6 +3154,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     required this.date,
     this.notes,
     this.registeredBy,
+    this.voidedBy,
+    this.voidReason,
     required this.totalCents,
     required this.profitCents,
   });
@@ -3020,6 +3174,12 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     }
     if (!nullToAbsent || registeredBy != null) {
       map['registered_by'] = Variable<String>(registeredBy);
+    }
+    if (!nullToAbsent || voidedBy != null) {
+      map['voided_by'] = Variable<String>(voidedBy);
+    }
+    if (!nullToAbsent || voidReason != null) {
+      map['void_reason'] = Variable<String>(voidReason);
     }
     map['total_cents'] = Variable<int>(totalCents);
     map['profit_cents'] = Variable<int>(profitCents);
@@ -3041,6 +3201,12 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       registeredBy: registeredBy == null && nullToAbsent
           ? const Value.absent()
           : Value(registeredBy),
+      voidedBy: voidedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voidedBy),
+      voidReason: voidReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voidReason),
       totalCents: Value(totalCents),
       profitCents: Value(profitCents),
     );
@@ -3059,6 +3225,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       date: serializer.fromJson<DateTime>(json['date']),
       notes: serializer.fromJson<String?>(json['notes']),
       registeredBy: serializer.fromJson<String?>(json['registeredBy']),
+      voidedBy: serializer.fromJson<String?>(json['voidedBy']),
+      voidReason: serializer.fromJson<String?>(json['voidReason']),
       totalCents: serializer.fromJson<int>(json['totalCents']),
       profitCents: serializer.fromJson<int>(json['profitCents']),
     );
@@ -3074,6 +3242,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       'date': serializer.toJson<DateTime>(date),
       'notes': serializer.toJson<String?>(notes),
       'registeredBy': serializer.toJson<String?>(registeredBy),
+      'voidedBy': serializer.toJson<String?>(voidedBy),
+      'voidReason': serializer.toJson<String?>(voidReason),
       'totalCents': serializer.toJson<int>(totalCents),
       'profitCents': serializer.toJson<int>(profitCents),
     };
@@ -3087,6 +3257,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     DateTime? date,
     Value<String?> notes = const Value.absent(),
     Value<String?> registeredBy = const Value.absent(),
+    Value<String?> voidedBy = const Value.absent(),
+    Value<String?> voidReason = const Value.absent(),
     int? totalCents,
     int? profitCents,
   }) => SaleRow(
@@ -3097,6 +3269,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     date: date ?? this.date,
     notes: notes.present ? notes.value : this.notes,
     registeredBy: registeredBy.present ? registeredBy.value : this.registeredBy,
+    voidedBy: voidedBy.present ? voidedBy.value : this.voidedBy,
+    voidReason: voidReason.present ? voidReason.value : this.voidReason,
     totalCents: totalCents ?? this.totalCents,
     profitCents: profitCents ?? this.profitCents,
   );
@@ -3111,6 +3285,10 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
       registeredBy: data.registeredBy.present
           ? data.registeredBy.value
           : this.registeredBy,
+      voidedBy: data.voidedBy.present ? data.voidedBy.value : this.voidedBy,
+      voidReason: data.voidReason.present
+          ? data.voidReason.value
+          : this.voidReason,
       totalCents: data.totalCents.present
           ? data.totalCents.value
           : this.totalCents,
@@ -3130,6 +3308,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           ..write('date: $date, ')
           ..write('notes: $notes, ')
           ..write('registeredBy: $registeredBy, ')
+          ..write('voidedBy: $voidedBy, ')
+          ..write('voidReason: $voidReason, ')
           ..write('totalCents: $totalCents, ')
           ..write('profitCents: $profitCents')
           ..write(')'))
@@ -3145,6 +3325,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
     date,
     notes,
     registeredBy,
+    voidedBy,
+    voidReason,
     totalCents,
     profitCents,
   );
@@ -3159,6 +3341,8 @@ class SaleRow extends DataClass implements Insertable<SaleRow> {
           other.date == this.date &&
           other.notes == this.notes &&
           other.registeredBy == this.registeredBy &&
+          other.voidedBy == this.voidedBy &&
+          other.voidReason == this.voidReason &&
           other.totalCents == this.totalCents &&
           other.profitCents == this.profitCents);
 }
@@ -3171,6 +3355,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
   final Value<DateTime> date;
   final Value<String?> notes;
   final Value<String?> registeredBy;
+  final Value<String?> voidedBy;
+  final Value<String?> voidReason;
   final Value<int> totalCents;
   final Value<int> profitCents;
   final Value<int> rowid;
@@ -3182,6 +3368,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     this.date = const Value.absent(),
     this.notes = const Value.absent(),
     this.registeredBy = const Value.absent(),
+    this.voidedBy = const Value.absent(),
+    this.voidReason = const Value.absent(),
     this.totalCents = const Value.absent(),
     this.profitCents = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -3194,6 +3382,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     required DateTime date,
     this.notes = const Value.absent(),
     this.registeredBy = const Value.absent(),
+    this.voidedBy = const Value.absent(),
+    this.voidReason = const Value.absent(),
     required int totalCents,
     required int profitCents,
     this.rowid = const Value.absent(),
@@ -3211,6 +3401,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     Expression<DateTime>? date,
     Expression<String>? notes,
     Expression<String>? registeredBy,
+    Expression<String>? voidedBy,
+    Expression<String>? voidReason,
     Expression<int>? totalCents,
     Expression<int>? profitCents,
     Expression<int>? rowid,
@@ -3223,6 +3415,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
       if (date != null) 'date': date,
       if (notes != null) 'notes': notes,
       if (registeredBy != null) 'registered_by': registeredBy,
+      if (voidedBy != null) 'voided_by': voidedBy,
+      if (voidReason != null) 'void_reason': voidReason,
       if (totalCents != null) 'total_cents': totalCents,
       if (profitCents != null) 'profit_cents': profitCents,
       if (rowid != null) 'rowid': rowid,
@@ -3237,6 +3431,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     Value<DateTime>? date,
     Value<String?>? notes,
     Value<String?>? registeredBy,
+    Value<String?>? voidedBy,
+    Value<String?>? voidReason,
     Value<int>? totalCents,
     Value<int>? profitCents,
     Value<int>? rowid,
@@ -3249,6 +3445,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
       date: date ?? this.date,
       notes: notes ?? this.notes,
       registeredBy: registeredBy ?? this.registeredBy,
+      voidedBy: voidedBy ?? this.voidedBy,
+      voidReason: voidReason ?? this.voidReason,
       totalCents: totalCents ?? this.totalCents,
       profitCents: profitCents ?? this.profitCents,
       rowid: rowid ?? this.rowid,
@@ -3279,6 +3477,12 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
     if (registeredBy.present) {
       map['registered_by'] = Variable<String>(registeredBy.value);
     }
+    if (voidedBy.present) {
+      map['voided_by'] = Variable<String>(voidedBy.value);
+    }
+    if (voidReason.present) {
+      map['void_reason'] = Variable<String>(voidReason.value);
+    }
     if (totalCents.present) {
       map['total_cents'] = Variable<int>(totalCents.value);
     }
@@ -3301,6 +3505,8 @@ class SalesCompanion extends UpdateCompanion<SaleRow> {
           ..write('date: $date, ')
           ..write('notes: $notes, ')
           ..write('registeredBy: $registeredBy, ')
+          ..write('voidedBy: $voidedBy, ')
+          ..write('voidReason: $voidReason, ')
           ..write('totalCents: $totalCents, ')
           ..write('profitCents: $profitCents, ')
           ..write('rowid: $rowid')
@@ -4879,6 +5085,28 @@ class $StockAdjustmentsTable extends StockAdjustments
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _voidedByMeta = const VerificationMeta(
+    'voidedBy',
+  );
+  @override
+  late final GeneratedColumn<String> voidedBy = GeneratedColumn<String>(
+    'voided_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _voidReasonMeta = const VerificationMeta(
+    'voidReason',
+  );
+  @override
+  late final GeneratedColumn<String> voidReason = GeneratedColumn<String>(
+    'void_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _unitCostRawMeta = const VerificationMeta(
     'unitCostRaw',
   );
@@ -4915,6 +5143,8 @@ class $StockAdjustmentsTable extends StockAdjustments
     reason,
     notes,
     registeredBy,
+    voidedBy,
+    voidReason,
     unitCostRaw,
     costTotalCents,
   ];
@@ -5004,6 +5234,18 @@ class $StockAdjustmentsTable extends StockAdjustments
         ),
       );
     }
+    if (data.containsKey('voided_by')) {
+      context.handle(
+        _voidedByMeta,
+        voidedBy.isAcceptableOrUnknown(data['voided_by']!, _voidedByMeta),
+      );
+    }
+    if (data.containsKey('void_reason')) {
+      context.handle(
+        _voidReasonMeta,
+        voidReason.isAcceptableOrUnknown(data['void_reason']!, _voidReasonMeta),
+      );
+    }
     if (data.containsKey('unit_cost_raw')) {
       context.handle(
         _unitCostRawMeta,
@@ -5087,6 +5329,14 @@ class $StockAdjustmentsTable extends StockAdjustments
         DriftSqlType.string,
         data['${effectivePrefix}registered_by'],
       ),
+      voidedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}voided_by'],
+      ),
+      voidReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}void_reason'],
+      ),
       unitCostRaw: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}unit_cost_raw'],
@@ -5128,6 +5378,11 @@ class StockAdjustmentRow extends DataClass
   /// v8. Email of the account that registered it (see the entity).
   final String? registeredBy;
 
+  /// v9. Who voided it and why. A voided document has `deleted_at` set:
+  /// it stays visible in the history but counts nowhere.
+  final String? voidedBy;
+  final String? voidReason;
+
   /// Average cost per base unit when written off, 1/10.000 Bs.
   final int unitCostRaw;
   final int costTotalCents;
@@ -5144,6 +5399,8 @@ class StockAdjustmentRow extends DataClass
     required this.reason,
     this.notes,
     this.registeredBy,
+    this.voidedBy,
+    this.voidReason,
     required this.unitCostRaw,
     required this.costTotalCents,
   });
@@ -5176,6 +5433,12 @@ class StockAdjustmentRow extends DataClass
     if (!nullToAbsent || registeredBy != null) {
       map['registered_by'] = Variable<String>(registeredBy);
     }
+    if (!nullToAbsent || voidedBy != null) {
+      map['voided_by'] = Variable<String>(voidedBy);
+    }
+    if (!nullToAbsent || voidReason != null) {
+      map['void_reason'] = Variable<String>(voidReason);
+    }
     map['unit_cost_raw'] = Variable<int>(unitCostRaw);
     map['cost_total_cents'] = Variable<int>(costTotalCents);
     return map;
@@ -5201,6 +5464,12 @@ class StockAdjustmentRow extends DataClass
       registeredBy: registeredBy == null && nullToAbsent
           ? const Value.absent()
           : Value(registeredBy),
+      voidedBy: voidedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voidedBy),
+      voidReason: voidReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voidReason),
       unitCostRaw: Value(unitCostRaw),
       costTotalCents: Value(costTotalCents),
     );
@@ -5228,6 +5497,8 @@ class StockAdjustmentRow extends DataClass
       ),
       notes: serializer.fromJson<String?>(json['notes']),
       registeredBy: serializer.fromJson<String?>(json['registeredBy']),
+      voidedBy: serializer.fromJson<String?>(json['voidedBy']),
+      voidReason: serializer.fromJson<String?>(json['voidReason']),
       unitCostRaw: serializer.fromJson<int>(json['unitCostRaw']),
       costTotalCents: serializer.fromJson<int>(json['costTotalCents']),
     );
@@ -5252,6 +5523,8 @@ class StockAdjustmentRow extends DataClass
       ),
       'notes': serializer.toJson<String?>(notes),
       'registeredBy': serializer.toJson<String?>(registeredBy),
+      'voidedBy': serializer.toJson<String?>(voidedBy),
+      'voidReason': serializer.toJson<String?>(voidReason),
       'unitCostRaw': serializer.toJson<int>(unitCostRaw),
       'costTotalCents': serializer.toJson<int>(costTotalCents),
     };
@@ -5270,6 +5543,8 @@ class StockAdjustmentRow extends DataClass
     AdjustmentReason? reason,
     Value<String?> notes = const Value.absent(),
     Value<String?> registeredBy = const Value.absent(),
+    Value<String?> voidedBy = const Value.absent(),
+    Value<String?> voidReason = const Value.absent(),
     int? unitCostRaw,
     int? costTotalCents,
   }) => StockAdjustmentRow(
@@ -5285,6 +5560,8 @@ class StockAdjustmentRow extends DataClass
     reason: reason ?? this.reason,
     notes: notes.present ? notes.value : this.notes,
     registeredBy: registeredBy.present ? registeredBy.value : this.registeredBy,
+    voidedBy: voidedBy.present ? voidedBy.value : this.voidedBy,
+    voidReason: voidReason.present ? voidReason.value : this.voidReason,
     unitCostRaw: unitCostRaw ?? this.unitCostRaw,
     costTotalCents: costTotalCents ?? this.costTotalCents,
   );
@@ -5306,6 +5583,10 @@ class StockAdjustmentRow extends DataClass
       registeredBy: data.registeredBy.present
           ? data.registeredBy.value
           : this.registeredBy,
+      voidedBy: data.voidedBy.present ? data.voidedBy.value : this.voidedBy,
+      voidReason: data.voidReason.present
+          ? data.voidReason.value
+          : this.voidReason,
       unitCostRaw: data.unitCostRaw.present
           ? data.unitCostRaw.value
           : this.unitCostRaw,
@@ -5330,6 +5611,8 @@ class StockAdjustmentRow extends DataClass
           ..write('reason: $reason, ')
           ..write('notes: $notes, ')
           ..write('registeredBy: $registeredBy, ')
+          ..write('voidedBy: $voidedBy, ')
+          ..write('voidReason: $voidReason, ')
           ..write('unitCostRaw: $unitCostRaw, ')
           ..write('costTotalCents: $costTotalCents')
           ..write(')'))
@@ -5350,6 +5633,8 @@ class StockAdjustmentRow extends DataClass
     reason,
     notes,
     registeredBy,
+    voidedBy,
+    voidReason,
     unitCostRaw,
     costTotalCents,
   );
@@ -5369,6 +5654,8 @@ class StockAdjustmentRow extends DataClass
           other.reason == this.reason &&
           other.notes == this.notes &&
           other.registeredBy == this.registeredBy &&
+          other.voidedBy == this.voidedBy &&
+          other.voidReason == this.voidReason &&
           other.unitCostRaw == this.unitCostRaw &&
           other.costTotalCents == this.costTotalCents);
 }
@@ -5386,6 +5673,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
   final Value<AdjustmentReason> reason;
   final Value<String?> notes;
   final Value<String?> registeredBy;
+  final Value<String?> voidedBy;
+  final Value<String?> voidReason;
   final Value<int> unitCostRaw;
   final Value<int> costTotalCents;
   final Value<int> rowid;
@@ -5402,6 +5691,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     this.reason = const Value.absent(),
     this.notes = const Value.absent(),
     this.registeredBy = const Value.absent(),
+    this.voidedBy = const Value.absent(),
+    this.voidReason = const Value.absent(),
     this.unitCostRaw = const Value.absent(),
     this.costTotalCents = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -5419,6 +5710,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     required AdjustmentReason reason,
     this.notes = const Value.absent(),
     this.registeredBy = const Value.absent(),
+    this.voidedBy = const Value.absent(),
+    this.voidReason = const Value.absent(),
     required int unitCostRaw,
     required int costTotalCents,
     this.rowid = const Value.absent(),
@@ -5446,6 +5739,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     Expression<String>? reason,
     Expression<String>? notes,
     Expression<String>? registeredBy,
+    Expression<String>? voidedBy,
+    Expression<String>? voidReason,
     Expression<int>? unitCostRaw,
     Expression<int>? costTotalCents,
     Expression<int>? rowid,
@@ -5463,6 +5758,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
       if (reason != null) 'reason': reason,
       if (notes != null) 'notes': notes,
       if (registeredBy != null) 'registered_by': registeredBy,
+      if (voidedBy != null) 'voided_by': voidedBy,
+      if (voidReason != null) 'void_reason': voidReason,
       if (unitCostRaw != null) 'unit_cost_raw': unitCostRaw,
       if (costTotalCents != null) 'cost_total_cents': costTotalCents,
       if (rowid != null) 'rowid': rowid,
@@ -5482,6 +5779,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     Value<AdjustmentReason>? reason,
     Value<String?>? notes,
     Value<String?>? registeredBy,
+    Value<String?>? voidedBy,
+    Value<String?>? voidReason,
     Value<int>? unitCostRaw,
     Value<int>? costTotalCents,
     Value<int>? rowid,
@@ -5499,6 +5798,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
       reason: reason ?? this.reason,
       notes: notes ?? this.notes,
       registeredBy: registeredBy ?? this.registeredBy,
+      voidedBy: voidedBy ?? this.voidedBy,
+      voidReason: voidReason ?? this.voidReason,
       unitCostRaw: unitCostRaw ?? this.unitCostRaw,
       costTotalCents: costTotalCents ?? this.costTotalCents,
       rowid: rowid ?? this.rowid,
@@ -5548,6 +5849,12 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
     if (registeredBy.present) {
       map['registered_by'] = Variable<String>(registeredBy.value);
     }
+    if (voidedBy.present) {
+      map['voided_by'] = Variable<String>(voidedBy.value);
+    }
+    if (voidReason.present) {
+      map['void_reason'] = Variable<String>(voidReason.value);
+    }
     if (unitCostRaw.present) {
       map['unit_cost_raw'] = Variable<int>(unitCostRaw.value);
     }
@@ -5575,6 +5882,8 @@ class StockAdjustmentsCompanion extends UpdateCompanion<StockAdjustmentRow> {
           ..write('reason: $reason, ')
           ..write('notes: $notes, ')
           ..write('registeredBy: $registeredBy, ')
+          ..write('voidedBy: $voidedBy, ')
+          ..write('voidReason: $voidReason, ')
           ..write('unitCostRaw: $unitCostRaw, ')
           ..write('costTotalCents: $costTotalCents, ')
           ..write('rowid: $rowid')
@@ -6810,6 +7119,8 @@ typedef $$PurchasesTableCreateCompanionBuilder = PurchasesCompanion Function({
   Value<String?> supplier,
   Value<String?> notes,
   Value<String?> registeredBy,
+  Value<String?> voidedBy,
+  Value<String?> voidReason,
   required int totalCents,
   Value<int> rowid,
 });
@@ -6822,6 +7133,8 @@ typedef $$PurchasesTableUpdateCompanionBuilder = PurchasesCompanion Function({
   Value<String?> supplier,
   Value<String?> notes,
   Value<String?> registeredBy,
+  Value<String?> voidedBy,
+  Value<String?> voidReason,
   Value<int> totalCents,
   Value<int> rowid,
 });
@@ -6895,6 +7208,16 @@ class $$PurchasesTableFilterComposer
 
   ColumnFilters<String> get registeredBy => $composableBuilder(
     column: $table.registeredBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get voidedBy => $composableBuilder(
+    column: $table.voidedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6978,6 +7301,16 @@ class $$PurchasesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get voidedBy => $composableBuilder(
+    column: $table.voidedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get totalCents => $composableBuilder(
     column: $table.totalCents,
     builder: (column) => ColumnOrderings(column),
@@ -7016,6 +7349,14 @@ class $$PurchasesTableAnnotationComposer
 
   GeneratedColumn<String> get registeredBy => $composableBuilder(
     column: $table.registeredBy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get voidedBy =>
+      $composableBuilder(column: $table.voidedBy, builder: (column) => column);
+
+  GeneratedColumn<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
     builder: (column) => column,
   );
 
@@ -7086,6 +7427,8 @@ class $$PurchasesTableTableManager
                 Value<String?> supplier = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<String?> registeredBy = const Value.absent(),
+                Value<String?> voidedBy = const Value.absent(),
+                Value<String?> voidReason = const Value.absent(),
                 Value<int> totalCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PurchasesCompanion(
@@ -7097,6 +7440,8 @@ class $$PurchasesTableTableManager
                 supplier: supplier,
                 notes: notes,
                 registeredBy: registeredBy,
+                voidedBy: voidedBy,
+                voidReason: voidReason,
                 totalCents: totalCents,
                 rowid: rowid,
               ),
@@ -7110,6 +7455,8 @@ class $$PurchasesTableTableManager
                 Value<String?> supplier = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<String?> registeredBy = const Value.absent(),
+                Value<String?> voidedBy = const Value.absent(),
+                Value<String?> voidReason = const Value.absent(),
                 required int totalCents,
                 Value<int> rowid = const Value.absent(),
               }) => PurchasesCompanion.insert(
@@ -7121,6 +7468,8 @@ class $$PurchasesTableTableManager
                 supplier: supplier,
                 notes: notes,
                 registeredBy: registeredBy,
+                voidedBy: voidedBy,
+                voidReason: voidReason,
                 totalCents: totalCents,
                 rowid: rowid,
               ),
@@ -7797,6 +8146,8 @@ typedef $$SalesTableCreateCompanionBuilder = SalesCompanion Function({
   required DateTime date,
   Value<String?> notes,
   Value<String?> registeredBy,
+  Value<String?> voidedBy,
+  Value<String?> voidReason,
   required int totalCents,
   required int profitCents,
   Value<int> rowid,
@@ -7809,6 +8160,8 @@ typedef $$SalesTableUpdateCompanionBuilder = SalesCompanion Function({
   Value<DateTime> date,
   Value<String?> notes,
   Value<String?> registeredBy,
+  Value<String?> voidedBy,
+  Value<String?> voidReason,
   Value<int> totalCents,
   Value<int> profitCents,
   Value<int> rowid,
@@ -7897,6 +8250,16 @@ class $$SalesTableFilterComposer extends Composer<_$AppDatabase, $SalesTable> {
 
   ColumnFilters<String> get registeredBy => $composableBuilder(
     column: $table.registeredBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get voidedBy => $composableBuilder(
+    column: $table.voidedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8005,6 +8368,16 @@ class $$SalesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get voidedBy => $composableBuilder(
+    column: $table.voidedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get totalCents => $composableBuilder(
     column: $table.totalCents,
     builder: (column) => ColumnOrderings(column),
@@ -8045,6 +8418,14 @@ class $$SalesTableAnnotationComposer
 
   GeneratedColumn<String> get registeredBy => $composableBuilder(
     column: $table.registeredBy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get voidedBy =>
+      $composableBuilder(column: $table.voidedBy, builder: (column) => column);
+
+  GeneratedColumn<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
     builder: (column) => column,
   );
 
@@ -8147,6 +8528,8 @@ class $$SalesTableTableManager
                 Value<DateTime> date = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<String?> registeredBy = const Value.absent(),
+                Value<String?> voidedBy = const Value.absent(),
+                Value<String?> voidReason = const Value.absent(),
                 Value<int> totalCents = const Value.absent(),
                 Value<int> profitCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8158,6 +8541,8 @@ class $$SalesTableTableManager
                 date: date,
                 notes: notes,
                 registeredBy: registeredBy,
+                voidedBy: voidedBy,
+                voidReason: voidReason,
                 totalCents: totalCents,
                 profitCents: profitCents,
                 rowid: rowid,
@@ -8171,6 +8556,8 @@ class $$SalesTableTableManager
                 required DateTime date,
                 Value<String?> notes = const Value.absent(),
                 Value<String?> registeredBy = const Value.absent(),
+                Value<String?> voidedBy = const Value.absent(),
+                Value<String?> voidReason = const Value.absent(),
                 required int totalCents,
                 required int profitCents,
                 Value<int> rowid = const Value.absent(),
@@ -8182,6 +8569,8 @@ class $$SalesTableTableManager
                 date: date,
                 notes: notes,
                 registeredBy: registeredBy,
+                voidedBy: voidedBy,
+                voidReason: voidReason,
                 totalCents: totalCents,
                 profitCents: profitCents,
                 rowid: rowid,
@@ -9273,6 +9662,8 @@ typedef $$StockAdjustmentsTableCreateCompanionBuilder =
       required AdjustmentReason reason,
       Value<String?> notes,
       Value<String?> registeredBy,
+      Value<String?> voidedBy,
+      Value<String?> voidReason,
       required int unitCostRaw,
       required int costTotalCents,
       Value<int> rowid,
@@ -9291,6 +9682,8 @@ typedef $$StockAdjustmentsTableUpdateCompanionBuilder =
       Value<AdjustmentReason> reason,
       Value<String?> notes,
       Value<String?> registeredBy,
+      Value<String?> voidedBy,
+      Value<String?> voidReason,
       Value<int> unitCostRaw,
       Value<int> costTotalCents,
       Value<int> rowid,
@@ -9393,6 +9786,16 @@ class $$StockAdjustmentsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get voidedBy => $composableBuilder(
+    column: $table.voidedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get unitCostRaw => $composableBuilder(
     column: $table.unitCostRaw,
     builder: (column) => ColumnFilters(column),
@@ -9491,6 +9894,16 @@ class $$StockAdjustmentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get voidedBy => $composableBuilder(
+    column: $table.voidedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get unitCostRaw => $composableBuilder(
     column: $table.unitCostRaw,
     builder: (column) => ColumnOrderings(column),
@@ -9572,6 +9985,14 @@ class $$StockAdjustmentsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get voidedBy =>
+      $composableBuilder(column: $table.voidedBy, builder: (column) => column);
+
+  GeneratedColumn<String> get voidReason => $composableBuilder(
+    column: $table.voidReason,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get unitCostRaw => $composableBuilder(
     column: $table.unitCostRaw,
     builder: (column) => column,
@@ -9648,6 +10069,8 @@ class $$StockAdjustmentsTableTableManager
                 Value<AdjustmentReason> reason = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<String?> registeredBy = const Value.absent(),
+                Value<String?> voidedBy = const Value.absent(),
+                Value<String?> voidReason = const Value.absent(),
                 Value<int> unitCostRaw = const Value.absent(),
                 Value<int> costTotalCents = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -9664,6 +10087,8 @@ class $$StockAdjustmentsTableTableManager
                 reason: reason,
                 notes: notes,
                 registeredBy: registeredBy,
+                voidedBy: voidedBy,
+                voidReason: voidReason,
                 unitCostRaw: unitCostRaw,
                 costTotalCents: costTotalCents,
                 rowid: rowid,
@@ -9682,6 +10107,8 @@ class $$StockAdjustmentsTableTableManager
                 required AdjustmentReason reason,
                 Value<String?> notes = const Value.absent(),
                 Value<String?> registeredBy = const Value.absent(),
+                Value<String?> voidedBy = const Value.absent(),
+                Value<String?> voidReason = const Value.absent(),
                 required int unitCostRaw,
                 required int costTotalCents,
                 Value<int> rowid = const Value.absent(),
@@ -9698,6 +10125,8 @@ class $$StockAdjustmentsTableTableManager
                 reason: reason,
                 notes: notes,
                 registeredBy: registeredBy,
+                voidedBy: voidedBy,
+                voidReason: voidReason,
                 unitCostRaw: unitCostRaw,
                 costTotalCents: costTotalCents,
                 rowid: rowid,

@@ -21,6 +21,9 @@ sealed class HistoryEntry {
   Money get amount;
 
   bool matches(HistoryFilter f);
+
+  /// Shown crossed out and left out of the day totals.
+  bool get isVoided;
 }
 
 final class SaleEntry extends HistoryEntry {
@@ -33,6 +36,8 @@ final class SaleEntry extends HistoryEntry {
   String get id => sale.id;
   @override
   Money get amount => sale.total;
+  @override
+  bool get isVoided => sale.isVoided;
   @override
   bool matches(HistoryFilter f) =>
       f == HistoryFilter.all || f == HistoryFilter.sales;
@@ -48,6 +53,8 @@ final class PurchaseEntry extends HistoryEntry {
   String get id => purchase.id;
   @override
   Money get amount => purchase.total;
+  @override
+  bool get isVoided => purchase.isVoided;
   @override
   bool matches(HistoryFilter f) =>
       f == HistoryFilter.all || f == HistoryFilter.purchases;
@@ -73,6 +80,8 @@ final class WriteOffEntry extends HistoryEntry {
   String get id => adjustment.id;
   @override
   Money get amount => adjustment.costTotal;
+  @override
+  bool get isVoided => adjustment.isVoided;
   @override
   bool matches(HistoryFilter f) =>
       f == HistoryFilter.all || f == HistoryFilter.writeOffs;
@@ -104,13 +113,22 @@ class HistoryDay {
   final DateTime day;
   final List<HistoryEntry> entries;
 
+  /// Voided documents are listed but count for nothing.
+  Iterable<HistoryEntry> get _counted => entries.where((e) => !e.isVoided);
+
+  /// Whether the day has sales that count (to show its totals).
+  bool get hasSales => _counted.any((e) => e is SaleEntry);
+
   Money get salesTotal =>
-      entries.whereType<SaleEntry>().map((e) => e.sale.total).sum;
+      _counted.whereType<SaleEntry>().map((e) => e.sale.total).sum;
 
   /// Sales profit minus write-off losses of the day.
   Money get profit =>
-      entries.whereType<SaleEntry>().map((e) => e.sale.profit).sum -
-      entries.whereType<WriteOffEntry>().map((e) => e.adjustment.costTotal).sum;
+      _counted.whereType<SaleEntry>().map((e) => e.sale.profit).sum -
+      _counted
+          .whereType<WriteOffEntry>()
+          .map((e) => e.adjustment.costTotal)
+          .sum;
 }
 
 /// Groups an already sorted (newest first) timeline by calendar day.
@@ -126,11 +144,26 @@ List<HistoryDay> groupByDay(List<HistoryEntry> entries) {
   return days;
 }
 
-/// The timeline, refreshed whenever a purchase, sale or write-off is saved.
+// The history also lists voided documents (crossed out); the reports read
+// the providers of `providers.dart`, which leave them out.
+final _purchasesWithVoided = StreamProvider<List<Purchase>>(
+  (ref) => ref.watch(purchaseRepositoryProvider).watchAll(includeVoided: true),
+);
+final _salesWithVoided = StreamProvider<List<Sale>>(
+  (ref) => ref.watch(saleRepositoryProvider).watchAll(includeVoided: true),
+);
+final _writeOffsWithVoided = StreamProvider<List<StockAdjustment>>(
+  (ref) => ref
+      .watch(stockAdjustmentRepositoryProvider)
+      .watchAll(includeVoided: true),
+);
+
+/// The timeline, refreshed whenever a purchase, sale or write-off is saved
+/// or voided.
 final historyProvider = FutureProvider<List<HistoryEntry>>((ref) async {
-  final purchases = await ref.watch(purchasesProvider.future);
-  final sales = await ref.watch(salesProvider.future);
-  final writeOffs = await ref.watch(stockAdjustmentsProvider.future);
+  final purchases = await ref.watch(_purchasesWithVoided.future);
+  final sales = await ref.watch(_salesWithVoided.future);
+  final writeOffs = await ref.watch(_writeOffsWithVoided.future);
   return mergeHistory(
     purchases: purchases,
     sales: sales,

@@ -13,6 +13,11 @@ class Purchases extends Table with BaseColumns {
 
   /// v8. Email of the account that registered it (see the entity).
   TextColumn get registeredBy => text().nullable()();
+
+  /// v9. Who voided it and why. A voided document has `deleted_at` set:
+  /// it stays visible in the history but counts nowhere.
+  TextColumn get voidedBy => text().nullable()();
+  TextColumn get voidReason => text().nullable()();
   IntColumn get totalCents => integer()();
 }
 
