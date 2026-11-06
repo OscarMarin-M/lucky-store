@@ -558,6 +558,7 @@ class _LotSummary extends ConsumerWidget {
       lot,
       before: product.stockState,
       after: next,
+      usualPackSize: product.unitsIn(lot.presentation),
     );
 
     return Padding(

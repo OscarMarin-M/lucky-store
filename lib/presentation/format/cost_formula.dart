@@ -97,14 +97,27 @@ class FormulaNote extends FormulaStep {
 
 /// How one lot of a purchase gets its unit cost and moves the product's
 /// average. [before] is the stock before this lot and [after] what the cost
-/// strategy computed with it.
+/// strategy computed with it. [usualPackSize] is the product's own size for
+/// the lot's pack (null: the product does not define it), to explain a lot
+/// that came with another count.
 List<FormulaStep> purchaseCostSteps(
   PurchaseLot lot, {
   required StockState before,
   required StockState after,
+  int? usualPackSize,
 }) {
   final units = lot.unitsBase;
   final steps = <FormulaStep?>[
+    // Boxes and bags enter stock as units: show the conversion when there is
+    // more than one pack (for one, the division below already shows it).
+    if (lot case PackLot(:final packs, :final unitsPerPack) when packs > 1)
+      Equation(
+        'Unidades',
+        Term('$packs ${lot.presentation.nameFor(packs)}', 'cantidad'),
+        '×',
+        Term('$unitsPerPack u', 'por ${lot.presentation.nameFor(1)}'),
+        Term('$units u', 'al stock'),
+      ),
     // A single pack's total is just its price: no step for it.
     switch (lot) {
       PackLot(:final packs, :final pricePerPack) when packs > 1 => Equation(
@@ -136,6 +149,11 @@ List<FormulaStep> purchaseCostSteps(
         Term(lot.unitCost.format(), 'c/u'),
       ),
   ].whereType<FormulaStep>().toList();
+
+  if (lot is PackLot) {
+    final note = _packSizeNote(lot, usualPackSize);
+    if (note != null) steps.add(FormulaNote(note));
+  }
 
   // Negative stock (sold offline before buying) carries no value, like in
   // the strategy: the lot alone sets the cost.
@@ -170,6 +188,49 @@ List<FormulaStep> purchaseCostSteps(
 String _packPriceLabel(PackLot lot) =>
     'precio ${lot.presentation.nameFor(1)}';
 
+/// Why a lot's own pack size matters when it is not the product's usual
+/// one: the cost uses the lot's count, the product's size stays as it is and
+/// is what sales and the stock count use. Null when the sizes match.
+String? _packSizeNote(PackLot lot, int? usual) {
+  final one = lot.presentation.nameFor(1);
+  final size = lot.unitsPerPack;
+  if (usual == size) return null;
+  // A box size of 1 means the product is not handled in boxes.
+  if (usual == null || usual <= 1) {
+    return 'El producto no tiene unidades por $one: el costo sale de las '
+        '$size u de esta compra. Para vender o contar el stock en ${one}s, '
+        'define las unidades por $one en la ficha del producto.';
+  }
+  return 'Esta $one trae $size u y el producto usa $usual u por $one: el '
+      'costo sale de las $size u de esta compra. La ficha no cambia; al '
+      'vender "1 $one" se descuentan $usual u.';
+}
+
+/// How the stock in units reads in packs, e.g. `85 u = 2 bolsas de 30 u +
+/// 25 u sueltas`, and why loose sales "open" a pack. Null for products
+/// without packs or without stock.
+String? _stockInPacksNote(Product p) {
+  final pack = p.hasBoxes
+      ? Presentation.box
+      : p.hasBags
+          ? Presentation.bag
+          : null;
+  final size = pack == null ? null : p.unitsIn(pack);
+  if (pack == null || size == null || size < 2 || p.stockUnits <= 0) {
+    return null;
+  }
+  final packs = p.stockUnits ~/ size;
+  final loose = p.stockUnits % size;
+  final one = pack.nameFor(1);
+  final breakdown = [
+    if (packs > 0) '$packs ${pack.nameFor(packs)} de $size u',
+    if (loose > 0) '$loose u sueltas',
+  ].join(' + ');
+  return 'Stock: ${p.stockUnits} u = $breakdown. Todo se guarda en '
+      'unidades: vender unidades sueltas abre una $one, y las ${one}s se '
+      'cuentan de $size u aunque alguna compra haya traído otra cantidad.';
+}
+
 /// The product's current figures: what its stock is worth and what one
 /// unit / one box / one bag leaves at the suggested prices.
 List<FormulaStep> productCostSteps(Product p) {
@@ -183,6 +244,7 @@ List<FormulaStep> productCostSteps(Product p) {
     ];
   }
   final box = p.unitsPerBox;
+  final stockNote = _stockInPacksNote(p);
   return [
     if (p.stockUnits > 0)
       Equation(
@@ -192,6 +254,7 @@ List<FormulaStep> productCostSteps(Product p) {
         Term(cost.format(), 'costo prom.'),
         Term(p.stockValue.format(), 'valor'),
       ),
+    if (stockNote != null) FormulaNote(stockNote),
     PriceSplit(
       title: 'Por unidad',
       price: p.suggestedPriceUnit,
@@ -216,5 +279,12 @@ List<FormulaStep> productCostSteps(Product p) {
       'de la compra) ÷ (stock + unidades compradas). Ventas y bajas no lo '
       'cambian: salen a este costo.',
     ),
+    if (p.hasBoxes || p.hasBags)
+      const FormulaNote(
+        'Cajas y bolsas no cambian el cálculo: se convierten a unidades '
+        '(cantidad × unidades por empaque) y todo se calcula por unidad. '
+        'Vender un empaque: ganancia = precio del empaque − unidades × costo '
+        'promedio.',
+      ),
   ];
 }

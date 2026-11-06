@@ -75,9 +75,12 @@ void main() {
     expect(find.text('Sale a'), findsOneWidget);
     expect(find.text('Bs 2,0000 c/u'), findsOneWidget);
     expect(find.text('Cómo se calcula'), findsOneWidget);
-    expect(find.text('2 cajas'), findsOneWidget);
+    // "2 cajas" and "48 u" in the conversion to units and again in the
+    // total and the division.
+    expect(find.text('Unidades'), findsOneWidget);
+    expect(find.text('2 cajas'), findsNWidgets(2));
     expect(find.text('Costo por unidad'), findsOneWidget);
-    expect(find.text('48 u'), findsOneWidget);
+    expect(find.text('48 u'), findsNWidgets(2));
     expect(
       find.textContaining('No había stock: el costo promedio queda en el de este lote, Bs 2,0000'),
       findsOneWidget,
