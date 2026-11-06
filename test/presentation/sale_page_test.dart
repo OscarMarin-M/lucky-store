@@ -8,6 +8,7 @@ import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/money/unit_cost.dart';
 import 'package:lucky_store/data/database/app_database.dart';
 import 'package:lucky_store/domain/entities/product.dart';
+import 'package:lucky_store/presentation/sales/quote_sheet.dart';
 import 'package:lucky_store/presentation/sales/sale_page.dart';
 import 'package:lucky_store/presentation/theme/app_theme.dart';
 
@@ -174,6 +175,13 @@ void main() {
     );
     addTearDown(() => tester.binding.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, null));
+    // A phone without WhatsApp: only the copy button.
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      shareChannel,
+      (call) async => <String>[],
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(shareChannel, null));
 
     await pumpPage(tester);
     final quote = find.widgetWithText(OutlinedButton, 'Cotización');
@@ -192,6 +200,7 @@ void main() {
     final shown = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
     expect(shown, contains('2 × Gum — Bs 3,00 c/u = Bs 6,00'));
     expect(shown, isNot(contains('Empaque')));
+    expect(find.text('WhatsApp'), findsNothing);
 
     await tester.tap(find.text('Copiar texto'));
     await tester.pumpAndSettle();
@@ -204,6 +213,38 @@ void main() {
       () => container.read(saleRepositoryProvider).getAll(),
     );
     expect(sales, isEmpty);
+    await teardown(tester);
+  });
+
+  testWidgets('a quote offers each installed WhatsApp and sends to the one tapped',
+      (tester) async {
+    final calls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      shareChannel,
+      (call) async {
+        calls.add(call);
+        return call.method == 'installedApps'
+            ? ['com.whatsapp', 'com.whatsapp.w4b']
+            : true;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(shareChannel, null));
+
+    await pumpPage(tester);
+    await addGum(tester);
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Cotización'));
+    await tester.pumpAndSettle();
+    expect(find.text('WhatsApp'), findsOneWidget);
+    expect(find.text('WhatsApp Business'), findsOneWidget);
+
+    await tester.tap(find.text('WhatsApp Business'));
+    await tester.pumpAndSettle();
+    final sent = calls.last;
+    expect(sent.method, 'sendText');
+    expect(sent.arguments['package'], 'com.whatsapp.w4b');
+    expect(sent.arguments['text'], contains('1 × Gum — Bs 3,00'));
+    expect(find.text('Copiar texto'), findsNothing, reason: 'sheet closed');
     await teardown(tester);
   });
 

@@ -3,7 +3,6 @@ import 'package:lucky_store/core/money/money.dart';
 import 'package:lucky_store/core/quantity/presentation.dart';
 import 'package:lucky_store/domain/entities/product.dart';
 import 'package:lucky_store/presentation/format/quote_text.dart';
-import 'package:lucky_store/presentation/sales/quote_sheet.dart';
 import 'package:lucky_store/presentation/sales/sale_draft.dart';
 
 void main() {
@@ -81,14 +80,6 @@ Precios sujetos a disponibilidad.''');
       text,
       contains('06/11/2026\n\n• 1 × Snickers — Bs 5,00\n\n*Total: Bs 5,00*'),
     );
-  });
-
-  test('the WhatsApp link keeps spaces, line breaks and accents', () {
-    const text = '*Total: Bs 5,00*\nCotización';
-    final uri = whatsAppShareUri(text);
-    expect(uri.host, 'wa.me');
-    expect(uri.queryParameters['text'], text);
-    expect(uri.toString(), isNot(contains('+')));
   });
 
   test('a quote ignores stock but needs valid prices', () {

@@ -40,8 +40,6 @@ dependencies:
   path_provider: ^2.1.6
   flutter_riverpod: ^3.4.3
   supabase_flutter: ^2.18.3
-  url_launcher: ^6.3.3
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

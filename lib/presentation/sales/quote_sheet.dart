@@ -1,39 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:url_launcher/url_launcher.dart';
-
 import '../format/quote_text.dart';
 import 'sale_draft.dart';
 
-/// wa.me without a number opens WhatsApp with the text typed in and lets
-/// the owner pick the chat. Spaces go as %20: WhatsApp shows a `+` literally.
-Uri whatsAppShareUri(String text) =>
-    Uri.parse('https://wa.me/?text=${Uri.encodeComponent(text)}');
+/// Talks to MainActivity.kt: the quote goes straight to the app the owner
+/// taps, not to whichever one Android opens wa.me links with.
+const shareChannel = MethodChannel('lucky_store/share');
 
-/// An ordinary link opened by the system: no permission needed.
-Future<bool> _openWhatsApp(String text) async {
+/// The WhatsApp apps offered, in button order.
+const whatsAppApps = {
+  'com.whatsapp': 'WhatsApp',
+  'com.whatsapp.w4b': 'WhatsApp Business',
+};
+
+/// Packages of [whatsAppApps] installed on this phone; none if the channel
+/// is missing (tests, other platforms).
+Future<List<String>> installedWhatsApps() async {
   try {
-    return await launchUrl(
-      whatsAppShareUri(text),
-      mode: LaunchMode.externalApplication,
-    );
+    final found = await shareChannel.invokeListMethod<String>('installedApps', {
+      'packages': whatsAppApps.keys.toList(),
+    });
+    return found ?? const [];
+  } on Exception {
+    return const [];
+  }
+}
+
+Future<bool> _sendTo(String package, String text) async {
+  try {
+    return await shareChannel.invokeMethod<bool>('sendText', {
+          'package': package,
+          'text': text,
+        }) ??
+        false;
   } on Exception {
     return false;
   }
 }
 
-/// Shows the customer's quote for the current cart and copies it to paste
-/// in the chat. The cart stays as is, so if the customer accepts the same
-/// order is charged with "Cobrar".
-Future<void> showQuoteSheet(BuildContext context, SaleDraftState draft) {
+/// Shows the customer's quote for the current cart, with a button per
+/// WhatsApp installed and one to copy it. The cart stays as is, so if the
+/// customer accepts the same order is charged with "Cobrar".
+Future<void> showQuoteSheet(BuildContext context, SaleDraftState draft) async {
   final text = quoteText(draft, date: draft.date ?? DateTime.now());
-  return showModalBottomSheet<void>(
+  final apps = await installedWhatsApps();
+  if (!context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+
+  void notify(String message) => messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
+
+  await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (sheetContext) {
       final theme = Theme.of(sheetContext);
+      final navigator = Navigator.of(sheetContext);
       return SafeArea(
         child: ConstrainedBox(
           constraints: BoxConstraints(
@@ -64,49 +89,32 @@ Future<void> showQuoteSheet(BuildContext context, SaleDraftState draft) {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  icon: const Icon(Icons.chat_outlined),
-                  label: const Text('Enviar por WhatsApp'),
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final navigator = Navigator.of(sheetContext);
-                    final opened = await _openWhatsApp(text);
-                    navigator.pop();
-                    if (opened) return;
-                    // No WhatsApp (or it refused the link): copy so the
-                    // quote is not lost and can be pasted anywhere.
-                    await Clipboard.setData(ClipboardData(text: text));
-                    messenger
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'No se pudo abrir WhatsApp; la cotización quedó '
-                            'copiada para pegarla en el chat',
-                          ),
-                        ),
+                for (final package in apps) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.chat_outlined),
+                    label: Text(whatsAppApps[package]!),
+                    onPressed: () async {
+                      final sent = await _sendTo(package, text);
+                      navigator.pop();
+                      if (sent) return;
+                      // WhatsApp refused it: copy so the quote is not lost.
+                      await Clipboard.setData(ClipboardData(text: text));
+                      notify(
+                        'No se pudo abrir ${whatsAppApps[package]}; la '
+                        'cotización quedó copiada para pegarla en el chat',
                       );
-                  },
-                ),
+                    },
+                  ),
+                ],
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.copy),
                   label: const Text('Copiar texto'),
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final navigator = Navigator.of(sheetContext);
                     await Clipboard.setData(ClipboardData(text: text));
                     navigator.pop();
-                    messenger
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Cotización copiada: pégala en el chat del cliente',
-                          ),
-                        ),
-                      );
+                    notify('Cotización copiada: pégala en el chat del cliente');
                   },
                 ),
               ],
