@@ -11,6 +11,7 @@ import '../common/validators.dart';
 import '../format/date_format.dart';
 import '../purchases/product_picker_sheet.dart';
 import '../theme/app_theme.dart';
+import 'quote_sheet.dart';
 import 'sale_draft.dart';
 
 /// "Vender" tab: a cart (or "pedido") of products with editable prices, plus
@@ -269,13 +270,29 @@ class _SalePageState extends ConsumerState<SalePage> {
                   ],
                 ),
               const SizedBox(height: 8),
-              FilledButton(
-                onPressed:
-                    draft.canSubmit(allowNegativeStock: allowNegative) &&
-                        !_submitting
-                    ? _submit
-                    : null,
-                child: const Text('Cobrar'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: draft.canQuote
+                          ? () => showQuoteSheet(context, draft)
+                          : null,
+                      icon: const Icon(Icons.request_quote_outlined),
+                      label: const Text('Cotización'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed:
+                          draft.canSubmit(allowNegativeStock: allowNegative) &&
+                              !_submitting
+                          ? _submit
+                          : null,
+                      child: const Text('Cobrar'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

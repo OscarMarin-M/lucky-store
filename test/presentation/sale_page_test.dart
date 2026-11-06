@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucky_store/app/providers.dart';
@@ -156,6 +157,53 @@ void main() {
     expect(sale.notes, 'Caja para Ana');
     expect(sale.extraCharges.single.concept, 'Mano de obra');
     expect(sale.extraCharges.single.amount, const Money(150));
+    await teardown(tester);
+  });
+
+  testWidgets('a quote copies the customer text and registers nothing',
+      (tester) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+
+    await pumpPage(tester);
+    final quote = find.widgetWithText(OutlinedButton, 'Cotización');
+    expect(tester.widget<OutlinedButton>(quote).onPressed, isNull,
+        reason: 'empty cart');
+    await addGum(tester);
+    await tester.tap(find.byTooltip('Más')); // 2 u: Bs 6,00
+    await tester.pump();
+    await tester.tap(find.text('Empaque')); // paid by the shop: not shown
+    await tester.pump();
+    await tester.enterText(find.widgetWithText(TextField, 'Monto'), '0,50');
+    await tester.pump();
+
+    await tester.tap(quote);
+    await tester.pumpAndSettle();
+    final shown = tester.widget<SelectableText>(find.byType(SelectableText)).data!;
+    expect(shown, contains('2 × Gum — Bs 3,00 c/u = Bs 6,00'));
+    expect(shown, isNot(contains('Empaque')));
+
+    await tester.tap(find.text('Copiar texto'));
+    await tester.pumpAndSettle();
+    expect(copied, contains('*Total: Bs 6,00*'));
+    expect(find.text('Cotización copiada: pégala en el chat del cliente'),
+        findsOneWidget);
+    expect(find.text('Gum'), findsOneWidget, reason: 'the cart stays');
+
+    final sales = await tester.runAsync(
+      () => container.read(saleRepositoryProvider).getAll(),
+    );
+    expect(sales, isEmpty);
     await teardown(tester);
   });
 

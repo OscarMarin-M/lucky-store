@@ -189,6 +189,13 @@ class SaleDraftState {
       ) &&
       filledExtraCharges.every((c) => c.isValid);
 
+  /// A quote only needs valid quantities, prices and charges: stock is not
+  /// checked because the customer may order for later, after the next buy.
+  bool get canQuote =>
+      lines.isNotEmpty &&
+      lines.every((l) => l.quantity >= 1 && l.hasValidPrice) &&
+      filledExtraCharges.every((c) => c.isValid);
+
   Money get productsTotal =>
       lines.map((l) => l.lineTotal ?? Money.zero).sum;
 
