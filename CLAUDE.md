@@ -88,6 +88,13 @@ La tienda de compra venta de dulces(americanos) por lo que se toma en cuenta pro
   Business `com.whatsapp.w4b`, declarados en `<queries>` del manifest; sin permisos).
   No usar `wa.me`: abre siempre la app predeterminada. En tests, simular el canal con
   `setMockMethodCallHandler(shareChannel, ...)` o la hoja de cotización no abre.
+- Marca: logo redondo en `assets/branding/logo.png` (`BrandLogo`, `BrandLoading` =
+  logo + spinner + "Cargando…" en `lib/presentation/common/brand.dart`; usarlo en toda
+  pantalla de carga). Fuentes en `assets/branding/source/` (no se empaquetan). Icono:
+  `dart run flutter_launcher_icons` (adaptativo sobre #D16D69); splash:
+  `dart run flutter_native_splash:create` (#141213). Tema oscuro cálido con acento
+  rosado suave (`brandPink` en `app_theme.dart`, `tonalSpot`): el rosado solo en
+  acentos, fondos neutros para descansar la vista. La cotización usa emojis 🐻🍬.
 - APK para compartir con el equipo: `flutter build apk --release --dart-define-from-file=env/dev.json`
   (~60 MB; se firma con la clave debug de esta PC, así las versiones nuevas se instalan
   encima sin perder datos ni sesión).
