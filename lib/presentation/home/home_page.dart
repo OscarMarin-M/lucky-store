@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/brand.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/money.dart';
@@ -36,7 +37,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inicio'),
+        // Small logo next to the title: the first screen carries the brand.
+        title: const Row(
+          children: [
+            BrandLogo(size: 36),
+            SizedBox(width: 10),
+            Text('Inicio'),
+          ],
+        ),
         actions: const [SyncIndicator()],
       ),
       body: Column(
@@ -56,7 +64,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           Expanded(
             child: dashboard.when(
               skipLoadingOnReload: true,
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const BrandLoading(),
               error: (e, _) =>
                   Center(child: Text('No se pudo cargar el resumen\n$e')),
               data: (d) => ListView(

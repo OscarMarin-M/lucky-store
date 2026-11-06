@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/brand.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../sync/sync_indicator.dart';
@@ -83,7 +84,7 @@ class _ProductsPageState extends ConsumerState<ProductsPage> {
         label: const Text('Nuevo'),
       ),
       body: products.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const BrandLoading(),
         error: (e, _) =>
             Center(child: Text('No se pudieron cargar los productos\n$e')),
         data: (all) {

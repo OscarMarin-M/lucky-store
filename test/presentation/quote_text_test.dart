@@ -49,21 +49,22 @@ void main() {
     );
 
     expect(quoteText(draft, date: date), '''
-*Cotización · Lucky Store*
+🐻🍬 *Cotización · Lucky Store*
 Caja San Valentín para Ana
-06/11/2026
+📅 06/11/2026
 
-• 3 × Snickers — Bs 5,00 c/u = Bs 15,00
-• 1 caja de Twix (24 u) — Bs 100,00
-• 2 cajas de Twix (24 u c/u) — Bs 90,00 c/caja = Bs 180,00
-• 1 × Reese's — de regalo 🎁
+🍬 3 × Snickers — Bs 5,00 c/u = Bs 15,00
+🍬 1 caja de Twix (24 u) — Bs 100,00
+🍬 2 cajas de Twix (24 u c/u) — Bs 90,00 c/caja = Bs 180,00
+🍬 1 × Reese's — de regalo 🎁
 
-Productos: Bs 295,00
-Adicionales:
+🛍️ Productos: Bs 295,00
+✨ Adicionales:
 • Armado — Bs 15,00
 
-*Total: Bs 310,00*
-Precios sujetos a disponibilidad.''');
+💰 *Total: Bs 310,00*
+Precios sujetos a disponibilidad.
+¡Gracias por elegir Lucky Store! 🐻💕''');
   });
 
   test('without a name or customer charges it is just products and total', () {
@@ -78,7 +79,7 @@ Precios sujetos a disponibilidad.''');
     expect(text, isNot(contains('Adicionales')));
     expect(
       text,
-      contains('06/11/2026\n\n• 1 × Snickers — Bs 5,00\n\n*Total: Bs 5,00*'),
+      contains('📅 06/11/2026\n\n🍬 1 × Snickers — Bs 5,00\n\n💰 *Total: Bs 5,00*'),
     );
   });
 

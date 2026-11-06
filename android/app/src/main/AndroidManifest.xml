@@ -2,7 +2,7 @@
     <!-- Sync with Supabase (debug builds add it on their own, release does not). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:label="lucky_store"
+        android:label="Lucky Store"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/brand.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -74,7 +75,7 @@ class _ProductPickerSheetState extends ConsumerState<_ProductPickerSheet> {
             ],
             Expanded(
               child: products.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const BrandLoading(compact: true),
                 error: (e, _) => Center(child: Text('$e')),
                 data: (all) {
                   final matches = all.where((p) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/brand.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../sync/sync_indicator.dart';
@@ -62,7 +63,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
             // screen instead of flashing a spinner.
             child: history.when(
               skipLoadingOnReload: true,
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading: () => const BrandLoading(),
               error: (e, _) =>
                   Center(child: Text('No se pudo cargar el historial\n$e')),
               data: (all) {

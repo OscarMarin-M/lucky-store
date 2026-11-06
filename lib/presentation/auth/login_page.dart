@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../common/brand.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -78,18 +79,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.storefront_outlined,
-                    size: 56,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Lucky Store',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 4),
+                  // The logo already reads "Lucky Store": no title below it.
+                  const Center(child: BrandLogo(size: 160)),
+                  const SizedBox(height: 16),
                   Text(
                     'Inicia sesión para compartir ventas y compras con el equipo',
                     textAlign: TextAlign.center,
@@ -155,8 +147,7 @@ class AuthGate extends ConsumerWidget {
     final session = ref.watch(authSessionProvider);
     return session.when(
       skipLoadingOnReload: true,
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: BrandLoading()),
       error: (_, _) => const LoginPage(),
       data: (s) => s == null ? const LoginPage() : child,
     );

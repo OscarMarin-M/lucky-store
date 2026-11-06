@@ -7,30 +7,35 @@ import 'date_format.dart';
 /// no charges the shop absorbs. Nothing is registered and stock is untouched.
 ///
 /// ```
-/// *Cotización · Lucky Store*
+/// 🐻🍬 *Cotización · Lucky Store*
 /// Caja San Valentín para Ana
-/// 06/11/2026
+/// 📅 06/11/2026
 ///
-/// • 3 × Snickers — Bs 5,00 c/u = Bs 15,00
-/// • 1 caja de Twix (24 u) — Bs 100,00
-/// • 1 × Reese's — de regalo 🎁
+/// 🍬 3 × Snickers — Bs 5,00 c/u = Bs 15,00
+/// 🍬 1 caja de Twix (24 u) — Bs 100,00
+/// 🍬 1 × Reese's — de regalo 🎁
 ///
-/// Adicionales:
+/// 🛍️ Productos: Bs 115,00
+/// ✨ Adicionales:
 /// • Armado — Bs 15,00
 ///
-/// *Total: Bs 115,00*
+/// 💰 *Total: Bs 130,00*
 /// Precios sujetos a disponibilidad.
+/// ¡Gracias por elegir Lucky Store! 🐻💕
+///
+/// The emojis echo the logo (bear and candy); WhatsApp shows them on any
+/// phone and they survive a plain copy.
 /// ```
 String quoteText(SaleDraftState draft, {required DateTime date}) {
-  final out = StringBuffer('*Cotización · Lucky Store*\n');
+  final out = StringBuffer('🐻🍬 *Cotización · Lucky Store*\n');
   final name = draft.notes.trim();
   if (name.isNotEmpty) out.writeln(name);
   out
-    ..writeln(formatDate(date))
+    ..writeln('📅 ${formatDate(date)}')
     ..writeln();
 
   for (final l in draft.lines) {
-    out.writeln('• ${_line(l)}');
+    out.writeln('🍬 ${_line(l)}');
   }
 
   final charges = draft.filledExtraCharges
@@ -39,8 +44,8 @@ String quoteText(SaleDraftState draft, {required DateTime date}) {
   if (charges.isNotEmpty) {
     out
       ..writeln()
-      ..writeln('Productos: ${draft.productsTotal.format()}')
-      ..writeln('Adicionales:');
+      ..writeln('🛍️ Productos: ${draft.productsTotal.format()}')
+      ..writeln('✨ Adicionales:');
     for (final c in charges) {
       out.writeln('• ${c.concept.trim()} — ${c.amount!.format()}');
     }
@@ -48,8 +53,9 @@ String quoteText(SaleDraftState draft, {required DateTime date}) {
 
   out
     ..writeln()
-    ..writeln('*Total: ${draft.total.format()}*')
-    ..write('Precios sujetos a disponibilidad.');
+    ..writeln('💰 *Total: ${draft.total.format()}*')
+    ..writeln('Precios sujetos a disponibilidad.')
+    ..write('¡Gracias por elegir Lucky Store! 🐻💕');
   return out.toString();
 }
 
